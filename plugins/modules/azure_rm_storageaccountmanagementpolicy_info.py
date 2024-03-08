@@ -24,7 +24,7 @@ options:
         type: str
         aliases:
             - resource_group_name
-    name:
+    storage_account_name:
         description:
             - Name of the storage account to update or create.
         type: str
@@ -661,7 +661,6 @@ class AzureRMStorageAccountManagementPolicyInfo(AzureRMModuleBase):
         self.module_arg_spec = dict(
             resource_group=dict(required=True, type='str', aliases=['resource_group_name']),
             storage_account_name=dict(type='str', required=True),
-            name=dict(type='str', required=True),
         )
 
         self.results = dict(
@@ -670,13 +669,13 @@ class AzureRMStorageAccountManagementPolicyInfo(AzureRMModuleBase):
         )
 
         self.resource_group = None
-        self.name = None
         self.storage_account_name = None
         self.state = None
         self.rules = None
 
         super(AzureRMStorageAccountManagementPolicyInfo, self).__init__(self.module_arg_spec,
-                                                                    supports_check_mode=True)
+                                                                        supports_tags=False,
+                                                                        supports_check_mode=True)
 
     def exec_module(self, **kwargs):
 
@@ -688,18 +687,30 @@ class AzureRMStorageAccountManagementPolicyInfo(AzureRMModuleBase):
         return self.results
 
     def get_management_policy(self):
-        self.log('Get info for storage account management policy {0}'.format(self.name))
+        self.log('Get info for storage account management policy')
 
         response = None
         try:
-            response = self.storage_client.management_policies.get(self.resource_group, self.storage_account_name, self.name)
-        except ResourceNotFoundError:
-            pass
+            response = self.storage_client.management_policies.get(self.resource_group, self.storage_account_name, 'default')
+        except ResourceNotFoundError as ec:
+            self.log("Failed to obtain the storage acount management policy, detail as {0}".format(ec))
+            return
 
         return self.format_to_dict(response)
 
     def format_to_dict(self, obj):
-        pass
+        result = dict()
+        result['id'] = obj.id
+        result['resource_group'] = self.resource_group
+        result['storage_account_name'] = self.storage_account_name
+        result['name'] = obj.name
+        result['type'] = obj.type
+        result['last_modified_time'] = obj.last_modified_time
+        result['policy'] = dict(rules=[])
+        if obj.policy is not None:
+            result['policy'] = obj.policy.as_dict()
+
+        return result
 
 
 def main():
