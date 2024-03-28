@@ -143,6 +143,16 @@ company_name:
     type: str
     returned: always
     sample: "Test Company"
+on_premises_extension_attributes:
+    description:
+        - Contains extensionAttributes1-15 for the user.
+        - These extension attributes are also known as Exchange custom attributes 1-15.
+        - For an onPremisesSyncEnabled user, the source of authority for this set of properties is the on-premises and is read-only.
+        - For a cloud-only user (where onPremisesSyncEnabled is false), these properties can be set during the creation or update of a user object.
+        - For a cloud-only user previously synced from on-premises Active Directory, these properties are read-only in Microsoft Graph but can be fully managed through the Exchange Admin Center or the Exchange Online V2 module in PowerShell.
+    type: dict
+    returned: always
+    sample: {}
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBase
@@ -224,7 +234,6 @@ class AzureRMADUserInfo(AzureRMModuleBase):
             elif self.all:
                 # this returns as a list, since we parse multiple pages
                 ad_users = asyncio.get_event_loop().run_until_complete(self.get_users())
-
             self.results['ad_users'] = [self.to_dict(user) for user in ad_users]
 
         except Exception as e:
@@ -232,6 +241,16 @@ class AzureRMADUserInfo(AzureRMModuleBase):
 
         return self.results
 
+    def on_premises_extension_attributes_to_dict(self, on_premises_extension_attributes):
+        extension_attributes = {}
+        for index in range(1, 16 + 1):
+            attribute_name = f'extension_attribute{index}'
+            if hasattr(on_premises_extension_attributes, attribute_name):
+                attr_value = getattr(on_premises_extension_attributes, attribute_name)
+                if attr_value is not None:
+                    extension_attributes[attribute_name] = attr_value
+        return extension_attributes
+    
     def to_dict(self, object):
         return dict(
             object_id=object.id,
@@ -241,13 +260,14 @@ class AzureRMADUserInfo(AzureRMModuleBase):
             mail=object.mail,
             account_enabled=object.account_enabled,
             user_type=object.user_type,
-            company_name=object.company_name
+            company_name=object.company_name,
+            on_premises_extension_attributes=self.on_premises_extension_attributes_to_dict(object.on_premises_extension_attributes)
         )
 
     async def get_user(self, object):
         request_configuration = UsersRequestBuilder.UsersRequestBuilderGetRequestConfiguration(
             query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
-                select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName", "userType", "companyName"]
+                select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName", "userType", "companyName", "onPremisesExtensionAttributes"]
             ),
         )
         return await self._client.users.by_user_id(object).get(request_configuration=request_configuration)
@@ -255,7 +275,7 @@ class AzureRMADUserInfo(AzureRMModuleBase):
     async def get_users(self):
         request_configuration = UsersRequestBuilder.UsersRequestBuilderGetRequestConfiguration(
             query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
-                select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName", "userType", "companyName"]
+                select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName", "userType", "companyName", "onPremisesExtensionAttributes"]
             ),
         )
         users = []
@@ -276,7 +296,7 @@ class AzureRMADUserInfo(AzureRMModuleBase):
                 query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
                     filter=filter,
                     select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName",
-                            "userType", "companyName"],
+                            "userType", "companyName", "onPremisesExtensionAttributes"],
                     count=True
                 ),
             ))
