@@ -139,7 +139,7 @@
     hosting_mode: default
     identity: SystemAssigned
     network_rule_set:
-      - 8.8.8.8/31
+      - 8.8.8.8
       - 1.1.1.1
     partition_count: 2
     public_network_access: disabled
@@ -171,7 +171,7 @@
     hosting_mode: default
     identity: SystemAssigned
     network_rule_set:
-      - 8.8.8.8/31
+      - 8.8.8.8
       - 1.1.1.1
     partition_count: 2
     public_network_access: disabled
