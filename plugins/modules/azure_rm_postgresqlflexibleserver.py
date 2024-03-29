@@ -201,6 +201,41 @@ options:
             - Whether to start the Post gresql server.
         type: bool
         default: False
+    identity:
+        description:
+            - Identity for the Server.
+        type: dict
+        version_added: '2.4.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                required: true
+                choices:
+                    - UserAssigned
+                    - None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the VM
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
+
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -533,6 +568,15 @@ storage_spec = dict(
     storage_size_gb=dict(type='int')
 )
 
+user_assigned_identities_spec = dict(
+    id=dict(type='list', default=[], elements='str'),
+    append=dict(type='bool', default=True)
+)
+
+managed_identity_spec = dict(
+    type=dict(type='str', choices=['UserAssigned', 'None'], required=True),
+    user_assigned_identities=dict(type='dict', options=user_assigned_identities_spec, default={}),
+)
 
 class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBase):
     """Configuration class for an Azure RM PostgreSQL Flexible Server resource"""
@@ -613,6 +657,7 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBase):
             source_server_resource_id=dict(
                 type='str'
             ),
+            identity=dict(type='dict', options=managed_identity_spec),
             state=dict(
                 type='str',
                 default='present',
@@ -628,6 +673,7 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBase):
         self.is_start = None
         self.is_stop = None
         self.is_restart = None
+        self.identity = None
 
         self.results = dict(changed=False)
         self.state = None
@@ -663,6 +709,10 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBase):
             self.log("PostgreSQL Flexible Server instance doesn't exist")
             if self.state == 'present':
                 if not self.check_mode:
+                    if self.identity:
+                        update_identity, new_identity = self.update_identities({})
+                        if update_identity:
+                            self.parameters['identity'] = new_identity
                     response = self.create_postgresqlflexibleserver(self.parameters)
                     if self.is_stop:
                         self.stop_postgresqlflexibleserver()
@@ -711,6 +761,12 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBase):
                             update_flag = True
                         else:
                             self.update_parameters['maintenance_window'][key] = old_response['maintenance_window'].get(key)
+
+                if self.identity:
+                    update_identity, new_identity = self.update_identities(old_response.get('identity', {}))
+                    if update_identity:
+                        self.update_parameters['identity'] = new_identity
+                        update_flag = True
 
                 update_tags, new_tags = self.update_tags(old_response['tags'])
                 self.update_parameters['tags'] = new_tags
@@ -915,6 +971,8 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBase):
             result['maintenance_window']['start_minute'] = item.maintenance_window.start_minute
             result['maintenance_window']['start_hour'] = item.maintenance_window.start_hour
             result['maintenance_window']['day_of_week'] = item.maintenance_window.day_of_week
+        if item.identity is not None:
+            result['identity'] = item.identity.as_dict()
 
         return result
 

@@ -261,6 +261,7 @@ try:
     from azure.mgmt.servicebus import ServiceBusManagementClient
     from azure.mgmt.rdbms.postgresql import PostgreSQLManagementClient
     from azure.mgmt.rdbms.postgresql_flexibleservers import PostgreSQLManagementClient as PostgreSQLFlexibleManagementClient
+    import azure.mgmt.rdbms.postgresql_flexibleservers.models as PostgreSQLFlexibleModels
     from azure.mgmt.rdbms.mysql import MySQLManagementClient
     from azure.mgmt.rdbms.mariadb import MariaDBManagementClient
     from azure.mgmt.containerregistry import ContainerRegistryManagementClient
@@ -556,6 +557,44 @@ class AzureRMModuleBase(object):
                     new_tags.pop(key)
                     changed = True
         return changed, new_tags
+
+    def update_identities(self, curr_identity):
+        new_identities = []
+        changed = False
+        current_managed_type = curr_identity.get('type', None)
+        current_managed_identities = set(curr_identity.get('user_assigned_identities', {}).keys())
+        param_identity = self.module.params.get('identity')
+        param_identities = set(param_identity.get('user_assigned_identities', {}).get('id', []))
+        new_identities = param_identities
+
+        # If type set to None, and Resource has no current identities, nothing to do
+        if 'None' in param_identity.get('type') and current_managed_type == "None":
+            pass
+        # If type different to None, and Resource has no current identities, update identities
+        elif param_identity.get('type') == "None":
+            changed = True
+        # If type in module args contains 'UserAssigned'
+        elif 'UserAssigned' in param_identity.get('type'):
+            if param_identity.get('user_assigned_identities', {}).get('append', False) is True:
+                new_identities = param_identities.union(current_managed_identities)
+                if len(current_managed_identities) != len(new_identities):
+                    # update identities
+                    changed = True
+            # If new identities have to overwrite current identities
+            else:
+                # Check if module args identities are different as current ones
+                if current_managed_identities.difference(new_identities) != set():
+                    changed = True
+
+        # Append identities to the model
+        user_assigned_identities_dict = {uami: dict() for uami in new_identities}
+        new_identity = self.postgresql_flexible_models.UserAssignedIdentity(
+            type=param_identity.get('type'),
+            user_assigned_identities=user_assigned_identities_dict
+        )
+
+        return changed, new_identity
+
 
     def has_tags(self, obj_tags, tag_list):
         '''
@@ -947,7 +986,10 @@ class AzureRMModuleBase(object):
             def _ansible_get_models(self, *arg, **kwarg):
                 return self._ansible_models
 
-            setattr(client, '_ansible_models', importlib.import_module(client_type.__module__).models)
+            try:
+                setattr(client, '_ansible_models', importlib.import_module(client_type.__module__).models)
+            except AttributeError:
+                setattr(client, '_ansible_models', importlib.import_module(client_type.__module__)._models)
             client.models = types.MethodType(_ansible_get_models, client)
 
         if self.azure_auth._cert_validation_mode == 'ignore':
@@ -1186,6 +1228,11 @@ class AzureRMModuleBase(object):
             self._postgresql_flexible_client = self.get_mgmt_svc_client(PostgreSQLFlexibleManagementClient,
                                                                         base_url=self._cloud_environment.endpoints.resource_manager)
         return self._postgresql_flexible_client
+
+    @property
+    def postgresql_flexible_models(self):
+        self.log("Getting postgresql_flexible models")
+        return PostgreSQLFlexibleModels
 
     @property
     def postgresql_client(self):

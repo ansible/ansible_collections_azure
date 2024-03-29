@@ -9,7 +9,26 @@
     name: "{{ new_resource_group }}"
     location: southeastasia
 
-- name: Create post gresql flexible server (check mode)
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ new_resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: southeastasia
+    state: present
+  loop:
+    - "ansible-test-pgsql-identity"
+    - "ansible-test-pgsql-identity-2"
+
+- name: Set identities IDs to test. Identities ansible-test-psql-identity and ansible-test-psql-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ new_resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-pgsql-identity"
+    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ new_resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-pgsql-identity-2"
+
+- name: Create postgresql flexible server (check mode)
   azure_rm_postgresqlflexibleserver:
     resource_group: "{{ new_resource_group }}"
     name: postflexible{{ rpfx }}
@@ -34,9 +53,14 @@
       day_of_week: 3
     availability_zone: 2
     create_mode: Create
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
   check_mode: true
 
-- name: Create post gresql flexible server
+- name: Create postgresql flexible server
   azure_rm_postgresqlflexibleserver:
     resource_group: "{{ new_resource_group }}"
     name: postflexible{{ rpfx }}
@@ -61,14 +85,25 @@
       day_of_week: 3
     availability_zone: 2
     create_mode: Create
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
   register: output
 
-- name: Assert the post grep sql server create success
+- name: Assert the postgresql flexible server create success
   ansible.builtin.assert:
     that:
       - output.changed
 
-- name: Create post gresql flexible server (Idempotent Test)
+- name: Assert User identity assigned
+  ansible.builtin.assert:
+    that:
+      - output.state.identity.type == 'UserAssigned'
+      - user_identity_1 in output.state.identity.user_assigned_identities
+
+- name: Create postgresql flexible server (Idempotent Test)
   azure_rm_postgresqlflexibleserver:
     resource_group: "{{ new_resource_group }}"
     name: postflexible{{ rpfx }}
@@ -93,14 +128,19 @@
       day_of_week: 3
     availability_zone: 2
     create_mode: Create
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
   register: output
 
-- name: Assert the post grep sql server create success
+- name: Assert the postgresql server create success
   ansible.builtin.assert:
     that:
       - not output.changed
 
-- name: Update post gresql flexible server with multiple parameters
+- name: Update postgresql flexible server with multiple parameters
   azure_rm_postgresqlflexibleserver:
     resource_group: "{{ new_resource_group }}"
     name: postflexible{{ rpfx }}
@@ -128,9 +168,15 @@
     tags:
       key1: value1
       key2: value2
+    identity:
+      type: "UserAssigned"
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_2 }}"
+        append: true
   register: output
 
-- name: Assert the post grep sql server update success
+- name: Assert the postgresql server update success
   ansible.builtin.assert:
     that:
       - output.changed
@@ -141,7 +187,7 @@
     name: postflexible{{ rpfx }}
   register: output
 
-- name: Assert the post gresql server is well created
+- name: Assert the postgresql server is well created
   ansible.builtin.assert:
     that:
       - output.servers[0].tags | length == 2
@@ -150,8 +196,23 @@
       - output.servers[0].maintenance_window.day_of_week == 6
       - output.servers[0].maintenance_window.start_hour == 10
       - output.servers[0].maintenance_window.start_minute == 6
+      - user_identity_1 in output.servers[0].identity.user_assigned_identities
+      - user_identity_2 in output.servers[0].identity.user_assigned_identities
 
-- name: Create a post gresql flexible database(check mode)
+- name: Disable postgresql server UserAssigned
+  azure_rm_postgresqlflexibleserver:
+    name: postflexible{{ rpfx }}
+    resource_group: "{{ new_resource_group }}"
+    identity:
+      type: "None"
+  register: output
+
+- name: Assert no managed identities
+  ansible.builtin.assert:
+    that:
+      - "'identity' not in output.state"
+
+- name: Create a postgresql flexible database(check mode)
   azure_rm_postgresqlflexibledatabase:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -160,7 +221,7 @@
     charset: UTF8
   check_mode: true
 
-- name: Create a post gresql flexible database
+- name: Create a postgresql flexible database
   azure_rm_postgresqlflexibledatabase:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -169,12 +230,12 @@
     charset: UTF8
   register: output
 
-- name: Assert the post gresql flexible database created success
+- name: Assert the postgresql flexible database created success
   ansible.builtin.assert:
     that:
       - output.changed
 
-- name: Create a post gresql flexible database(Idempotent test)
+- name: Create a postgresql flexible database(Idempotent test)
   azure_rm_postgresqlflexibledatabase:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -183,25 +244,25 @@
     charset: UTF8
   register: output
 
-- name: Assert the post gresql flexible database no changed
+- name: Assert the postgresql flexible database no changed
   ansible.builtin.assert:
     that:
       - not output.changed
 
-- name: Get the post gresql flexibe database facts
+- name: Get the postgresql flexibe database facts
   azure_rm_postgresqlflexibledatabase_info:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
     name: database{{ rpfx }}
   register: output
 
-- name: Assert the post gresql flexible database facts
+- name: Assert the postgresql flexible database facts
   ansible.builtin.assert:
     that:
       - output.databases[0].collation == 'en_US.utf8'
       - output.databases[0].charset == 'UTF8'
 
-- name: Delete the post gresql flexibe database
+- name: Delete the postgresql flexibe database
   azure_rm_postgresqlflexibledatabase:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -209,12 +270,12 @@
     state: absent
   register: output
 
-- name: Assert the post gresql flexible database deleted
+- name: Assert the postgresql flexible database deleted
   ansible.builtin.assert:
     that:
       - output.changed
 
-- name: Create a post gresql flexible firwall rule (Check mode)
+- name: Create a postgresql flexible firwall rule (Check mode)
   azure_rm_postgresqlflexiblefirewallrule:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -223,7 +284,7 @@
     end_ip_address: 10.0.0.20
   check_mode: true
 
-- name: Create the post gresql flexible firwall rule
+- name: Create the postgresql flexible firwall rule
   azure_rm_postgresqlflexiblefirewallrule:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -232,12 +293,12 @@
     end_ip_address: 10.0.0.20
   register: output
 
-- name: Assert the post grepsql flexible firewall rule created well
+- name: Assert the postgrepsql flexible firewall rule created well
   ansible.builtin.assert:
     that:
       - output.changed
 
-- name: Create the post gresql flexible firwall rule (Idempotent test)
+- name: Create the postgresql flexible firwall rule (Idempotent test)
   azure_rm_postgresqlflexiblefirewallrule:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -246,12 +307,12 @@
     end_ip_address: 10.0.0.20
   register: output
 
-- name: Assert the post grepsql flexible firewall rule support idempotent test
+- name: Assert the postgresql flexible firewall rule support idempotent test
   ansible.builtin.assert:
     that:
       - not output.changed
 
-- name: Update the post gresql flexible firwall rule
+- name: Update the postgresql flexible firwall rule
   azure_rm_postgresqlflexiblefirewallrule:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -260,25 +321,25 @@
     end_ip_address: 10.0.0.18
   register: output
 
-- name: Assert the post grepsql flexible server update well
+- name: Assert the postgresql flexible server update well
   ansible.builtin.assert:
     that:
       - output.changed
 
-- name: Get the post gresql flexible firwall rule facts
+- name: Get the postgresql flexible firwall rule facts
   azure_rm_postgresqlflexiblefirewallrule_info:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
     name: firewall{{ rpfx }}
   register: output
 
-- name: Assert the post gresql flexible firewall rule facts
+- name: Assert the postgresql flexible firewall rule facts
   ansible.builtin.assert:
     that:
       - output.firewall_rules[0].start_ip_address == '10.0.0.16'
       - output.firewall_rules[0].end_ip_address == '10.0.0.18'
 
-- name: Delete the post gresql flexible firwall rule
+- name: Delete the postgresql flexible firwall rule
   azure_rm_postgresqlflexiblefirewallrule:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
@@ -286,30 +347,30 @@
     state: absent
   register: output
 
-- name: Assert the post grepsql flexible server delete well
+- name: Assert the postgresql flexible server delete well
   ansible.builtin.assert:
     that:
       - output.changed
 
-- name: List the post gresql flexible config facts
+- name: List the postgresql flexible config facts
   azure_rm_postgresqlflexibleconfiguration_info:
     resource_group: "{{ new_resource_group }}"
     server_name: postflexible{{ rpfx }}
   register: output
 
-- name: Assert the post gresql flexible server configuration
+- name: Assert the postgresql flexible server configuration
   ansible.builtin.assert:
     that:
       - output.settings | length > 0
 
-- name: Stop the post gresql flexible server
+- name: Stop the postgresql flexible server
   azure_rm_postgresqlflexibleserver:
     resource_group: "{{ new_resource_group }}"
     name: postflexible{{ rpfx }}
     is_stop: true
   register: output
 
-- name: Assert the post grep sql server stop success
+- name: Assert the postgresql server stop success
   ansible.builtin.assert:
     that:
       - output.changed
@@ -319,29 +380,41 @@
     minutes: 10
   changed_when: true
 
-- name: Restart post gresql flexible server
+- name: Restart postgresql flexible server
   azure_rm_postgresqlflexibleserver:
     resource_group: "{{ new_resource_group }}"
     name: postflexible{{ rpfx }}
     is_restart: true
   register: output
 
-- name: Assert the post grep sql server restart success
+- name: Assert the postgresql server restart success
   ansible.builtin.assert:
     that:
       - output.changed
 
-- name: Delete post gresql flexible server
+- name: Delete postgresql flexible server
   azure_rm_postgresqlflexibleserver:
     resource_group: "{{ new_resource_group }}"
     name: postflexible{{ rpfx }}
     state: absent
   register: output
 
-- name: Assert the post gresql server is well deleted
+- name: Assert the postgresql server is well deleted
   ansible.builtin.assert:
     that:
       - output.changed
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ new_resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-psql-identity"
+    - "ansible-test-psql-identity-2"
 
 - name: Delete the new resource group
   azure_rm_resourcegroup:

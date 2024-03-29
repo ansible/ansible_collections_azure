@@ -282,6 +282,30 @@ servers:
                     returned: always
                     sample: null
                     type: str
+        identity:
+            description:
+                - Identity for the Server.
+            type: complex
+            returned: when available
+            contains:
+                type:
+                    description:
+                        - Type of the managed identity
+                    returned: always
+                    sample: UserAssigned
+                    type: str
+                user_assigned_identities:
+                    description:
+                        - User Assigned Managed Identities and its options
+                    returned: always
+                    type: complex
+                    contains:
+                        id:
+                            description:
+                                - Dict of the user assigned identities IDs associated to the Resource
+                            returned: always
+                            type: dict
+                            elements: dict
         tags:
             description:
                 - Tags assigned to the resource. Dictionary of string:string pairs.
@@ -431,6 +455,8 @@ class AzureRMPostgreSqlFlexibleServersInfo(AzureRMModuleBase):
             result['maintenance_window']['start_minute'] = item.maintenance_window.start_minute
             result['maintenance_window']['start_hour'] = item.maintenance_window.start_hour
             result['maintenance_window']['day_of_week'] = item.maintenance_window.day_of_week
+        if item.identity is not None:
+            result['identity'] = item.identity.as_dict()
 
         return result
 
