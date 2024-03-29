@@ -76,7 +76,7 @@
     namespace_name: "{{ namespace_name }}"
     name: "{{ name_rpfx }}"
     resource_group: "{{ resource_group }}"
-    message_retention_in_days: 4
+    message_retention_in_days: 1
     state: present
     tags:
       test: modified
