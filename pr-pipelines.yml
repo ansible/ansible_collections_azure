@@ -74,6 +74,7 @@ parameters:
       - "azure_rm_keyvaultsecret"
       - "azure_rm_loadbalancer"
       - "azure_rm_loganalyticsworkspace"
+      - "azure_rm_localnetworkgateway"
       - "azure_rm_manageddisk"
       - "azure_rm_managementgroup"
       - "azure_rm_mariadbserver"
