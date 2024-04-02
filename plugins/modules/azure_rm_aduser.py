@@ -125,7 +125,8 @@ options:
             - These extension attributes are also known as Exchange custom attributes 1-15.
             - For an onPremisesSyncEnabled user, the source of authority for this set of properties is the on-premises and is read-only.
             - For a cloud-only user (where onPremisesSyncEnabled is false), these properties can be set during the creation or update of a user object.
-            - For a cloud-only user previously synced from on-premises Active Directory, these properties are read-only in Microsoft Graph but can be fully managed through the Exchange Admin Center or the Exchange Online V2 module in PowerShell.
+            - For a cloud-only user previously synced from on-premises Active Directory, these properties are read-only in Microsoft Graph\
+              but can be fully managed through the Exchange Admin Center or the Exchange Online V2 module in PowerShell.
         type: dict
         aliases:
             - extension_attributes
