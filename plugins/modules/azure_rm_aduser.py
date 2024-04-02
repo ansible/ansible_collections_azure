@@ -331,7 +331,7 @@ class AzureRMADUser(AzureRMModuleBase):
                     if self.password_profile:
                         password = PasswordProfile(
                             password=self.password_profile,
-                        )      
+                        )
 
                     should_update = False
                     if self.on_premises_immutable_id and ad_user.on_premises_immutable_id != self.on_premises_immutable_id:
