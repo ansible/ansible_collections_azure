@@ -34,7 +34,7 @@ options:
         description:
             - The location of the local network gateway.
         type: str
-    local_network_address:
+    local_network_address_space:
         description:
             - Local network site address space.
         type: dict
@@ -58,9 +58,9 @@ options:
         type: dict
         suboptions:
             asn:
-                description:    
+                description:
                     - The BGP speaker's ASN.
-                type: long
+                type: int
             bgp_peering_address:
                 description:
                     - The BGP peering address and BGP identifier of this BGP speaker.
@@ -132,7 +132,7 @@ state:
                 asn:
                     description:
                         - The BGP speaker's ASN.
-                    type: long
+                    type: int
                     returned: always
                     sample: 10
                 bgp_peering_address:
@@ -219,7 +219,7 @@ except Exception:
 
 
 bgp_settings_spec = dict(
-    asn=dict(type='long'),
+    asn=dict(type='int'),
     bgp_peering_address=dict(type='str'),
     peer_weight=dict(type='int'),
 )
@@ -242,7 +242,7 @@ class AzureRMNetworkGateWay(AzureRMModuleBase):
             local_network_address_space=dict(type='dict', options=local_network_address_space_spec),
             gateway_ip_address=dict(type='str'),
             fqdn=dict(type='str'),
-            bgp_settings=dict(type='dict', opitons=bgp_settings_spec),
+            bgp_settings=dict(type='dict', options=bgp_settings_spec),
             state=dict(type='str', default='present', choices=['present', 'absent'])
         )
 
@@ -296,7 +296,8 @@ class AzureRMNetworkGateWay(AzureRMModuleBase):
                     changed = True
                 if self.local_network_address_space is not None:
                     if old_response['local_network_address_space'].get('address_prefixes') is not None:
-                        new_address = list(set(self.local_network_address_space['address_prefixes'] + old_response['local_network_address_space']['address_prefixes']))
+                        new_address = list(set(self.local_network_address_space['address_prefixes'] +
+                                           old_response['local_network_address_space']['address_prefixes']))
                         if len(new_address) > len(old_response['local_network_address_space'].get('address_prefixes')):
                             changed = True
                         self.local_network_address_space['address_prefixes'] = new_address
@@ -323,12 +324,11 @@ class AzureRMNetworkGateWay(AzureRMModuleBase):
                                                                peer_weight=self.bgp_settings.get('peer_weight'))
 
             gateway_resource = self.network_models.LocalNetworkGateway(location=self.location,
-                                                                        tags=self.tags,
-                                                                        gateway_ip_address=self.gateway_ip_address,
-                                                                        fqdn=self.fqdn,
-                                                                        local_network_address_space=local_network_address_space,
-                                                                        bgp_settings=bgp_settings
-                                                                       )
+                                                                       tags=self.tags,
+                                                                       gateway_ip_address=self.gateway_ip_address,
+                                                                       fqdn=self.fqdn,
+                                                                       local_network_address_space=local_network_address_space,
+                                                                       bgp_settings=bgp_settings)
             if changed:
                 if not self.check_mode:
                     response = self.create_or_update_local_network_gateway(gateway_resource)
@@ -375,7 +375,7 @@ class AzureRMNetworkGateWay(AzureRMModuleBase):
             self.fail("Create or Updated a local network gateway in a resource group Failed, Exception as {0}".format(ec))
 
         return self.format_response(response)
-    
+
     def update_local_network_gateway_tags(self, tags):
         """Updates a local network gateway tags"""
         response = None

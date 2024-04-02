@@ -81,7 +81,7 @@ state:
                 asn:
                     description:
                         - The BGP speaker's ASN.
-                    type: long
+                    type: int
                     returned: always
                     sample: 10
                 bgp_peering_address:
@@ -118,7 +118,7 @@ state:
             description:
                 - Local network site address space.
             type: complex
-            contains: 
+            contains:
                 address_prefixes:
                     description:
                         - A list of address blocks reserved for this virtual network in CIDR notation.

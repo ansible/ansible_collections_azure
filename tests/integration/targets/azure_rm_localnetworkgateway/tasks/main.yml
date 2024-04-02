@@ -98,8 +98,8 @@
       - not output.changed
       - output.state[0].bgp_settings.asn == 10
       - output.state[0].bgp_settings.peer_weight == 5
-      - output.state[0].address_prefixes | length == 3
-      - output.state[0].tags | lenght == 1
+      - "output.state[0].tags | length == 1"
+      - "output.state[0].local_network_address_space.address_prefixes | length == 3"
 
 - name: Delete the local network gateway
   azure_rm_localnetworkgateway:
@@ -112,12 +112,3 @@
   ansible.builtin.assert:
     that:
       - output.changed
-
-- name: Get a new local network gateway
-  azure_rm_localnetworkgateway_info:
-    resource_group: "{{ resource_group }}"
-    name: "{{ rpfx }}"
-  register: output
-
-- debug:
-    var: output
