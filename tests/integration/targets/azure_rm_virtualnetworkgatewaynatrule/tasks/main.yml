@@ -114,7 +114,7 @@
     that:
       - output.state[0].mode == 'EgressSnat'
       - output.state[0].internal_mappings == ["10.3.0.0/24"]
-      - output.state[0].external_mappings == ["192.168.2.0/24"] 
+      - output.state[0].external_mappings == ["192.168.2.0/24"]
 
 - name: Delete the virtual netowrk nat rule
   azure_rm_virtualnetworkgatewaynatrule:
