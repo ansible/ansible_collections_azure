@@ -122,6 +122,7 @@ parameters:
       - "azure_rm_virtualnetwork"
       - "azure_rm_virtualnetworkgateway"
       - "azure_rm_virtualnetworkpeering"
+      - "azure_rm_virtualnetworkgatewaynatrule"
       - "azure_rm_virtualwan"
       - "azure_rm_vpnsite"
       - "azure_rm_virtualhub"
