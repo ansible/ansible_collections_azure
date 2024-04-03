@@ -47,6 +47,7 @@
       - 10.1.0.0/24
     external_mappings:
       - 192.168.1.0/24
+  check_mode: true
 
 - name: Create a virtual netowrk nat rule
   azure_rm_virtualnetworkgatewaynatrule:
