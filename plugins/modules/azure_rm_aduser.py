@@ -227,7 +227,8 @@ on_premises_extension_attributes:
         - These extension attributes are also known as Exchange custom attributes 1-15.
         - For an onPremisesSyncEnabled user, the source of authority for this set of properties is the on-premises and is read-only.
         - For a cloud-only user (where onPremisesSyncEnabled is false), these properties can be set during the creation or update of a user object.
-        - For a cloud-only user previously synced from on-premises Active Directory, these properties are read-only in Microsoft Graph but can be fully managed through the Exchange Admin Center or the Exchange Online V2 module in PowerShell.
+        - For a cloud-only user previously synced from on-premises Active Directory, these properties are read-only in Microsoft Graph\
+          but can be fully managed through the Exchange Admin Center or the Exchange Online V2 module in PowerShell.
     type: dict
     returned: always
     sample: {}
@@ -320,9 +321,9 @@ class AzureRMADUser(AzureRMModuleBase):
                 extension_attributes = None
 
                 if self.on_premises_extension_attributes:
-                    extension_attributes=OnPremisesExtensionAttributes(
+                    extension_attributes = OnPremisesExtensionAttributes(
                         **self.on_premises_extension_attributes
-	                  )
+                    )
 
                 if ad_user:  # Update, changed
 
@@ -356,9 +357,10 @@ class AzureRMADUser(AzureRMModuleBase):
                         should_update = True
                     if should_update or self.company_name and ad_user.company_name != self.company_name:
                         should_update = True
-                    if should_update or self.on_premises_extension_attributes and self.on_premises_extension_attributes_to_dict(ad_user.on_premises_extension_attributes) != self.on_premises_extension_attributes:
+                    if should_update or (
+                            self.on_premises_extension_attributes and
+                            self.on_premises_extension_attributes_to_dict(ad_user.on_premises_extension_attributes) != self.on_premises_extension_attributes):
                         should_update = True
-
                     if should_update:
                         asyncio.get_event_loop().run_until_complete(self.update_user(ad_user, password, extension_attributes))
 
@@ -437,6 +439,7 @@ class AzureRMADUser(AzureRMModuleBase):
                 if attr_value is not None:
                     extension_attributes[attribute_name] = attr_value
         return extension_attributes
+
     def to_dict(self, object):
         return dict(
             object_id=object.id,
@@ -495,7 +498,8 @@ class AzureRMADUser(AzureRMModuleBase):
         request_configuration = UsersRequestBuilder.UsersRequestBuilderGetRequestConfiguration(
             query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
                 select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName", "userType",
-                        "onPremisesImmutableId", "usageLocation", "givenName", "surname", "companyName", "OnPremisesExtensionAttributes"]
+                        "onPremisesImmutableId", "usageLocation", "givenName", "surname", "companyName",
+                        "OnPremisesExtensionAttributes"]
             ),
         )
         return await self._client.users.by_user_id(object).get(request_configuration=request_configuration)
@@ -506,7 +510,8 @@ class AzureRMADUser(AzureRMModuleBase):
                 query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
                     filter=filter,
                     select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName",
-                            "userType", "onPremisesImmutableId", "usageLocation", "givenName", "surname", "companyName", "OnPremisesExtensionAttributes"],
+                            "userType", "onPremisesImmutableId", "usageLocation", "givenName", "surname", "companyName",
+                            "OnPremisesExtensionAttributes"],
                     count=True
                 ),
                 headers={'ConsistencyLevel': "eventual", }
