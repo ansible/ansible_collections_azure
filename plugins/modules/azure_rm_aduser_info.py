@@ -251,6 +251,7 @@ class AzureRMADUserInfo(AzureRMModuleBase):
                 if attr_value is not None:
                     extension_attributes[attribute_name] = attr_value
         return extension_attributes
+
     def to_dict(self, object):
         return dict(
             object_id=object.id,
