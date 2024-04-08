@@ -280,12 +280,38 @@ class AzureRMADGroup(AzureRMModuleBase):
                 if ad_groups:
                     self.object_id = ad_groups[0].id
 
-            elif self.object_id:
+            if self.object_id:
                 ad_groups = [asyncio.get_event_loop().run_until_complete(self.get_group(self.object_id))]
 
             if ad_groups:
                 if self.state == "present":
                     self.results["changed"] = False
+
+                    if self.description is not None and self.description != ad_groups[0].description:
+                        self.results["changed"] = True
+                    else:
+                        self.description = ad_groups[0].description
+                    if self.display_name is not None and self.display_name != ad_groups[0].display_name:
+                        self.results["changed"] = True
+                    else:
+                        self.display_name = ad_groups[0].display_name
+                    if self.mail_nickname is not None and self.mail_nickname != ad_groups[0].mail_nickname:
+                        self.results["changed"] = True
+                    else:
+                        self.mail_nickname = ad_groups[0].mail_nickname
+                    if self.results["changed"]:
+                        group = Group(
+                            mail_enabled=False,
+                            security_enabled=True,
+                            group_types=[],
+                            display_name=self.display_name,
+                            mail_nickname=self.mail_nickname,
+                            description=self.description
+                        )
+
+                        asyncio.get_event_loop().run_until_complete(self.update_group(ad_groups[0].id, group))
+                        ad_groups = [asyncio.get_event_loop().run_until_complete(self.get_group(self.object_id))]
+
                 elif self.state == "absent":
                     asyncio.get_event_loop().run_until_complete(self.delete_group(self.object_id))
                     ad_groups = []
@@ -442,6 +468,9 @@ class AzureRMADGroup(AzureRMModuleBase):
             results["group_members"] = [self.result_to_dict(object) for object in ret.value]
 
         return results
+
+    async def update_group(self, group_id, group):
+        return await self._client.groups.by_group_id(group_id).patch(body=group)
 
     async def create_group(self, create_group):
         return await self._client.groups.post(body=create_group)
