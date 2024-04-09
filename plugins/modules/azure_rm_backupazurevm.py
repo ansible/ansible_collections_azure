@@ -379,14 +379,8 @@ class BackupAzureVM(AzureRMModuleBaseExt):
             self.log('Error attempting to backup azure vm.')
             self.fail(
                 'Error while taking on-demand backup: {0}'.format(str(e)))
-
-        if hasattr(response, 'body'):
-            response = json.loads(response.body())
-        elif hasattr(response, 'context'):
-            response = response.context['deserialized_data']
-        else:
-            self.fail("Create or Updating fail, no match message return, return info as {0}".format(response))
-
+        # The return value is None, which only triggers the backup. Backups also take some time to complete.
+        response = dict(msg='The backup has been successfully triggered, please monitor the backup process on the Backup Jobs page')
         return response
 
 
