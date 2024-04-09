@@ -212,7 +212,6 @@ class AzureRMVirtualMachineScaleSetVMInfo(AzureRMModuleBase):
         d = item.as_dict()
 
         instance = None
-        display_status = None
         power_state = ''
         if d.get('resources', None) is not None:
             iv = self.mgmt_client.virtual_machine_scale_set_vms.get_instance_view(resource_group_name=self.resource_group,
@@ -234,13 +233,10 @@ class AzureRMVirtualMachineScaleSetVMInfo(AzureRMModuleBase):
                 code = instance['statuses'][index]['code'].split('/')
                 if code[0] == 'PowerState':
                     power_state = code[1]
-                    display_status = instance['statuses'][index]['display_status']
                 elif code[0] == 'OSState' and code[1] == 'generalized':
-                    display_status = instance['statuses'][index]['display_status']
                     power_state = 'generalized'
                     break
                 elif code[0] == 'ProvisioningState' and code[1] == 'failed':
-                    display_status = instance['statuses'][index]['display_status']
                     power_state = ''
                     break
         dd = {
