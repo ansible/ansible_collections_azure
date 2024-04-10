@@ -595,7 +595,6 @@ class AzureRMModuleBase(object):
 
         return changed, new_identity
 
-
     def has_tags(self, obj_tags, tag_list):
         '''
         Used in fact modules to compare object tags to list of parameter tags. Return true if list of parameter tags

@@ -578,6 +578,7 @@ managed_identity_spec = dict(
     user_assigned_identities=dict(type='dict', options=user_assigned_identities_spec, default={}),
 )
 
+
 class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBase):
     """Configuration class for an Azure RM PostgreSQL Flexible Server resource"""
 
