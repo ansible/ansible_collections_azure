@@ -49,7 +49,7 @@
           filters:
             prefix_match:
               - olcmtestcontainer
-            blob_types: 
+            blob_types:
               - blockBlob
               - appendBlob
             blob_index_match:
@@ -96,7 +96,7 @@
           filters:
             prefix_match:
               - olcmtestcontainer
-            blob_types: 
+            blob_types:
               - blockBlob
               - appendBlob
             blob_index_match:
@@ -148,7 +148,7 @@
           filters:
             prefix_match:
               - olcmtestcontainer
-            blob_types: 
+            blob_types:
               - blockBlob
               - appendBlob
             blob_index_match:
@@ -200,7 +200,7 @@
           filters:
             prefix_match:
               - olcmtestcontainer
-            blob_types: 
+            blob_types:
               - blockBlob
               - appendBlob
             blob_index_match:
@@ -219,10 +219,6 @@
     resource_group: "{{ resource_group }}"
     storage_account_name: "st{{ rpfx }}"
   register: output
-  tags: fred
-- debug:
-    var: output
-  tags: fred
 
 - name: Assert the management policy rule facts
   ansible.builtin.assert:
