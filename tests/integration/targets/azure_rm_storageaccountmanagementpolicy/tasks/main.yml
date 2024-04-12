@@ -226,7 +226,7 @@
       - output.state.policy.rules[0].enabled is false
       - output.state.policy.rules[0].name == 'olcmtest'
       - output.state.policy.rules[0].type == 'Lifecycle'
-      - output.state.policy.rules[0].definition.actions.enable_auto_tier_to_hot_from_cool is true
+      - output.state.policy.rules[0].definition.actions.base_blob.enable_auto_tier_to_hot_from_cool is true
       - output.state.policy.rules | length == 1
 
 - name: Delete the storage account management policy's rule
