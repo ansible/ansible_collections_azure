@@ -234,6 +234,7 @@
     resource_group: "{{ resource_group }}"
     storage_account_name: "st{{ rpfx }}"
     state: absent
+  register: output
 
 - name: Assert the Managed policy deleted
   ansible.builtin.assert:
