@@ -557,6 +557,74 @@
       - facts.webapps[0].ftps_state == 'Disabled'
       - not facts.webapps[0].http20_enabled
 
+- name: Create a windows web app with site_auth_settings
+  azure_rm_webapp:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-auth"
+    plan:
+      resource_group: "{{ resource_group }}"
+      name: "{{ win_plan_name }}-auth"
+      is_linux: false
+      sku: S1
+    site_auth_settings:
+      client_id: "{{ azure_client_id }}"
+      default_provider: 'MicrosoftAccount'
+      runtime_version: '-2'
+      token_refresh_extension_hours: 90
+      unauthenticated_client_action: 'RedirectToLoginPage'
+      client_secret: "{{ azure_secret }}"
+      token_store_enabled: true
+      is_auth_from_file: false
+      enabled: false
+  register: output
+
+- name: Assert the web app is well created
+  ansible.builtin.assert:
+    that:
+      output.changed
+
+- name: Update the web app with site_auth_settings
+  azure_rm_webapp:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-auth"
+    plan:
+      resource_group: "{{ resource_group }}"
+      name: "{{ win_plan_name }}-auth"
+      is_linux: false
+      sku: S1
+    site_auth_settings:
+      client_id: "{{ azure_client_id }}"
+      default_provider: 'MicrosoftAccount'
+      runtime_version: '-3'
+      token_refresh_extension_hours: 100
+      unauthenticated_client_action: 'RedirectToLoginPage'
+      client_secret: "{{ azure_secret }}"
+      token_store_enabled: false
+      is_auth_from_file: false
+      enabled: true
+  register: output
+
+- name: Assert the web app is well updated
+  ansible.builtin.assert:
+    that:
+      output.changed
+
+- name: Get the web app facts
+  azure_rm_webapp_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-auth"
+  register: output
+
+- name: Assert the web app facts
+  ansible.builtin.assert:
+    that:
+      - output.webapps[0].site_auth_settings.enabled is true
+      - output.webapps[0].site_auth_settings.is_auth_from_file == 'False'
+      - output.webapps[0].site_auth_settings.runtime_version == '-3'
+      - output.webapps[0].site_auth_settings.token_refresh_extension_hours == 100.0
+      - output.webapps[0].site_auth_settings.token_store_enabled is false
+      - output.webapps[0].site_auth_settings.unauthenticated_client_action == 'RedirectToLoginPage'
+
 - name: Create a webapp slot (Check mode)
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"

@@ -384,7 +384,10 @@ options:
             is_auth_from_file:
                 description:
                     - If I(is_auth_from_file=true), the auth config settings should be read from a file.
-                type: bool
+                type: str
+                choices:
+                    - true
+                    - false
             auth_file_path:
                 description:
                     - The path of the config file containing auth settings.
@@ -639,7 +642,7 @@ site_auth_settings_spec = dict(
     microsoft_account_client_secret=dict(type='str', no_log=True),
     microsoft_account_client_secret_setting_name=dict(type='str'),
     microsoft_account_o_auth_scopes=dict(type='list', elements='str'),
-    is_auth_from_file=dict(type='bool'),
+    is_auth_from_file=dict(type='str', choices=['true', 'false']),
     auth_file_path=dict(type='str'),
     config_version=dict(type='str')
 )
