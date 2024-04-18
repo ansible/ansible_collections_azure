@@ -386,8 +386,8 @@ options:
                     - If I(is_auth_from_file=true), the auth config settings should be read from a file.
                 type: str
                 choices:
-                    - true
-                    - false
+                    - 'true'
+                    - 'false'
             auth_file_path:
                 description:
                     - The path of the config file containing auth settings.
