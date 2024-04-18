@@ -283,10 +283,6 @@ options:
                 description:
                     - The OpenID Connect Issuer URI that represents the entity which issues access tokens for this application.
                 type: str
-            validate_issuer:
-                description:
-                    - Gets a value indicating whether the issuer should be a valid HTTPS url and be validated as such.
-                type: bool
             allowed_audiences:
                 description:
                     - Allowed audience values to consider when validating JWTs issued by Azure Active Directory.
@@ -334,7 +330,8 @@ options:
             facebook_o_auth_scopes:
                 description:
                     - The OAuth 2.0 scopes that will be requested as part of Facebook for Facebook Login.
-                type: str
+                type: list
+                elements: str
             git_hub_client_id:
                 description:
                     - The Client Id of the GitHub app used for login.
@@ -531,6 +528,10 @@ EXAMPLES = '''
       runtime_version: '-2'
       token_refresh_extension_hours: 120
       unauthenticated_client_action: 'RedirectToLoginPage'
+      client_secret: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+      token_store_enabled: false
+      enabled: true
+      is_auth_from_file: false
     plan:
       resource_group: myResourceGroup
       name: myLinuxwebapp
@@ -564,6 +565,8 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
+    import logging
+    logging.basicConfig(filename='log.log', level=logging.INFO)
     from azure.core.polling import LROPoller
     from azure.core.exceptions import HttpResponseError
     from azure.mgmt.web.models import Site, AppServicePlan, SkuDescription, NameValuePair, SiteSourceControl, StringDictionary
@@ -608,36 +611,35 @@ site_auth_settings_spec = dict(
     token_store_enabled=dict(type='bool'),
     allowed_external_redirect_urls=dict(type='list', elements='str'),
     default_provider=dict(type='str', choices=["Facebook", "Google", "MicrosoftAccount", "Twitter", "Github", "AzureActiveDirectory"]),
-    token_refresh_extension_hours=dict(type='float'),
+    token_refresh_extension_hours=dict(type='float', no_log=True),
     client_id=dict(type='str'),
-    client_secret=dict(type='str'),
+    client_secret=dict(type='str', no_log=True),
     client_secret_setting_name=dict(type='str'),
-    client_secret_certificate_thumbprint=dict(type='str'),
+    client_secret_certificate_thumbprint=dict(type='str', no_log=True),
     issuer=dict(type='str'),
-    validate_issuer=dict(type='bool'),
-    allowed_audiences=dict(type='str'),
+    allowed_audiences=dict(type='list', elements='str'),
     additional_login_params=dict(type='str'),
     aad_claims_authorization=dict(type='str'),
     google_client_id=dict(type='str'),
-    google_client_secret=dict(type='str'),
+    google_client_secret=dict(type='str', no_log=True),
     google_client_secret_setting_name=dict(type='str'),
     google_o_auth_scopes=dict(type='list', elements='str'),
     facebook_app_id=dict(type='str'),
-    facebook_app_secret=dict(type='str'),
+    facebook_app_secret=dict(type='str', no_log=True),
     facebook_app_secret_setting_name=dict(type='str'),
     facebook_o_auth_scopes=dict(type='list', elements='str'),
     git_hub_client_id=dict(type='str'),
-    git_hub_client_secret=dict(type='str'),
+    git_hub_client_secret=dict(type='str', no_log=True),
     git_hub_client_secret_setting_name=dict(type='str'),
     git_hub_o_auth_scopes=dict(type='list', elements='str'),
-    twitter_consumer_key=dict(type='str'),
-    twitter_consumer_secret=dict(type='str'),
+    twitter_consumer_key=dict(type='str', no_log=True),
+    twitter_consumer_secret=dict(type='str', no_log=True),
     twitter_consumer_secret_setting_name=dict(type='str'),
     microsoft_account_client_id=dict(type='str'),
-    microsoft_account_client_secret=dict(type='str'),
+    microsoft_account_client_secret=dict(type='str', no_log=True),
     microsoft_account_client_secret_setting_name=dict(type='str'),
     microsoft_account_o_auth_scopes=dict(type='list', elements='str'),
-    is_auth_from_file=dict(type='str'),
+    is_auth_from_file=dict(type='bool'),
     auth_file_path=dict(type='str'),
     config_version=dict(type='str')
 )
@@ -880,6 +882,7 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
 
         if old_response:
             self.results['id'] = old_response['id']
+            self.results['site_auth_settings'] = self.get_auth_settings()
 
         if self.state == 'present':
             if not self.plan and not old_response:
@@ -1015,6 +1018,7 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
 
                 if update_tags:
                     to_be_updated = True
+                    self.to_do.append(Actions.CreateOrUpdate)
 
                 # check if root level property changed
                 if self.is_updatable_property_changed(old_response):
@@ -1050,10 +1054,9 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                         for key in self.app_settings.keys():
                             self.app_settings_strDic[key] = self.app_settings[key]
 
-                old_auth = self.get_auth_settings()
-
                 if self.site_auth_settings is not None:
-                    if not self.default_compare(dict(aad_claims_authorization=dict(comparison='ignore')), self.site_auth_settings, old_auth, '', dict(compare=[])):
+                    result = dict(compare=[])
+                    if not self.default_compare({}, self.site_auth_settings, self.results['site_auth_settings'], '', dict(compare=[])):
                         to_be_updated = True
                         self.to_do.append(Actions.UpdateAuthSettings)
 
@@ -1091,6 +1094,8 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
             if Actions.UpdateAuthSettings in self.to_do:
                 auth_settings = self.update_auth_settings(self.site_auth_settings)
                 self.results['site_auth_settings'] = auth_settings
+            else:
+                self.results['site_auth_settings'] = self.get_auth_settings()
 
         webapp = None
         if old_response:
@@ -1311,7 +1316,7 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
         self.log("Get the web app auth settings")
 
         try:
-            response = self.web_client.web_apps.get(self.resource_group, self.name)
+            response = self.web_client.web_apps.get_auth_settings(self.resource_group, self.name)
             self.log("Response : {0}".format(response))
             return response.as_dict()
         except HttpResponseError as ex:
