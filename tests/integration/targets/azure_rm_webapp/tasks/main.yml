@@ -619,7 +619,7 @@
   ansible.builtin.assert:
     that:
       - output.webapps[0].site_auth_settings.enabled is true
-      - output.webapps[0].site_auth_settings.is_auth_from_file == 'False'
+      - output.webapps[0].site_auth_settings.is_auth_from_file == 'false'
       - output.webapps[0].site_auth_settings.runtime_version == '-3'
       - output.webapps[0].site_auth_settings.token_refresh_extension_hours == 100.0
       - output.webapps[0].site_auth_settings.token_store_enabled is false
