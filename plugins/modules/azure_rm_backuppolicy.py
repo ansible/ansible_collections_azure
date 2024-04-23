@@ -246,7 +246,7 @@ class AzureRMBackupPolicy(AzureRMModuleBase):
             backup_management_type=dict(type='str', choices=['AzureIaasVM']),
             schedule_run_time=dict(type='int'),
             instant_recovery_snapshot_retention=dict(type='int'),
-            schedule_run_frequency=dict(type='str', choices=['Daily', 'Weekly', 'Hourly']),
+            schedule_run_frequency=dict(type='str', choices=['Daily', 'Weekly']),
             schedule_days=dict(type='list', elements='str'),
             weekly_retention_count=dict(type='int'),
             daily_retention_count=dict(type='int'),
@@ -303,12 +303,19 @@ class AzureRMBackupPolicy(AzureRMModuleBase):
 
         required_if = [('schedule_run_frequency', 'Weekly', ['schedule_days', 'weekly_retention_count', 'schedule_run_time']),
                        ('schedule_run_frequency', 'Daily', ['daily_retention_count', 'schedule_run_time']),
+                       ('yearly_retention_count', '*', ['retention_schedule_format_type']),
+                       ('monthly_retention_count', '*', ['retention_schedule_format_type']),
+                       ('retention_schedule_format_type', 'Weekly', ['retention_schedule_weekly']),
+                       ('retention_schedule_format_type', 'Daily', ['retention_schedule_daily']),
                        ('state', 'present', ['schedule_run_frequency', 'backup_management_type']),
                        ('log_mode', 'file', ['log_path'])]
+
+        mutually_exclusive = [('retention_schedule_daily', 'retention_schedule_weekly')]
 
         super(AzureRMBackupPolicy, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                   supports_check_mode=True,
                                                   supports_tags=False,
+                                                  mutually_exclusive=mutually_exclusive,
                                                   required_if=required_if)
 
     def exec_module(self, **kwargs):
@@ -440,14 +447,14 @@ class AzureRMBackupPolicy(AzureRMModuleBase):
                 daily_retention_schedule = self.recovery_services_backup_models.DailyRetentionSchedule(retention_times=schedule_run_times_as_datetimes,
                                                                                                        retention_duration=retention_duration)
 
-            if (self.weekly_retention_count):
+            if self.weekly_retention_count is not None:
                 retention_duration = self.recovery_services_backup_models.RetentionDuration(count=self.weekly_retention_count,
                                                                                             duration_type="Weeks")
                 weekly_retention_schedule = self.recovery_services_backup_models.WeeklyRetentionSchedule(days_of_the_week=self.schedule_days,
                                                                                                          retention_times=schedule_run_times_as_datetimes,
                                                                                                          retention_duration=retention_duration)
 
-            if (self.monthly_retention_count):
+            if self.monthly_retention_count is not None:
                 retention_duration = self.recovery_services_backup_models.RetentionDuration(count=self.monthly_retention_count,
                                                                                             duration_type="Months")
                 monthly_retention_schedule = self.recovery_services_backup_models.MonthlyRetentionSchedule(
@@ -457,7 +464,7 @@ class AzureRMBackupPolicy(AzureRMModuleBase):
                     retention_times=schedule_run_times_as_datetimes,
                     retention_duration=retention_duration)
 
-            if (self.yearly_retention_count):
+            if self.yearly_retention_count is not None:
                 retention_duration = self.recovery_services_backup_models.RetentionDuration(count=self.yearly_retention_count,
                                                                                             duration_type="Years")
                 yearly_retention_schedule = self.recovery_services_backup_models.YearlyRetentionSchedule(
@@ -470,8 +477,8 @@ class AzureRMBackupPolicy(AzureRMModuleBase):
 
             retention_policy = self.recovery_services_backup_models.LongTermRetentionPolicy(daily_schedule=daily_retention_schedule,
                                                                                             weekly_schedule=weekly_retention_schedule,
-                                                                                            monthly_schedule=weekly_retention_schedule,
-                                                                                            yearly_schedule=weekly_retention_schedule)
+                                                                                            monthly_schedule=monthly_retention_schedule,
+                                                                                            yearly_schedule=yearly_retention_schedule)
 
             policy_definition = None
 
