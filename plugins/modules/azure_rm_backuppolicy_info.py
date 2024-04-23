@@ -158,6 +158,9 @@ class AzureRMBackupPolicyInfo(AzureRMModuleBase):
             self.results['location'] = policy.location
             self.results['name'] = policy.name
             self.results['type'] = policy.type
+            self.results['properties'] = dict()
+            if policy.properties is not None:
+                self.results['properties'] = policy.properties.as_dict()
 
         else:
             self.results['id'] = None
