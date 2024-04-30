@@ -10,11 +10,11 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: azure_rm_sqlmidbshorttermretentionpolicy
+module: azure_rm_sqlmidblongtermretentionpolicy_info
 version_added: "2.4.0"
-short_description: Manage SQL Managed Instance database backup short term retention policy
+short_description: Get Azure SQL managed instance facts
 description:
-    - Manage SQL Managed Instance database backup short term retention policy.
+    - Get facts of Azure SQL managed instance facts.
 
 options:
     resource_group:
@@ -36,13 +36,8 @@ options:
         description:
             - The name of the SQL managed instance short term retention policy.
         type: str
-        required: true
         choices:
             - default
-    retention_days:
-        description:
-            - The backup retention period in days. This is how many days Point-in-Time.
-        type: int
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -53,13 +48,12 @@ author:
 '''
 
 EXAMPLES = '''
-- name: Update SQL managed instance short term retention policy's retention_days
-  azure_rm_sqlmidbshorttermretentionpolicy:
+- name: Get SQL managed instance long term retention policy by name
+  azure_rm_sqlmidblongtermretentionpolicy_info:
     resource_group: testrg
     managed_instance_name: testinstancename
     database_name: newdatabase
     policy_name: default
-    retention_days: 3
 '''
 
 RETURN = '''
@@ -95,21 +89,39 @@ short_term_retention_policy:
             sample: testmanagedinstance
         type:
             description:
-                - The SQL managed instance type.
+                - The SQL managed instance short term retention policy type.
             type: str
             returned: always
-            sample: "Microsoft.Sql/managedInstances"
+            sample: "Microsoft.Sql/managedInstances/databases/backupShortTermRetentionPolicies"
         resource_group:
             description:
                 - The resource relate resource group.
             type: str
             returned: always
             sample: testRG
-        retention_days:
+        week_of_year:
             description:
-                - The backup retention period in days. This is how many days Point-in-Time.
+                - The week of year to take the yearly backup in an ISO 8601 format.
             type: int
             sample: 7
+            returned: always
+        weekly_retention:
+            description:
+                - The weekly retention policy for an LTR backup in an ISO 8601 format.
+            type: str
+            sample: P13W
+            returned: always
+        monthly_retention:
+            description:
+                - The monthly retention policy for an LTR backup in an ISO 8601 format.
+            type: str
+            sample: P3M
+            returned: always
+        yearly_retention:
+            description:
+                - The yearly retention policy for an LTR backup in an ISO 8601 format.
+            type: str
+            sample: P6Y
             returned: always
 '''
 
@@ -122,7 +134,7 @@ except ImportError:
     pass
 
 
-class AzureRMSqMIShortTermRetentionPolicy(AzureRMModuleBase):
+class AzureRMSqMILongTermRetentionPolicyInfo(AzureRMModuleBase):
     def __init__(self):
         # define user inputs into argument
         self.module_arg_spec = dict(
@@ -140,87 +152,57 @@ class AzureRMSqMIShortTermRetentionPolicy(AzureRMModuleBase):
             ),
             policy_name=dict(
                 type='str',
-                required=True,
                 choices=['default']
-            ),
-            retention_days=dict(
-                type='int',
-                default=7
             ),
         )
         # store the results of the module operation
         self.results = dict(
-            changed=False,
-            diff=[]
+            changed=False
         )
         self.resource_group = None
         self.managed_instance_name = None
         self.database_name = None
         self.policy_name = None
-        self.retention_days = None
 
-        super(AzureRMSqMIShortTermRetentionPolicy, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=False, facts_module=True)
+        super(AzureRMSqMILongTermRetentionPolicyInfo, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=False, facts_module=True)
 
     def exec_module(self, **kwargs):
         for key in self.module_arg_spec:
             setattr(self, key, kwargs[key])
 
-        old_response = self.get()
-
-        if old_response is not None:
-            if self.retention_days is not None and old_response['retention_days'] != self.retention_days:
-                self.results['changed'] = True
-                self.results['diff'].append('retention_days')
-                if not self.check_mode:
-                    self.results['short_term_retention_policy'] = self.update_policy()
+        if self.policy_name is not None:
+            self.results['long_term_retention_policy'] = self.get()
         else:
-            self.results['changed'] = True
-            if not self.check_mode:
-                self.results['short_term_retention_policy'] = self.create_policy()
+            self.results['long_term_retention_policy'] = self.list_by_database()
         return self.results
 
-    def get(self):
+    def list_by_database(self):
         response = None
         try:
-            response = self.sql_client.managed_backup_short_term_retention_policies.get(resource_group_name=self.resource_group,
-                                                                                        managed_instance_name=self.managed_instance_name,
-                                                                                        database_name=self.database_name,
-                                                                                        policy_name=self.policy_name)
+            response = self.sql_client.managed_instance_long_term_retention_policies.list_by_database(resource_group_name=self.resource_group,
+                                                                                                     managed_instance_name=self.managed_instance_name,
+                                                                                                     database_name=self.database_name)
             self.log("Response : {0}".format(response))
         except HttpResponseError:
             self.log('Could not get facts for SQL managed instance short term retention policyes.')
 
-        return self.format_item(response) if response is not None else None
+        return [self.format_item(item) for item in response] if response is not None else []
 
-    def update_policy(self):
+
+    def get(self):
         response = None
         try:
-            response = self.sql_client.managed_backup_short_term_retention_policies.begin_update(
-                                                                                        resource_group_name=self.resource_group,
+            response = self.sql_client.managed_instance_long_term_retention_policies.get(resource_group_name=self.resource_group,
                                                                                         managed_instance_name=self.managed_instance_name,
                                                                                         database_name=self.database_name,
-                                                                                        policy_name=self.policy_name,
-                                                                                        parameters=dict(retention_days=self.retention_days))
+                                                                                        policy_name=self.policy_name)
             self.log("Response : {0}".format(response))
         except HttpResponseError as ec:
-            self.fail('Could not update the SQL managed instance short term retention policyes. Exception as {0}'.format(ec))
+            self.fail(ec)
+            self.log('Could not get facts for SQL managed instance short term retention policyes.')
 
-        return self.format_item(self.get_poller_result(response))
+        return [self.format_item(response)] if response is not None else None
 
-    def create_policy(self):
-        response = None
-        try:
-            response = self.sql_client.managed_backup_short_term_retention_policies.begin_create_or_update(
-                                                                                        resource_group_name=self.resource_group,
-                                                                                        managed_instance_name=self.managed_instance_name,
-                                                                                        database_name=self.database_name,
-                                                                                        policy_name=self.policy_name,
-                                                                                        parameters=dict(retention_days=self.retention_days))
-            self.log("Response : {0}".format(response))
-        except HttpResponseError as ec:
-            self.fail('Could not Create the SQL managed instance short term retention policyes. Exception as {0}'.format(ec))
-
-        return self.format_item(self.get_poller_result(response))
 
     def format_item(self, item):
         d = item.as_dict()
@@ -231,13 +213,16 @@ class AzureRMSqMIShortTermRetentionPolicy(AzureRMModuleBase):
             'id': d.get('id', None),
             'name': d.get('name', None),
             'type': d.get('type', None),
-            'retention_days': d.get('retention_days', None),
+            "monthly_retention": d.get("monthly_retention"),
+            "week_of_year": d.get("week_of_year"),
+            "weekly_retention": d.get("weekly_retention"),
+            "yearly_retention": d.get("yearly_retention")
         }
         return d
 
 
 def main():
-    AzureRMSqMIShortTermRetentionPolicy()
+    AzureRMSqMILongTermRetentionPolicyInfo()
 
 
 if __name__ == '__main__':

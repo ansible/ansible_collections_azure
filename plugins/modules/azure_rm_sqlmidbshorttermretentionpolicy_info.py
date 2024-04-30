@@ -12,9 +12,9 @@ DOCUMENTATION = '''
 ---
 module: azure_rm_sqlmidbshorttermretentionpolicy_info
 version_added: "2.4.0"
-short_description: Get Azure SQL managed instance facts
+short_description: Get Azure SQL managed instance short term retention policy
 description:
-    - Get facts of Azure SQL managed instance facts.
+    - Get Azure SQL managed instance short term retention policy.
 
 options:
     resource_group:
@@ -36,6 +36,8 @@ options:
         description:
             - The name of the SQL managed instance short term retention policy.
         type: str
+        choices:
+            - default
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -46,12 +48,12 @@ author:
 '''
 
 EXAMPLES = '''
-- name: Get SQL managed instance by name
+- name: Get SQL managed instance short term retention policy by name
   azure_rm_sqlmidbshorttermretentionpolicy_info:
     resource_group: testrg
     managed_instance_name: testinstancename
     database_name: newdatabase
-    policy_name: fredpolicy
+    policy_name: default
 '''
 
 RETURN = '''
@@ -132,6 +134,7 @@ class AzureRMSqMIShortTermRetentionPolicyInfo(AzureRMModuleBase):
             ),
             policy_name=dict(
                 type='str',
+                choices=['default']
             ),
         )
         # store the results of the module operation
@@ -177,7 +180,6 @@ class AzureRMSqMIShortTermRetentionPolicyInfo(AzureRMModuleBase):
                                                                                         policy_name=self.policy_name)
             self.log("Response : {0}".format(response))
         except HttpResponseError as ec:
-            self.fail(ec)
             self.log('Could not get facts for SQL managed instance short term retention policyes.')
 
         return [self.format_item(response)] if response is not None else None
