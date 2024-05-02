@@ -36,6 +36,16 @@ options:
         description:
             - The applications' Name.
         type: str
+    app_diff:
+        description:
+            - The applications' Name.
+        type: list
+        elements: dict
+        suboptions:
+            app_display_name:
+                description:
+                    - The applications' Name.
+                type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -141,6 +151,14 @@ except ImportError:
     # This is handled in azure_rm_common
     pass
 
+app_diff_spec = dict(
+    app_id=dict(
+        type='str'
+    ),
+    app_display_name=dict(
+        type='str'
+    )
+)
 
 class AzureRMADApplicationInfo(AzureRMModuleBase):
 
@@ -149,7 +167,8 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
             app_id=dict(type='str'),
             object_id=dict(type='str'),
             identifier_uri=dict(type='str'),
-            app_display_name=dict(type='str')
+            app_display_name=dict(type='str'),
+            app_diff=dict(type='list', elements='dict', options=app_diff_spec)
         )
         self.app_id = None
         self.app_display_name = None
@@ -167,7 +186,6 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
             setattr(self, key, kwargs[key])
 
         applications = []
-
         try:
             self._client = self.get_msgraph_client()
             if self.object_id:
@@ -188,7 +206,9 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
                 self.fail("failed to get application info {0}".format(str(e)))
         except Exception as ge:
             self.fail("failed to get application info {0}".format(str(ge)))
-
+        if self.app_diff:
+            print(self.app_diff)
+            self.results['app_diff'] = self.app_diff
         return self.results
 
     def to_dict(self, object):
