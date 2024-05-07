@@ -216,8 +216,8 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
                         break
                 if not found:
                     app['state'] = 'absent'
-                else: app['state'] = 'present'
-
+                else:
+                    app['state'] = 'present'
             self.results['app_diff'] = app_test
         return self.results
 
