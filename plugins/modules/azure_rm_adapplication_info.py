@@ -208,11 +208,6 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
         except Exception as ge:
             self.fail("failed to get application info {0}".format(str(ge)))
         if self.app_diff:
- #           app_diff_list = self.compare_lists(self.results['applications'], self.app_diff, 'app_display_name')
- #           self.compare_lists(self.results["applications"], self.results["app_diff"])
-
-
- 
             for app in app_test:
                 found = False
                 for diff in self.app_diff:
@@ -224,10 +219,7 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
                 else: app['state'] = 'present'
 
             self.results['app_diff'] = app_test
-
-
         return self.results
-
 
     def compare_lists(applications, app_diff):
         for app in applications:
@@ -239,7 +231,6 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
             if not found:
                 print("Mismatch found:")
                 print(app)
-
 
     def to_dict(self, object):
         return dict(
