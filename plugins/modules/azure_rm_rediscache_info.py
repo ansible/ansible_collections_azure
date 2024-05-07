@@ -198,13 +198,13 @@ rediscaches:
             contains:
                 primary:
                     description:
-                        - The current primary key that clients can use to authenticate the Redis cahce.
+                        - The current primary key that clients can use to authenticate the Redis cache.
                     returned: always
                     type: str
                     sample: X2xXXxx7xxxxxx5xxxx0xxxxx75xxxxxxxxXXXxxxxx=
                 secondary:
                     description:
-                        - The current secondary key that clients can use to authenticate the Redis cahce.
+                        - The current secondary key that clients can use to authenticate the Redis cache.
                     returned: always
                     type: str
                     sample: X2xXXxx7xxxxxx5xxxx0xxxxx75xxxxxxxxXXXxxxxx=
