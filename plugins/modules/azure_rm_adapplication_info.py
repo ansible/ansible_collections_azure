@@ -201,15 +201,45 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
                 apps = asyncio.get_event_loop().run_until_complete(self.get_applications(sub_filters))
                 applications = list(apps)
             self.results['applications'] = [self.to_dict(app) for app in applications]
+            app_test = [self.to_dict(app) for app in applications]
         except APIError as e:
             if e.response_status_code != 404:
                 self.fail("failed to get application info {0}".format(str(e)))
         except Exception as ge:
             self.fail("failed to get application info {0}".format(str(ge)))
         if self.app_diff:
-            print(self.app_diff)
-            self.results['app_diff'] = self.app_diff
+ #           app_diff_list = self.compare_lists(self.results['applications'], self.app_diff, 'app_display_name')
+ #           self.compare_lists(self.results["applications"], self.results["app_diff"])
+
+
+ 
+            for app in app_test:
+                found = False
+                for diff in self.app_diff:
+                    if app.get("app_id") == diff.get("app_id") or app.get("app_display_name") == diff.get("app_display_name"):
+                        found = True
+                        break
+                if not found:
+                    app['state'] = 'absent'
+                else: app['state'] = 'present'
+
+            self.results['app_diff'] = app_test
+
+
         return self.results
+
+
+    def compare_lists(applications, app_diff):
+        for app in applications:
+            found = False
+            for diff in app_diff:
+                if app.get("app_id") == diff.get("app_id") or app.get("app_display_name") == diff.get("app_display_name"):
+                    found = True
+                    break
+            if not found:
+                print("Mismatch found:")
+                print(app)
+
 
     def to_dict(self, object):
         return dict(
