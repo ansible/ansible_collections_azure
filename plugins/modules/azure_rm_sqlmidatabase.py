@@ -10,11 +10,11 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: azure_rm_sqlmidatabase_info
+module: azure_rm_sqlmidatabase
 version_added: "2.4.0"
-short_description: Get Azure SQL managed instance database facts
+short_description: Manage SQL Managed Instance databases
 description:
-    - Get facts of Azure SQL managed instance database facts.
+    - Manage SQL Managed Instance databases.
 
 options:
     resource_group:
@@ -31,13 +31,25 @@ options:
         description:
             - The name of the SQL managed instance database.
         type: str
-    tags:
+    collation:
         description:
-            - Limit results by providing a list of tags. Format tags as 'key' or 'key:value'.
-        type: list
-        elements: str
+            - The collation of the Azure SQL Managed Database collation to use.
+            - For example C(SQL_Latin1_General_CP1_CI_AS) or C(Latin1_General_100_CS_AS_SC).
+        type: str
+    location:
+        description:
+            - The resource location.
+        type: str
+    state:
+        description:
+            - State of the automation runbook. Use C(present) to create or update a automation runbook and use C(absent) to delete.            type: str
+        default: present
+        choices:
+            - present
+            - absent
 extends_documentation_fragment:
     - azure.azcollection.azure
+    - azure.azcollection.azure_tags
 
 author:
     - xuzhang3 (@xuzhang3)
@@ -45,11 +57,22 @@ author:
 '''
 
 EXAMPLES = '''
-- name: Get SQL managed instance database by name
-  azure_rm_sqlmidatabase_info:
+- name: Create a SQL managed instance database
+  azure_rm_sqlmidatabase:
     resource_group: testrg
     managed_instance_name: testinstancename
     database_name: newdatabase
+    collation: SQL_Latin1_General_CP1_CI_AS
+    location: eastus
+    tags:
+      key2: value2
+
+- name: Delete the SQL managed instance database
+  azure_rm_sqlmidatabase:
+    resource_group: testrg
+    managed_instance_name: testinstancename
+    database_name: newdatabase
+    state: absent
 '''
 
 RETURN = '''
@@ -185,6 +208,7 @@ database:
             type: str
             returned: always
             sample: "Microsoft.Sql/managedInstances/databases"
+
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -196,7 +220,7 @@ except ImportError:
     pass
 
 
-class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
+class AzureRMSqlMIDatabase(AzureRMModuleBase):
     def __init__(self):
         # define user inputs into argument
         self.module_arg_spec = dict(
@@ -210,10 +234,18 @@ class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
             ),
             database_name=dict(
                 type='str',
+                required=True,
             ),
-            tags=dict(
-                type='list',
-                elements='str'
+            collation=dict(
+                type='str'
+            ),
+            location=dict(
+                type='str'
+            ),
+            state=dict(
+                type='str',
+                choices=['present', 'absent'],
+                default='present'
             ),
         )
         # store the results of the module operation
@@ -223,36 +255,78 @@ class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
         self.resource_group = None
         self.managed_instance_name = None
         self.database_name = None
-        self.tags = None
+        self.state = None
+        self.parameters = dict()
 
-        super(AzureRMSqlMIDatabaseInfo, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=False, facts_module=True)
+        super(AzureRMSqlMIDatabase, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=True, facts_module=False)
 
     def exec_module(self, **kwargs):
         for key in self.module_arg_spec:
-            setattr(self, key, kwargs[key])
+            if hasattr(self, key):
+                setattr(self, key, kwargs[key])
+            elif kwargs.get(key) is not None:
+                self.parameters[key] = kwargs.get(key)
 
-        if self.database_name is not None:
-            self.results['database'] = self.get()
+        changed = False
+        resource_group = self.get_resource_group(self.resource_group)
+        if self.parameters.get('location') is None:
+            # Set default location
+            self.parameters['location'] = resource_group.location
+
+        old_response = self.get()
+        if old_response is None:
+            if self.state == 'present':
+                changed = True
+                if not self.check_mode:
+                    self.results['database'] = self.create_database()
         else:
-            self.results['database'] = self.list_by_instance()
+            update_tags, tags = self.update_tags(old_response.get('tags'))
+            if update_tags:
+                changed = True
+                self.parameters['tags'] = tags
+            for key in self.parameters.keys():
+                if key != 'tags' and self.parameters[key] != old_response.get(key):
+                    self.fail("The collection and location not support to update")
+            if self.state == 'present':
+                if changed and not self.check_mode:
+                    self.results['database'] = self.update_database()
+                else:
+                    self.results['database'] = old_response
+            else:
+                changed = True
+                if not self.check_mode:
+                    self.results['database'] = self.delete_database()
+
+        self.results['changed'] = changed
         return self.results
 
-    def list_by_instance(self):
+    def create_database(self):
         response = None
-        results = []
         try:
-            response = self.sql_client.managed_databases.list_by_instance(resource_group_name=self.resource_group,
-                                                                          managed_instance_name=self.managed_instance_name)
+            response = self.sql_client.managed_databases.begin_create_or_update(resource_group_name=self.resource_group,
+                                                                                managed_instance_name=self.managed_instance_name,
+                                                                                database_name=self.database_name,
+                                                                                parameters=self.parameters
+                                                                               )
             self.log("Response : {0}".format(response))
-        except HttpResponseError:
-            self.log('Could not get facts for SQL managed instance database.')
+        except HttpResponseError as ec:
+            self.fail('Create the SQL managed instance database failed, exception as {0}'.format(ec))
 
-        if response is not None:
-            for item in response:
-                if self.has_tags(item.tags, self.tags):
-                    results.append(self.format_item(item))
-        return results
+        return self.format_item(self.get_poller_result(response))
 
+    def update_database(self):
+        response = None
+        try:
+            response = self.sql_client.managed_databases.begin_update(resource_group_name=self.resource_group,
+                                                                      managed_instance_name=self.managed_instance_name,
+                                                                      database_name=self.database_name,
+                                                                      parameters=self.parameters
+                                                                     )
+            self.log("Response : {0}".format(response))
+        except HttpResponseError as ec:
+            self.fail('Update the SQL managed instance database failed, exception as {0}'.format(ec))
+
+        return self.format_item(self.get_poller_result(response))
 
     def get(self):
         response = None
@@ -262,13 +336,26 @@ class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
                                                              database_name=self.database_name)
             self.log("Response : {0}".format(response))
         except HttpResponseError as ec:
-            self.log('Could not get facts for SQL managed instance database.')
+            self.log('Could not get facts for SQL managed instance database. Exception as {0}'.format(ec))
 
-        if response is not None and self.has_tags(response.tags, self.tags):
-            return [self.format_item(response)]
+        return self.format_item(response)
+
+    def delete_database(self):
+        response = None
+        try:
+            response = self.sql_client.managed_databases.begin_delete(resource_group_name=self.resource_group,
+                                                                      managed_instance_name=self.managed_instance_name,
+                                                                      database_name=self.database_name)
+            self.log("Response : {0}".format(response))
+        except HttpResponseError as ec:
+            self.fail('Could not get facts for SQL managed instance database. Exception as {0}'.format(ec))
+
+        return self.format_item(self.get_poller_result(response))
 
 
     def format_item(self, item):
+        if item is None:
+            return
         d = item.as_dict()
         d = {
             'resource_group': self.resource_group,
@@ -281,7 +368,6 @@ class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
             'collation': d.get('collation'),
             'status': d.get('status'),
             'creation_date': d.get('creation_date'),
-            'earliest_restore_point': d.get('earliest_restore_point'),
             'restore_point_in_time': d.get('restore_point_in_time'),
             'default_secondary_location': d.get('default_secondary_location'),
             'catalog_collation': d.get('catalog_collation'),
@@ -290,7 +376,6 @@ class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
             'source_database_id': d.get('source_database_id'),
             'restorable_dropped_database_id': d.get('restorable_dropped_database_id'),
             'storage_container_sas_token': d.get('storage_container_sas_token'),
-            'failover_group_id': d.get('failover_group_id'),
             'recoverable_database_id': d.get('recoverable_database_id'),
             'long_term_retention_backup_resource_id': d.get('long_term_retention_backup_resource_id'),
             'auto_complete_restore': d.get('auto_complete_restore'),
@@ -300,7 +385,7 @@ class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
 
 
 def main():
-    AzureRMSqlMIDatabaseInfo()
+    AzureRMSqlMIDatabase()
 
 
 if __name__ == '__main__':
