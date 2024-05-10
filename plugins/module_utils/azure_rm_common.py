@@ -954,7 +954,10 @@ class AzureRMModuleBase(object):
             client.models = types.MethodType(_ansible_get_models, client)
 
         if self.azure_auth._cert_validation_mode == 'ignore':
-            client._config.session_configuration_callback = self._validation_ignore_callback
+            if hasattr(client, '_config'):
+                client._config.session_configuration_callback = self._validation_ignore_callback
+            else:
+                client.config.session_configuration_callback = self._validation_ignore_callback
 
         return client
 
