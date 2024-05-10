@@ -43,6 +43,7 @@ options:
         description:
             - The backup retention period in days. This is how many days Point-in-Time.
         type: int
+        default: 7
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -74,7 +75,8 @@ short_term_retention_policy:
                 - Resource ID.
             returned: always
             type: str
-            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Sql/managedInstances/fredsqlmi/databases/newdatabase/backupShortTermRetentionPolicies/default"
+            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Sql/
+                     managedInstances/fredsqlmi/databases/newdatabase/backupShortTermRetentionPolicies/default"
         database_name:
             description:
                 - SQL managed instance database name.
@@ -195,12 +197,11 @@ class AzureRMSqMIShortTermRetentionPolicy(AzureRMModuleBase):
     def update_policy(self):
         response = None
         try:
-            response = self.sql_client.managed_backup_short_term_retention_policies.begin_update(
-                                                                                        resource_group_name=self.resource_group,
-                                                                                        managed_instance_name=self.managed_instance_name,
-                                                                                        database_name=self.database_name,
-                                                                                        policy_name=self.policy_name,
-                                                                                        parameters=dict(retention_days=self.retention_days))
+            response = self.sql_client.managed_backup_short_term_retention_policies.begin_update(resource_group_name=self.resource_group,
+                                                                                                 managed_instance_name=self.managed_instance_name,
+                                                                                                 database_name=self.database_name,
+                                                                                                 policy_name=self.policy_name,
+                                                                                                 parameters=dict(retention_days=self.retention_days))
             self.log("Response : {0}".format(response))
         except HttpResponseError as ec:
             self.fail('Could not update the SQL managed instance short term retention policyes. Exception as {0}'.format(ec))
@@ -210,12 +211,11 @@ class AzureRMSqMIShortTermRetentionPolicy(AzureRMModuleBase):
     def create_policy(self):
         response = None
         try:
-            response = self.sql_client.managed_backup_short_term_retention_policies.begin_create_or_update(
-                                                                                        resource_group_name=self.resource_group,
-                                                                                        managed_instance_name=self.managed_instance_name,
-                                                                                        database_name=self.database_name,
-                                                                                        policy_name=self.policy_name,
-                                                                                        parameters=dict(retention_days=self.retention_days))
+            response = self.sql_client.managed_backup_short_term_retention_policies.begin_create_or_update(resource_group_name=self.resource_group,
+                                                                                                           managed_instance_name=self.managed_instance_name,
+                                                                                                           database_name=self.database_name,
+                                                                                                           policy_name=self.policy_name,
+                                                                                                           parameters=dict(retention_days=self.retention_days))
             self.log("Response : {0}".format(response))
         except HttpResponseError as ec:
             self.fail('Could not Create the SQL managed instance short term retention policyes. Exception as {0}'.format(ec))

@@ -68,7 +68,8 @@ short_term_retention_policy:
                 - Resource ID.
             returned: always
             type: str
-            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Sql/managedInstances/fredsqlmi/databases/newdatabase/backupShortTermRetentionPolicies/default"
+            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Sql/
+                     managedInstances/fredsqlmi/databases/newdatabase/backupShortTermRetentionPolicies/default"
         database_name:
             description:
                 - SQL managed instance database name.
@@ -170,7 +171,6 @@ class AzureRMSqMIShortTermRetentionPolicyInfo(AzureRMModuleBase):
 
         return [self.format_item(item) for item in response] if response is not None else []
 
-
     def get(self):
         response = None
         try:
@@ -183,7 +183,6 @@ class AzureRMSqMIShortTermRetentionPolicyInfo(AzureRMModuleBase):
             self.log('Could not get facts for SQL managed instance short term retention policyes.')
 
         return [self.format_item(response)] if response is not None else None
-
 
     def format_item(self, item):
         d = item.as_dict()

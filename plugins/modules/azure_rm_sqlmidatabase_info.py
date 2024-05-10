@@ -169,7 +169,7 @@ database:
             sample: null
         storage_container_uri:
             description:
-                -
+                - Specifies the uri of the storage container where backups for this restore are stopped.
             type: str
             returned: always
             sample: null
@@ -253,7 +253,6 @@ class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
                     results.append(self.format_item(item))
         return results
 
-
     def get(self):
         response = None
         try:
@@ -266,7 +265,6 @@ class AzureRMSqlMIDatabaseInfo(AzureRMModuleBase):
 
         if response is not None and self.has_tags(response.tags, self.tags):
             return [self.format_item(response)]
-
 
     def format_item(self, item):
         d = item.as_dict()

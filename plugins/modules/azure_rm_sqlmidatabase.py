@@ -31,6 +31,7 @@ options:
         description:
             - The name of the SQL managed instance database.
         type: str
+        required: true
     collation:
         description:
             - The collation of the Azure SQL Managed Database collation to use.
@@ -42,7 +43,9 @@ options:
         type: str
     state:
         description:
-            - State of the automation runbook. Use C(present) to create or update a automation runbook and use C(absent) to delete.            type: str
+            - State of the SQL Managed Database.
+            - Use C(present) to create or update a automation runbook and use C(absent) to delete.
+        type: str
         default: present
         choices:
             - present
@@ -192,7 +195,7 @@ database:
             sample: null
         storage_container_uri:
             description:
-                -
+                - Specifies the uri of the storage container where backups for this restore are stopped.
             type: str
             returned: always
             sample: null
@@ -261,7 +264,7 @@ class AzureRMSqlMIDatabase(AzureRMModuleBase):
         super(AzureRMSqlMIDatabase, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=True, facts_module=False)
 
     def exec_module(self, **kwargs):
-        for key in self.module_arg_spec:
+        for key in list(self.module_arg_spec.keys()) + ['tags']:
             if hasattr(self, key):
                 setattr(self, key, kwargs[key])
             elif kwargs.get(key) is not None:
@@ -306,8 +309,7 @@ class AzureRMSqlMIDatabase(AzureRMModuleBase):
             response = self.sql_client.managed_databases.begin_create_or_update(resource_group_name=self.resource_group,
                                                                                 managed_instance_name=self.managed_instance_name,
                                                                                 database_name=self.database_name,
-                                                                                parameters=self.parameters
-                                                                               )
+                                                                                parameters=self.parameters)
             self.log("Response : {0}".format(response))
         except HttpResponseError as ec:
             self.fail('Create the SQL managed instance database failed, exception as {0}'.format(ec))
@@ -320,8 +322,7 @@ class AzureRMSqlMIDatabase(AzureRMModuleBase):
             response = self.sql_client.managed_databases.begin_update(resource_group_name=self.resource_group,
                                                                       managed_instance_name=self.managed_instance_name,
                                                                       database_name=self.database_name,
-                                                                      parameters=self.parameters
-                                                                     )
+                                                                      parameters=self.parameters)
             self.log("Response : {0}".format(response))
         except HttpResponseError as ec:
             self.fail('Update the SQL managed instance database failed, exception as {0}'.format(ec))
@@ -351,7 +352,6 @@ class AzureRMSqlMIDatabase(AzureRMModuleBase):
             self.fail('Could not get facts for SQL managed instance database. Exception as {0}'.format(ec))
 
         return self.format_item(self.get_poller_result(response))
-
 
     def format_item(self, item):
         if item is None:

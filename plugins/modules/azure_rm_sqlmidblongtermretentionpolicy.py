@@ -42,19 +42,19 @@ options:
     monthly_retention:
         description:
             - The monthly retention policy for an LTR backup in an ISO 8601 format.
-        type: 
+        type: str
     yearly_retention:
         description:
             - The yearly retention policy for an LTR backup in an ISO 8601 format.
-        type: 
+        type: str
     weekly_retention:
         description:
             - The weekly retention policy for an LTR backup in an ISO 8601 format.
-        type: 
+        type: str
     week_of_year:
         description:
             - The week of year to take the yearly backup in an ISO 8601 format.
-        type: 
+        type: int
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -89,7 +89,8 @@ long_term_retention_policy:
                 - Resource ID.
             returned: always
             type: str
-            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Sql/managedInstances/fredsqlmi/databases/newdatabase/backupShortTermRetentionPolicies/default"
+            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Sql/
+                     managedInstances/fredsqlmi/databases/newdatabase/backupShortTermRetentionPolicies/default"
         database_name:
             description:
                 - SQL managed instance database name.
@@ -174,6 +175,7 @@ class AzureRMSqMILongTermRetentionPolicy(AzureRMModuleBase):
             policy_name=dict(
                 type='str',
                 required=True,
+                choices=['default']
             ),
             weekly_retention=dict(
                 type='str',
@@ -215,7 +217,7 @@ class AzureRMSqMILongTermRetentionPolicy(AzureRMModuleBase):
                 if self.parameters[key] is not None and old_response[key] != self.parameters[key]:
                     self.results['changed'] = True
                     self.results['diff'].append(key)
-            if self.results['changed']  and not self.check_mode:
+            if self.results['changed'] and not self.check_mode:
                 self.results['long_term_retention_policy'] = self.create_or_update_policy()
         else:
             self.results['changed'] = True
@@ -239,12 +241,11 @@ class AzureRMSqMILongTermRetentionPolicy(AzureRMModuleBase):
     def create_or_update_policy(self):
         response = None
         try:
-            response = self.sql_client.managed_instance_long_term_retention_policies.begin_create_or_update(
-                                                                                        resource_group_name=self.resource_group,
-                                                                                        managed_instance_name=self.managed_instance_name,
-                                                                                        database_name=self.database_name,
-                                                                                        policy_name=self.policy_name,
-                                                                                        parameters=self.parameters)
+            response = self.sql_client.managed_instance_long_term_retention_policies.begin_create_or_update(resource_group_name=self.resource_group,
+                                                                                                            managed_instance_name=self.managed_instance_name,
+                                                                                                            database_name=self.database_name,
+                                                                                                            policy_name=self.policy_name,
+                                                                                                            parameters=self.parameters)
             self.log("Response : {0}".format(response))
         except HttpResponseError as ec:
             self.fail('Could not create SQL managed instance long term retention policyes. Exception info as {0}'.format(ec))
