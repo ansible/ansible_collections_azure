@@ -148,7 +148,7 @@
 - name: Assert the datebase facts
   ansible.builtin.assert:
     that:
-      - output.database[0].tags |lenght == 2
+      - output.database[0].tags |length == 2
       - output.database[0].collation == "SQL_Latin1_General_CP1_CI_AS"
 
 - name: Get sql managed database long term retention policy by name
@@ -163,11 +163,10 @@
   ansible.builtin.assert:
     that:
       - output.long_term_retention_policy[0].name == 'default'
-      - output.long_term_retention_policy[0].monthly_retention == "P3M"
-      - output.long_term_retention_policy[0].yearly_retention == "P6Y"
-      - output.long_term_retention_policy[0].weekly_retention == "P13W"
-      - output.long_term_retention_policy[0].week_of_year == 17
-      - output.database[0].tags |lenght == 2
+      - output.long_term_retention_policy[0].monthly_retention == "PT0S"
+      - output.long_term_retention_policy[0].yearly_retention == "PT0S"
+      - output.long_term_retention_policy[0].weekly_retention == "PT0S"
+      - output.long_term_retention_policy[0].week_of_year == 0
 
 - name: Update the database long term retention policy
   azure_rm_sqlmidblongtermretentionpolicy:
@@ -175,10 +174,10 @@
     managed_instance_name: "{{ random_postfix }}"
     database_name: "database{{ random_postfix }}"
     policy_name: default
-    monthly_retention: P6M
-    week_of_year: 18
-    weekly_retention: P18W
-    yearly_retention: P8Y
+    monthly_retention: P3M
+    week_of_year: 13
+    weekly_retention: P13W
+    yearly_retention: P3Y
   register: output
 
 - name: Assert the sql managed datebase long term retention policy updated
@@ -198,11 +197,10 @@
   ansible.builtin.assert:
     that:
       - output.long_term_retention_policy[0].name == 'default'
-      - output.long_term_retention_policy[0].monthly_retention == "P6M"
-      - output.long_term_retention_policy[0].yearly_retention == "P8Y"
-      - output.long_term_retention_policy[0].weekly_retention == "P18W"
-      - output.long_term_retention_policy[0].week_of_year == 18
-      - output.database[0].tags |lenght == 2
+      - output.long_term_retention_policy[0].monthly_retention == "P3M"
+      - output.long_term_retention_policy[0].yearly_retention == "P3Y"
+      - output.long_term_retention_policy[0].weekly_retention == "P13W"
+      - output.long_term_retention_policy[0].week_of_year == 13
 
 - name: Get the sql managed instance database short term retention policy facts
   azure_rm_sqlmidbshorttermretentionpolicy_info:
@@ -216,7 +214,7 @@
   ansible.builtin.assert:
     that:
       - output.short_term_retention_policy[0].name == 'default'
-      - output.long_term_retention_policy[0].retention_days == 8
+      - output.short_term_retention_policy[0].retention_days == 7
 
 - name: Update the sql managed short term retetion
   azure_rm_sqlmidbshorttermretentionpolicy:
@@ -244,7 +242,7 @@
   ansible.builtin.assert:
     that:
       - output.short_term_retention_policy[0].name == 'default'
-      - output.long_term_retention_policy[0].retention_days == 10
+      - output.short_term_retention_policy[0].retention_days == 10
 
 - name: Delete the sql managed database
   azure_rm_sqlmidatabase:
@@ -252,6 +250,7 @@
     managed_instance_name: "{{ random_postfix }}"
     database_name: "database{{ random_postfix }}"
     state: absent
+  register: output
 
 - name: Assert the sql managed datebase deleted
   ansible.builtin.assert:
