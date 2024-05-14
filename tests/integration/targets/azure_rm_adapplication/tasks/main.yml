@@ -1,18 +1,11 @@
-- name: Set variables
+- name: Set display name variable
   ansible.builtin.set_fact:
     display_name: "test_app_{{ 999999999999999999994 | random | to_uuid }}"
   run_once: true
 
-- name: Get ad app info by object id
+- name: Get full list from ad app info
   azure_rm_adapplication_info:
   register: app_info_output
-
-- name: Set app info output display name to list
-  ansible.builtin.set_fact:
-    __app_info_display_names: "{{ __app_info_display_names|default([]) + [__app_item.app_display_name] }} "
-  loop: "{{ app_info_output.applications }}"
-  loop_control:
-    loop_var: "__app_item"
 
 - name: Create application
   azure_rm_adapplication:
@@ -22,11 +15,6 @@
 - name: Assert create successfully
   ansible.builtin.assert:
     that: create_output.changed
-
-- name: Print return information from the previous task
-  ansible.builtin.debug:
-    var: create_output
-
 
 - name: Create application by app_id again idempotent test
   azure_rm_adapplication:
@@ -38,16 +26,6 @@
   ansible.builtin.assert:
     that: not output_app_id.changed
 
-- name: Create application by display_name again idempotent test
-  azure_rm_adapplication:
-    display_name: "{{ display_name }}"
-    app_id: "{{ create_output.app_id }}"
-  register: output_display_name
-
-- name: Assert application by display_name the idempotent success
-  ansible.builtin.assert:
-    that: not output_display_name.changed
-
 - name: Create application with more parameter
   azure_rm_adapplication:
     display_name: "{{ display_name }}"
@@ -58,24 +36,6 @@
       - "api://{{ create_output.app_id }}"
   register: second_output
 
-#- name: Create application with more parameter
-#  azure_rm_adapplication:
-#    display_name: "{{ display_name }}"
-#    sign_in_audience: AzureADandPersonalMicrosoftAccount
-#    credential_description: "for test"
-#    end_date: 2021-10-01
-#    start_date: 2021-05-18
-#    identifier_uris:
-#      - "{{ display_name }}.com"
-#    app_roles:
-#      - allowed_member_types:
-#          - User
-#        description: "for app role test"
-#        display_name: "{{ display_name }}_approle"
-#        is_enabled: true
-#        value: Password@0329
-#  register: second_output
-
 - name: Assert secondary resource create success
   ansible.builtin.assert:
     that: second_output.changed
@@ -83,42 +43,38 @@
 - name: Get ad app info by object id
   azure_rm_adapplication_info:
     object_id: "{{ create_output.object_id }}"
-  register: output
+  register: object_id_output
 
 - name: Get ad app info by app id
   azure_rm_adapplication_info:
     app_id: "{{ create_output.app_id }}"
-  register: output
+  register: app_id_output
 
 - name: Get ad app info by display name
   azure_rm_adapplication_info:
     app_display_name: "{{ display_name }}"
-  register: display_name_test_output
+  register: display_name_output
 
 - name: Assert the application facts
   ansible.builtin.assert:
     that:
-      - output.applications[0].app_display_name == "{{ display_name }}"
-      - output.applications | length == 1
-      - display_name_test_output.applications[0].app_display_name == "{{ display_name }}"
-      - display_name_test_output.applications | length == 1
+      - object_id_output.applications[0].app_display_name == "{{ display_name }}"
+      - object_id_output.applications | length == 1
+      - app_id_output.applications[0].app_display_name == "{{ display_name }}"
+      - app_id_output.applications | length == 1
+      - display_name_output.applications[0].app_display_name == "{{ display_name }}"
+      - display_name_output.applications | length == 1
 
-#- name: Delete ad app by app id
-#  azure_rm_adapplication:
-#    app_id: "{{ create_output.app_id }}"
-#    display_name: "{{ display_name }}"
-#    state: absent
-#  register: output
-
-- name: App diff
+- name: Get difference from app_info_output and current
   azure_rm_adapplication_info:
-    app_diff: "{{  }}"
+    app_diff: "{{ app_info_output.applications }}"
+  register: diff_output
 
-- name: Print return information from the previous task
-  ansible.builtin.debug:
-    var: __app_info_display_names
+- name: Assert the difference
+  ansible.builtin.assert:
+    that: diff_output.app_diff[0].app_display_name == "{{ display_name }}"
 
-- name: Delete ad app by app_diff
+- name: Delete ad app by app_id
   azure_rm_adapplication:
     app_id: "{{ create_output.app_id }}"
     display_name: "{{ display_name }}"

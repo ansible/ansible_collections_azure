@@ -230,15 +230,6 @@ except ImportError:
     # This is handled in azure_rm_common
     pass
 
-app_diff_spec = dict(
-    app_id=dict(
-        type='str'
-    ),
-    app_display_name=dict(
-        type='str'
-    )
-)
-
 class AzureRMADApplicationInfo(AzureRMModuleBase):
 
     def __init__(self):
@@ -247,7 +238,7 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
             object_id=dict(type='str'),
             identifier_uri=dict(type='str'),
             app_display_name=dict(type='str'),
-            app_diff=dict(type='list', elements='dict', options=app_diff_spec)
+            app_diff=dict(type='list')
         )
         self.app_id = None
         self.app_display_name = None
@@ -299,17 +290,6 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
                     temp_app.append(app)
             self.results['app_diff'] = temp_app
         return self.results
-
-    def compare_lists(applications, app_diff):
-        for app in applications:
-            found = False
-            for diff in app_diff:
-                if app.get("app_id") == diff.get("app_id") or app.get("app_display_name") == diff.get("app_display_name"):
-                    found = True
-                    break
-            if not found:
-                print("Mismatch found:")
-                print(app)
 
     def to_dict(self, object):
         return dict(
