@@ -38,13 +38,17 @@ options:
         type: str
     app_diff:
         description:
-            - The applications' Name.
+            - The application Name or the app id.
         type: list
         elements: dict
         suboptions:
             app_display_name:
                 description:
-                    - The applications' Name.
+                    - The application Name.
+                type: str
+            app_id:
+                description:
+                    - The application id.
                 type: str
 
 extends_documentation_fragment:
@@ -73,6 +77,11 @@ EXAMPLES = '''
 - name: get ad app info ---- by display name
   azure_rm_adapplication_info:
     app_display_name: "{{ display_name }}"
+
+- name: get ad app diff ---- by display name
+  azure_rm_adapplication_info:
+    app_diff:
+        app_display_name: "{{ display_name }}"
 '''
 
 RETURN = '''
@@ -139,6 +148,76 @@ applications:
             returned: always
             type: list
             sample: []
+app_diff:
+    description:
+        - The info of the ad application.
+    type: complex
+    returned: aways
+    contains:
+        app_display_name:
+            description:
+                - Object's display name or its prefix.
+            type: str
+            returned: always
+            sample: app
+        app_id:
+            description:
+                - The application ID.
+            returned: always
+            type: str
+            sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        identifier_uris:
+            description:
+                - The identifiers_uri list of app.
+            type: list
+            returned: always
+            sample: ["http://ansible-atodorov"]
+        object_id:
+            description:
+                - It's application's object ID.
+            returned: always
+            type: str
+            sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        sign_in_audience:
+            description:
+                - The application can be used from any Azure AD tenants
+            type: str
+            returned: always
+            sample: AzureADandPersonalMicrosoftAccount
+        available_to_other_tenants:
+            description:
+                - The application can be used from any Azure AD tenants
+            type: str
+            returned: always
+            sample: AzureADandPersonalMicrosoftAccount
+        public_client_reply_urls:
+            description:
+                - The public client redirect urls.
+                - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
+            returned: always
+            type: list
+            sample: []
+        web_reply_urls:
+            description:
+                - The web redirect urls.
+                - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
+            returned: always
+            type: list
+            sample: []
+        spa_reply_urls:
+            description:
+                - The spa redirect urls.
+                - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
+            returned: always
+            type: list
+            sample: []
+        state:
+            description:
+                - Absent: The app isn't in the app_diff.
+                - Present: The app is in the app_diff.
+            returned: always
+            type: str
+            sample: Absent
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBase
@@ -201,14 +280,15 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
                 apps = asyncio.get_event_loop().run_until_complete(self.get_applications(sub_filters))
                 applications = list(apps)
             self.results['applications'] = [self.to_dict(app) for app in applications]
-            app_test = [self.to_dict(app) for app in applications]
+            current_app = [self.to_dict(app) for app in applications]
         except APIError as e:
             if e.response_status_code != 404:
                 self.fail("failed to get application info {0}".format(str(e)))
         except Exception as ge:
             self.fail("failed to get application info {0}".format(str(ge)))
         if self.app_diff:
-            for app in app_test:
+            temp_app = []
+            for app in current_app:
                 found = False
                 for diff in self.app_diff:
                     if app.get("app_id") == diff.get("app_id") or app.get("app_display_name") == diff.get("app_display_name"):
@@ -216,9 +296,8 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
                         break
                 if not found:
                     app['state'] = 'absent'
-                else:
-                    app['state'] = 'present'
-            self.results['app_diff'] = app_test
+                    temp_app.append(app)
+            self.results['app_diff'] = temp_app
         return self.results
 
     def compare_lists(applications, app_diff):
