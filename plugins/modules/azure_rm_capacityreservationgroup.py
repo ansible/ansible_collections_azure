@@ -141,7 +141,7 @@ class AzureRMCapacityReservationGroup(AzureRMModuleBase):
             name=dict(type='str', required=True),
             state=dict(type='str', default='present', choices=['present', 'absent']),
             location=dict(type='str'),
-            zones=dict(type='list', elements='str', chocies=['1', '2', '3']),
+            zones=dict(type='list', elements='str', choices=['1', '2', '3']),
         )
 
         self.resource_group = None

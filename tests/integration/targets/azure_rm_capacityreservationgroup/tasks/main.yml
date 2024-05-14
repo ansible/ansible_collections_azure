@@ -11,7 +11,7 @@
       - 2
     tags:
       key1: value1
-  check_mode: yes
+  check_mode: true
 
 - name: Create a new capacity reservation group
   azure_rm_capacityreservationgroup:
