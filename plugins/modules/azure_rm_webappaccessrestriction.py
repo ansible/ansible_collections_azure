@@ -419,9 +419,11 @@ class AzureRMWebAppAccessRestriction(AzureRMModuleBaseExt):
         changed = False
         if site_config.scm_ip_security_restrictions_use_main != self.scm_ip_security_restrictions_use_main:
             changed = True
-        elif not self.default_compare({}, self.ip_security_restrictions, self.to_restriction_dict_list(site_config.ip_security_restrictions), '', dict(compare=[])):
+        elif not self.default_compare({}, self.ip_security_restrictions,
+                                      self.to_restriction_dict_list(site_config.ip_security_restrictions), '', dict(compare=[])):
             changed = True
-        elif not self.default_compare({}, self.scm_ip_security_restrictions, self.to_restriction_dict_list(site_config.scm_ip_security_restrictions), '', dict(compare=[])):
+        elif not self.default_compare({}, self.scm_ip_security_restrictions,
+                                      self.to_restriction_dict_list(site_config.scm_ip_security_restrictions), '', dict(compare=[])):
             changed = True
         return changed
 
