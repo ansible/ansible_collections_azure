@@ -39,7 +39,6 @@ options:
             - The web app's HTTP access restrictions.
         type: list
         elements: dict
-        default: []
         suboptions:
             name:
                 description:
@@ -95,7 +94,6 @@ options:
                 the SCM restrictions will be configured but not used.
         type: list
         elements: dict
-        default: []
         suboptions:
             name:
                 description:
@@ -348,8 +346,8 @@ class AzureRMWebAppAccessRestriction(AzureRMModuleBaseExt):
             name=dict(type='str', required=True),
             resource_group=dict(type='str', required=True),
             state=dict(type='str', default='present', choices=['present', 'absent']),
-            ip_security_restrictions=dict(type='list', default=[], elements='dict', options=ip_restriction_spec),
-            scm_ip_security_restrictions=dict(type='list', default=[], elements='dict', options=ip_restriction_spec),
+            ip_security_restrictions=dict(type='list', elements='dict', options=ip_restriction_spec),
+            scm_ip_security_restrictions=dict(type='list', elements='dict', options=ip_restriction_spec),
             scm_ip_security_restrictions_use_main=dict(type='bool', default=False),
         )
 
@@ -363,14 +361,12 @@ class AzureRMWebAppAccessRestriction(AzureRMModuleBaseExt):
         self.state = None
         self.name = None
         self.resource_group = None
-        self.ip_security_restrictions = []
-        self.scm_ip_security_restrictions = []
+        self.ip_security_restrictions = None
+        self.scm_ip_security_restrictions = None
         self.scm_ip_security_restrictions_use_main = False
-        mutually_exclusive = [['vnet_subnet_resource_id', 'ip_address']]
 
         super(AzureRMWebAppAccessRestriction, self).__init__(self.module_arg_spec,
                                                              supports_check_mode=True,
-                                                             mutually_exclusive=mutually_exclusive,
                                                              supports_tags=False)
 
     def exec_module(self, **kwargs):
