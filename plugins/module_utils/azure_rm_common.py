@@ -279,8 +279,6 @@ try:
     except ImportError:
         import azure.mgmt.recoveryservicesbackup.activestamp.models as RecoveryServicesBackupModels
     from azure.mgmt.search import SearchManagementClient
-    from azure.mgmt.datalake.store import DataLakeStoreAccountManagementClient
-    import azure.mgmt.datalake.store.models as DataLakeStoreAccountModel
     from azure.mgmt.notificationhubs import NotificationHubsManagementClient
     from azure.mgmt.eventhub import EventHubManagementClient
     from azure.mgmt.datafactory import DataFactoryManagementClient
@@ -954,7 +952,10 @@ class AzureRMModuleBase(object):
             client.models = types.MethodType(_ansible_get_models, client)
 
         if self.azure_auth._cert_validation_mode == 'ignore':
-            client._config.session_configuration_callback = self._validation_ignore_callback
+            if hasattr(client, '_config'):
+                client._config.session_configuration_callback = self._validation_ignore_callback
+            else:
+                client.config.session_configuration_callback = self._validation_ignore_callback
 
         return client
 
@@ -1362,19 +1363,6 @@ class AzureRMModuleBase(object):
                                                            base_url=self._cloud_environment.endpoints.resource_manager,
                                                            api_version='2020-08-01')
         return self._search_client
-
-    @property
-    def datalake_store_client(self):
-        self.log('Getting datalake store client...')
-        if not self._datalake_store_client:
-            self._datalake_store_client = self.get_mgmt_svc_client(DataLakeStoreAccountManagementClient,
-                                                                   base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                   api_version='2016-11-01')
-        return self._datalake_store_client
-
-    @property
-    def datalake_store_models(self):
-        return DataLakeStoreAccountModel
 
     @property
     def notification_hub_client(self):

@@ -64,8 +64,8 @@ cp -aT "${SHIPPABLE_BUILD_DIR}" "${TEST_DIR}"
 cd "${TEST_DIR}"
 mkdir -p shippable/testresults
 
-pip install  -I -r "${TEST_DIR}/requirements-azure.txt"
-pip install  -I -r "${TEST_DIR}/sanity-requirements-azure.txt"
+pip install  -I -r "${TEST_DIR}/requirements.txt"
+pip install  -I -r "${TEST_DIR}/sanity-requirements.txt"
 
 pip install ansible-lint
 

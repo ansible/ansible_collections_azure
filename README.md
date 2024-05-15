@@ -24,7 +24,7 @@ ansible-galaxy collection install azure.azcollection
 Install dependencies required by the collection (adjust path to collection if necessary):
 
 ```bash
-pip3 install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
+pip3 install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements.txt
 ```
 
 To upgrade to the latest version of Azure collection:

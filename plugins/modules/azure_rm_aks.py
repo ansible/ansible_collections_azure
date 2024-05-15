@@ -15,6 +15,8 @@ version_added: "0.1.2"
 short_description: Manage a managed Azure Container Service (AKS) instance
 description:
     - Create, update and delete a managed Azure Container Service (AKS) instance.
+    - You can only specify C(identity) or C(service_principal), not both.  If you don't specify either it will
+      default to identity->type->SystemAssigned.
 
 options:
     resource_group:
@@ -170,7 +172,7 @@ options:
                 type: str
     service_principal:
         description:
-            - The service principal suboptions. If not provided - use system-assigned managed identity.
+            - The service principal suboptions.
         type: dict
         suboptions:
             client_id:
@@ -181,6 +183,25 @@ options:
             client_secret:
                 description:
                     - The secret password associated with the service principal.
+                type: str
+    identity:
+        description:
+            - Identity for the Server.
+        type: dict
+        version_added: '2.4.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                required: false
+                choices:
+                    - UserAssigned
+                    - SystemAssigned
+                default: SystemAssigned
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identity
                 type: str
     enable_rbac:
         description:
@@ -590,6 +611,9 @@ state:
         provisioning_state: Succeeded
         service_principal_profile:
            client_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        identity:
+           "type": "UserAssigned"
+           "user_assigned_identities": {}
         pod_identity_profile: {
             "allow_network_plugin_kubenet": false,
             "user_assigned_identities": [
@@ -633,6 +657,7 @@ def create_aks_dict(aks):
         kubernetes_version=aks.kubernetes_version,
         tags=aks.tags,
         linux_profile=create_linux_profile_dict(aks.linux_profile),
+        identity=aks.identity.as_dict() if aks.identity else None,
         service_principal_profile=create_service_principal_profile_dict(
             aks.service_principal_profile),
         provisioning_state=aks.provisioning_state,
@@ -830,6 +855,19 @@ api_server_access_profile_spec = dict(
 )
 
 
+managed_identity_spec = dict(
+    type=dict(type='str', choices=['SystemAssigned', 'UserAssigned'], default='SystemAssigned'),
+    user_assigned_identities=dict(type='str'),
+)
+
+
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
 class AzureRMManagedCluster(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM container service (AKS) resource"""
 
@@ -869,6 +907,14 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
             service_principal=dict(
                 type='dict',
                 options=service_principal_spec
+            ),
+            identity=dict(
+                type='dict',
+                options=managed_identity_spec,
+                required_if=[
+                    ('type', 'UserAssigned', [
+                        'user_assigned_identities']),
+                ]
             ),
             enable_rbac=dict(
                 type='bool',
@@ -930,6 +976,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         self.linux_profile = None
         self.agent_pool_profiles = None
         self.service_principal = None
+        self.identity = None
         self.enable_rbac = False
         self.network_profile = None
         self.aad_profile = None
@@ -937,6 +984,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         self.addon = None
         self.node_resource_group = None
         self.pod_identity_profile = None
+
+        mutually_exclusive = [('identity', 'service_principal')]
 
         required_if = [
             ('state', 'present', [
@@ -948,7 +997,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         super(AzureRMManagedCluster, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                     supports_check_mode=True,
                                                     supports_tags=True,
-                                                    required_if=required_if)
+                                                    required_if=required_if,
+                                                    mutually_exclusive=mutually_exclusive)
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -972,6 +1022,11 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
             available_versions = self.get_all_versions()
             if not response:
                 to_be_updated = True
+                # Default to SystemAssigned if service_principal is not specified
+                if not self.service_principal and not self.identity:
+                    self.identity = dotdict({'type': 'SystemAssigned'})
+                if self.identity:
+                    changed, self.identity = self.update_identity(self.identity, {})
                 if self.kubernetes_version not in available_versions.keys():
                     self.fail("Unsupported kubernetes version. Expected one of {0} but got {1}".format(available_versions.keys(), self.kubernetes_version))
             else:
@@ -1118,6 +1173,14 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                         else:
                             self.pod_identity_profile = response['pod_identity_profile']
 
+                        # Default to SystemAssigned if service_principal is not specified
+                        if not self.service_principal and not self.identity:
+                            self.identity = dotdict({'type': 'SystemAssigned'})
+                        if self.identity:
+                            changed, self.identity = self.update_identity(self.identity, response['identity'])
+                            if changed:
+                                to_be_updated = True
+
             if update_agentpool:
                 self.log("Need to update agentpool")
                 if not self.check_mode:
@@ -1177,12 +1240,12 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         if self.agent_pool_profiles:
             agentpools = [self.create_agent_pool_profile_instance(profile) for profile in self.agent_pool_profiles]
 
+        # Only service_principal or identity can be specified, but default to SystemAssigned if none specified.
         if self.service_principal:
             service_principal_profile = self.create_service_principal_profile_instance(self.service_principal)
             identity = None
         else:
             service_principal_profile = None
-            identity = self.managedcluster_models.ManagedClusterIdentity(type='SystemAssigned')
 
         if self.linux_profile:
             linux_profile = self.create_linux_profile_instance(self.linux_profile)
@@ -1206,7 +1269,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
             service_principal_profile=service_principal_profile,
             agent_pool_profiles=agentpools,
             linux_profile=linux_profile,
-            identity=identity,
+            identity=self.identity,
             enable_rbac=self.enable_rbac,
             network_profile=self.create_network_profile_instance(self.network_profile),
             aad_profile=self.create_aad_profile_instance(self.aad_profile),
@@ -1385,6 +1448,34 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     config[config_spec[v]] = config[v]
                 result[name] = self.managedcluster_models.ManagedClusterAddonProfile(config=config, enabled=config['enabled'])
         return result
+
+    # AKS only supports a single UserAssigned Identity
+    def update_identity(self, param_identity, curr_identity):
+        user_identity = None
+        changed = False
+        current_managed_type = curr_identity.get('type', 'SystemAssigned')
+        current_managed_identity = curr_identity.get('user_assigned_identities', {})
+        param_managed_identity = param_identity.get('user_assigned_identities')
+
+        # If type set to SystamAssigned, and Resource has SystamAssigned, nothing to do
+        if 'SystemAssigned' in param_identity.get('type') and current_managed_type == 'SystemAssigned':
+            pass
+        # If type set to SystemAssigned, and Resource has current identity, remove UserAssigned identity
+        elif param_identity.get('type') == 'SystemAssigned':
+            changed = True
+        # If type in module args contains 'UserAssigned'
+        elif 'UserAssigned' in param_identity.get('type'):
+            if param_managed_identity not in current_managed_identity.keys():
+                user_identity = {param_managed_identity: {}}
+                changed = True
+
+        new_identity = self.managedcluster_models.ManagedClusterIdentity(
+            type=param_identity.get('type'),
+        )
+        if user_identity:
+            new_identity.user_assigned_identities = user_identity
+
+        return changed, new_identity
 
 
 def main():

@@ -17,8 +17,8 @@ When contributing to this repository, please first discuss the change you wish t
     . venv/bin/activate
     pip3 install -U pip
     pip3 install ansible
-    pip3 install -r requirements-azure.txt
-    pip3 install -r sanity-requirements-azure.txt
+    pip3 install -r requirements.txt
+    pip3 install -r sanity-requirements.txt
     ```
 
 ## Running tests
@@ -51,7 +51,7 @@ Additional `ansible-test` resources:
 
 1. Please provide integration tests showing the changed behavior/functionality under `tests/integration/targets/<relevant-module>/tasks`.
 1. Think about updating the documentation and examples for the changed module.
-1. Please run a sanity check. Install prerequisites `pip install -r sanity-requirements-azure.txt`, run with `ansible-test sanity --color -v --junit`. Read more at https://docs.ansible.com/ansible/latest/dev_guide/testing_sanity.html.
+1. Please run a sanity check. Install prerequisites `pip install -r sanity-requirements.txt`, run with `ansible-test sanity --color -v --junit`. Read more at https://docs.ansible.com/ansible/latest/dev_guide/testing_sanity.html.
 1. There is a script `tests/utils/ado/ado.sh` for running tests inside an Azure DevOps pipeline. Unfortunately the pipeline and results are not visible for the public. You can perhaps adapt the parts of the script or use a small playbook to run the task list of the integration tests mentioned above.
 
 ## Release Process

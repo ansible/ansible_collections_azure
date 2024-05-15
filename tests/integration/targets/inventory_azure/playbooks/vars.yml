@@ -5,6 +5,7 @@ uid_short: "{{ (resource_group ~ inventory_hostname) | hash('md5') | truncate(10
 storage_account: "{{ 'stor' ~ uid }}"
 availability_set: "{{ 'avbs' ~ uid_short }}"
 vm_name: "{{ 'vm' ~ uid_short }}"
+vm_name_2: "{{ 'vm2' ~ uid_short }}"
 network_name: "{{ 'vnet' ~ uid_short }}"
 subnet_name: "{{ 'snet' ~ uid_short }}"
 security_group: "{{ 'sg' ~ uid_short }}"

@@ -134,7 +134,7 @@ options:
 requirements:
     - python >= 2.7
     - The host that executes this module must have the azure.azcollection collection installed via galaxy
-    - All python packages listed in collection's requirements-azure.txt must be installed via pip on the host that executes modules from azure.azcollection
+    - All python packages listed in collection's requirements.txt must be installed via pip on the host that executes modules from azure.azcollection
     - Full installation instructions may be found https://galaxy.ansible.com/azure/azcollection
 
 notes:

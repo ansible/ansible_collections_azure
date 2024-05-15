@@ -602,7 +602,8 @@ class AzureHost(object):
         # set nic-related values from the primary NIC first
         for nic in sorted(self.nics, key=lambda n: n.is_primary, reverse=True):
             # and from the primary IP config per NIC first
-            for ipc in sorted(nic._nic_model['properties']['ipConfigurations'], key=lambda i: i['properties'].get('primary', False), reverse=True):
+            for ipc in sorted(nic._nic_model.get('properties', {}).get('ipConfigurations', []),
+                              key=lambda i: i.get('properties', {}).get('primary', False), reverse=True):
                 try:
                     subnet = ipc['properties'].get('subnet')
                     if subnet:
