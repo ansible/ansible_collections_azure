@@ -41,15 +41,6 @@ options:
             - The application Name or the app id.
         type: list
         elements: dict
-        suboptions:
-            app_display_name:
-                description:
-                    - The application Name.
-                type: str
-            app_id:
-                description:
-                    - The application id.
-                type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -213,11 +204,10 @@ app_diff:
             sample: []
         state:
             description:
-                - Absent: The app isn't in the app_diff.
-                - Present: The app is in the app_diff.
+                - absent --> The app isn't in the app_diff.
             returned: always
             type: str
-            sample: Absent
+            sample: absent
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBase
@@ -230,6 +220,7 @@ except ImportError:
     # This is handled in azure_rm_common
     pass
 
+
 class AzureRMADApplicationInfo(AzureRMModuleBase):
 
     def __init__(self):
@@ -238,7 +229,7 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
             object_id=dict(type='str'),
             identifier_uri=dict(type='str'),
             app_display_name=dict(type='str'),
-            app_diff=dict(type='list')
+            app_diff=dict(type='list', elements='dict')
         )
         self.app_id = None
         self.app_display_name = None
@@ -275,8 +266,11 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
         except APIError as e:
             if e.response_status_code != 404:
                 self.fail("failed to get application info {0}".format(str(e)))
-        except Exception as ge:
-            self.fail("failed to get application info {0}".format(str(ge)))
+        except Exception as e:
+            if "Name or service not known" in str(e):
+                self.fail("DNS resolution error occurred.")
+            else:
+                self.fail("An unexpected error occurred: {0}".format(str(e)))
         if self.app_diff:
             temp_app = []
             for app in current_app:
