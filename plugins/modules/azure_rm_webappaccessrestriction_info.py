@@ -79,6 +79,30 @@ ip_security_restrictions:
             returned: always
             type: str
             sample: 1.1.1.1/32
+        subnet_traffic_tag:
+            description:
+                - (internal) Subnet traffic tags.
+            type: int
+            returned: always
+            sample: int
+        vnet_traffic_tag:
+            description:
+                - (internal) Vnet traffic tag.
+            type: int
+            returned: always
+            sample: 3
+        tags:
+            description:
+                - IP restriction rule description.
+            type: str
+            returned: always
+            sample: default
+        vnet_subnet_resource_id:
+            description:
+                - The Virtual network relaste subnet resource id.
+            type: str
+            returned: always
+            sample:  "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Network/virtualNetworks/vnet01/subnets/subnet01"
 scm_ip_security_restrictions:
     description:
         - The web app's SCM access restrictions.
@@ -116,6 +140,30 @@ scm_ip_security_restrictions:
             returned: always
             type: str
             sample: 1.1.1.1/32
+        subnet_traffic_tag:
+            description:
+                - (internal) Subnet traffic tags.
+            type: int
+            returned: always
+            sample: int
+        vnet_traffic_tag:
+            description:
+                - (internal) Vnet traffic tag.
+            type: int
+            returned: always
+            sample: 3
+        tag:
+            description:
+                - IP restriction rule description.
+            type: str
+            returned: always
+            sample: default
+        vnet_subnet_resource_id:
+            description:
+                - The Virtual network relaste subnet resource id.
+            type: str
+            returned: always
+            sample:  "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Network/virtualNetworks/vnet01/subnets/subnet01"
 scm_ip_security_restrictions_use_main:
     description:
         - Whether the HTTP access restrictions are used for SCM access.
@@ -196,6 +244,10 @@ class AzureRMWebAppAccessRestrictionInfo(AzureRMModuleBase):
             action=restriction_obj.action,
             priority=restriction_obj.priority,
             ip_address=restriction_obj.ip_address,
+            vnet_subnet_resource_id=restriction_obj.vnet_subnet_resource_id,
+            vnet_traffic_tag=restriction_obj.vnet_traffic_tag,
+            subnet_traffic_tag=restriction_obj.subnet_traffic_tag,
+            tag=restriction_obj.tag,
         )
 
 

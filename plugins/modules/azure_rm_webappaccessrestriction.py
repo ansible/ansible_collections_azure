@@ -66,7 +66,28 @@ options:
                 description:
                     - IPv4 address (with subnet mask) of the access restriction.
                 type: str
-                required: true
+            subnet_traffic_tag:
+                description:
+                    - (internal) Subnet traffic tags.
+                type: int
+            vnet_traffic_tag:
+                description:
+                    - (internal) Vnet traffic tag.
+                type: int
+            tag:
+                description:
+                    - IP restriction rule description.
+                type: str
+                choices:
+                    - Default
+                    - XffProxy
+                    - ServiceTag
+            vnet_subnet_resource_id:
+                description:
+                    - The Virtual network relaste subnet resource id.
+                    - Only I(ip_adress) or I(vnet_subnet_resource_id) property must be specified.
+                    - Parameter I(vnet_subnet_resource_id) cannot be used with I(subnet_traffic_tag) or I(vnet_traffic_tag) at the same time.
+                type: str
     scm_ip_security_restrictions:
         description:
             - >-
@@ -101,7 +122,28 @@ options:
                 description:
                     - IPv4 address (with subnet mask) of the access restriction.
                 type: str
-                required: true
+            subnet_traffic_tag:
+                description:
+                    - (internal) Subnet traffic tags.
+                type: int
+            vnet_traffic_tag:
+                description:
+                    - (internal) Vnet traffic tag.
+                type: int
+            tag:
+                description:
+                    - IP restriction rule description.
+                type: str
+                choices:
+                    - Default
+                    - XffProxy
+                    - ServiceTag
+            vnet_subnet_resource_id:
+                description:
+                    - The Virtual network relaste subnet resource id.
+                    - Only I(ip_adress) or I(vnet_subnet_resource_id) property must be specified.
+                    - Parameter I(vnet_subnet_resource_id) cannot be used with I(subnet_traffic_tag) or I(vnet_traffic_tag) at the same time.
+                type: str
     scm_ip_security_restrictions_use_main:
         description:
             - >-
@@ -131,6 +173,12 @@ EXAMPLES = '''
         action: "Allow"
         ip_address: "2.2.2.2/24"
         priority: 2
+      - name: "Datacenter 3"
+        action: Allow
+        priority: 3
+        description: "for test 02"
+        tag: XffProxy
+        vnet_subnet_resource_id: "{{ subnet_output.state.id }}"
     scm_ip_security_restrictions_use_main: true
 
 - name: Delete web app network access restrictions.
@@ -178,6 +226,30 @@ ip_security_restrictions:
             returned: always
             type: str
             sample: 1.1.1.1/32
+        subnet_traffic_tag:
+            description:
+                - (internal) Subnet traffic tags.
+            type: int
+            returned: always
+            sample: int
+        vnet_traffic_tag:
+            description:
+                - (internal) Vnet traffic tag.
+            type: int
+            returned: always
+            sample: 3
+        tag:
+            description:
+                - IP restriction rule description.
+            type: str
+            returned: always
+            sample: default
+        vnet_subnet_resource_id:
+            description:
+                - The Virtual network relaste subnet resource id.
+            type: str
+            returned: always
+            sample:  "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Network/virtualNetworks/vnet01/subnets/subnet01"
 scm_ip_security_restrictions:
     description:
         - The web app's SCM access restrictions.
@@ -215,6 +287,30 @@ scm_ip_security_restrictions:
             returned: always
             type: str
             sample: 1.1.1.1/32
+        subnet_traffic_tag:
+            description:
+                - (internal) Subnet traffic tags.
+            type: int
+            returned: always
+            sample: int
+        vnet_traffic_tag:
+            description:
+                - (internal) Vnet traffic tag.
+            type: int
+            returned: always
+            sample: 3
+        tag:
+            description:
+                - IP restriction rule description.
+            type: str
+            returned: always
+            sample: default
+        vnet_subnet_resource_id:
+            description:
+                - The Virtual network relaste subnet resource id.
+            type: str
+            returned: always
+            sample:  "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Network/virtualNetworks/vnet01/subnets/subnet01"
 scm_ip_security_restrictions_use_main:
     description:
         - Whether the HTTP access restrictions are used for SCM access.
@@ -223,7 +319,7 @@ scm_ip_security_restrictions_use_main:
     sample: false
 '''
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 
 try:
     from azure.mgmt.web.models import IpSecurityRestriction
@@ -236,11 +332,15 @@ ip_restriction_spec = dict(
     description=dict(type='str'),
     action=dict(type='str', default='Allow', choices=['Allow', 'Deny']),
     priority=dict(type='int', required=True),
-    ip_address=dict(type='str', required=True),
+    ip_address=dict(type='str'),
+    vnet_subnet_resource_id=dict(type='str'),
+    vnet_traffic_tag=dict(type='int'),
+    subnet_traffic_tag=dict(type='int'),
+    tag=dict(type='str', choices=["Default", "XffProxy", "ServiceTag"]),
 )
 
 
-class AzureRMWebAppAccessRestriction(AzureRMModuleBase):
+class AzureRMWebAppAccessRestriction(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -266,9 +366,11 @@ class AzureRMWebAppAccessRestriction(AzureRMModuleBase):
         self.ip_security_restrictions = []
         self.scm_ip_security_restrictions = []
         self.scm_ip_security_restrictions_use_main = False
+        mutually_exclusive = [['vnet_subnet_resource_id', 'ip_address']]
 
         super(AzureRMWebAppAccessRestriction, self).__init__(self.module_arg_spec,
                                                              supports_check_mode=True,
+                                                             mutually_exclusive=mutually_exclusive,
                                                              supports_tags=False)
 
     def exec_module(self, **kwargs):
@@ -318,9 +420,14 @@ class AzureRMWebAppAccessRestriction(AzureRMModuleBase):
         return site_config
 
     def has_updates(self, site_config):
-        return (site_config.scm_ip_security_restrictions_use_main != self.scm_ip_security_restrictions_use_main or self.ip_security_restrictions and
-                self.ip_security_restrictions != self.to_restriction_dict_list(site_config.ip_security_restrictions) or self.scm_ip_security_restrictions and
-                self.scm_ip_security_restrictions != self.to_restriction_dict_list(site_config.scm_ip_security_restrictions))
+        changed = False
+        if site_config.scm_ip_security_restrictions_use_main != self.scm_ip_security_restrictions_use_main:
+            changed = True
+        elif not self.default_compare({}, self.ip_security_restrictions, self.to_restriction_dict_list(site_config.ip_security_restrictions), '', dict(compare=[])):
+            changed = True
+        elif not self.default_compare({}, self.scm_ip_security_restrictions, self.to_restriction_dict_list(site_config.scm_ip_security_restrictions), '', dict(compare=[])):
+            changed = True
+        return changed
 
     def has_access_restrictions(self, site_config):
         return site_config.ip_security_restrictions or site_config.scm_ip_security_restrictions
@@ -356,6 +463,10 @@ class AzureRMWebAppAccessRestriction(AzureRMModuleBase):
             action=restriction_dict['action'],
             priority=restriction_dict['priority'],
             ip_address=restriction_dict['ip_address'],
+            vnet_subnet_resource_id=restriction_dict['vnet_subnet_resource_id'],
+            vnet_traffic_tag=restriction_dict['vnet_traffic_tag'],
+            subnet_traffic_tag=restriction_dict['subnet_traffic_tag'],
+            tag=restriction_dict['tag'],
         )
 
     def to_restriction_dict_list(self, restriction_obj_list):
@@ -379,6 +490,10 @@ class AzureRMWebAppAccessRestriction(AzureRMModuleBase):
             action=restriction_obj.action,
             priority=restriction_obj.priority,
             ip_address=restriction_obj.ip_address,
+            vnet_subnet_resource_id=restriction_obj.vnet_subnet_resource_id,
+            vnet_traffic_tag=restriction_obj.vnet_traffic_tag,
+            subnet_traffic_tag=restriction_obj.subnet_traffic_tag,
+            tag=restriction_obj.tag,
         )
 
 
