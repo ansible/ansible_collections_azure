@@ -2941,8 +2941,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
             pip = self.network_models.PublicIPAddress(id=pip_facts.id, location=pip_facts.location, resource_guid=pip_facts.resource_guid, sku=sku)
             self.tags['_own_pip_'] = self.name + '01'
 
-        self.tags['_own_nsg_'] = self.name + '01'
-
         parameters = self.network_models.NetworkInterface(
             location=self.location,
             ip_configurations=[
@@ -2961,6 +2959,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
             parameters.network_security_group = self.network_models.NetworkSecurityGroup(id=group.id,
                                                                                          location=group.location,
                                                                                          resource_guid=group.resource_guid)
+            self.tags['_own_nsg_'] = self.name + '01'
 
         parameters.ip_configurations[0].public_ip_address = pip
 
