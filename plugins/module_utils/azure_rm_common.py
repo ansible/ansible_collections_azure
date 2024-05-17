@@ -706,8 +706,8 @@ class AzureRMModuleBase(object):
                   and self.azure_auth.credentials.get('client_id')
                   and self.azure_auth.credentials.get('secret')):
                 credential = client_secret.ClientSecretCredential(tenant_id=self.azure_auth.credentials.get('tenant'),
-                                                    client_id=self.azure_auth.credentials.get('client_id'),
-                                                    client_secret=self.azure_auth.credentials.get('secret'))
+                                                                  client_id=self.azure_auth.credentials.get('client_id'),
+                                                                  client_secret=self.azure_auth.credentials.get('secret'))
             else:
                 account_keys = self.storage_client.storage_accounts.list_keys(resource_group_name=resource_group_name, account_name=storage_account_name)
                 credential = account_keys.keys[0].value
