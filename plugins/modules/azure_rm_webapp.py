@@ -568,8 +568,6 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
-    import logging
-    logging.basicConfig(filename='log.log', level=logging.INFO)
     from azure.core.polling import LROPoller
     from azure.core.exceptions import HttpResponseError
     from azure.mgmt.web.models import Site, AppServicePlan, SkuDescription, NameValuePair, SiteSourceControl, StringDictionary
