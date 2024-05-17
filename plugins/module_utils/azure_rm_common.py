@@ -703,7 +703,7 @@ class AzureRMModuleBase(object):
             if auth_mode == 'login' and self.azure_auth.credentials.get('credential'):
                 credential = self.azure_auth.credentials['credential']
             elif (auth_mode == 'login' and self.azure_auth.credentials.get('tenant')
-                  and self.azure_auth.credentials.get('client_id') 
+                  and self.azure_auth.credentials.get('client_id')
                   and self.azure_auth.credentials.get('secret')):
                 credential = client_secret.ClientSecretCredential(tenant_id=self.azure_auth.credentials.get('tenant'),
                                                     client_id=self.azure_auth.credentials.get('client_id'),
