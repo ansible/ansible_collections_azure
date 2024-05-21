@@ -204,7 +204,7 @@
       code: Running
     # enable_node_public_ip: true
     scale_set_priority: Regular
-    #node_public_ip_prefix_id: "{{ pip_output.state.id }}"
+    # node_public_ip_prefix_id: "{{ pip_output.state.id }}"
     spot_max_price: 85
     proximity_placement_group_id: "{{ proxi_output.state.id }}"
     enable_encryption_at_host: false
