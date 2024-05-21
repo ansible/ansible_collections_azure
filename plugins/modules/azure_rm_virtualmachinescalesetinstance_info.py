@@ -213,7 +213,7 @@ class AzureRMVirtualMachineScaleSetVMInfo(AzureRMModuleBase):
 
         instance = None
         power_state = ''
-        if d.get('resources', None) is not None:
+        if d.get('provisioning_state') is not None:
             iv = self.mgmt_client.virtual_machine_scale_set_vms.get_instance_view(resource_group_name=self.resource_group,
                                                                                   vm_scale_set_name=self.vmss_name,
                                                                                   instance_id=d.get('instance_id', None)).as_dict()
@@ -250,7 +250,7 @@ class AzureRMVirtualMachineScaleSetVMInfo(AzureRMModuleBase):
             'power_state': power_state,
             'vm_id': d.get('vm_id', None),
         }
-        if d.get('resources') is not None:
+        if d.get('provisioning_state') is not None:
             dd['image_reference'] = d.get('storage_profile').get('image_reference', None)
             dd['computer_name'] = d.get('os_profile').get('computer_name', None)
         else:

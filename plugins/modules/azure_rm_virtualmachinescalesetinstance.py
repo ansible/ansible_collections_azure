@@ -297,7 +297,7 @@ class AzureRMVirtualMachineScaleSetInstance(AzureRMModuleBase):
         d = item.as_dict()
         instance = None
         power_state = ''
-        if d.get('resources', None) is not None:
+        if d.get('provisioning_state', None) is not None:
             iv = self.mgmt_client.virtual_machine_scale_set_vms.get_instance_view(resource_group_name=self.resource_group,
                                                                                   vm_scale_set_name=self.vmss_name,
                                                                                   instance_id=d.get('instance_id', None)).as_dict()
@@ -331,7 +331,7 @@ class AzureRMVirtualMachineScaleSetInstance(AzureRMModuleBase):
             'power_state': power_state,
             'protection_policy': d.get('protection_policy')
         }
-        if d.get('resources') is None:
+        if d.get('provisioning_state') is None:
             dd['tags'] = vm_instance.get('tags', None)
         return dd
 
