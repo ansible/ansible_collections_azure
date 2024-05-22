@@ -7,6 +7,25 @@
     location: eastus
   register: versions
 
+- name: Create proximity placement group
+  azure_rm_proximityplacementgroup:
+    resource_group: "{{ resource_group }}"
+    name: "proxi{{ rpfx }}"
+  register: proxi_output
+
+- name: Create public ip prefix
+  azure_rm_publicipprefix:
+    resource_group: "{{ resource_group }}"
+    name: "pipprefix{{ rpfx }}"
+    zones:
+      - 1
+    public_ip_address_version: IPV4
+    prefix_length: 29
+    sku:
+      name: Standard
+      tier: Regional
+  register: pip_output
+
 - name: Create a kubernet service with minimal parameters
   azure_rm_aks:
     name: "min{{ rpfx }}"
@@ -24,6 +43,7 @@
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
+        - "{{ pip_output.state.ip_prefix }}"
         - "192.0.2.0"
         - "198.51.100.0"
         - "203.0.113.0"
@@ -158,25 +178,6 @@
       - output.aks_agent_pools[0].max_pods == 42
       - output.aks_agent_pools[0].orchestrator_version == agentpool_version.azure_orchestrator_version[0]
 
-- name: Create proximity placement group
-  azure_rm_proximityplacementgroup:
-    resource_group: "{{ resource_group }}"
-    name: "proxi{{ rpfx }}"
-  register: proxi_output
-
-- name: Create public ip prefix
-  azure_rm_publicipprefix:
-    resource_group: "{{ resource_group }}"
-    name: "pipprefix{{ rpfx }}"
-    zones:
-      - 1
-    public_ip_address_version: IPV4
-    prefix_length: 29
-    sku:
-      name: Standard
-      tier: Regional
-  register: pip_output
-
 - name: Create a new agent pool with multi parameters
   azure_rm_aksagentpool:
     resource_group: "{{ resource_group }}"
@@ -202,9 +203,9 @@
       max_surge: 50%
     power_state:
       code: Running
-    # enable_node_public_ip: true
+    enable_node_public_ip: true
     scale_set_priority: Regular
-    # node_public_ip_prefix_id: "{{ pip_output.state.id }}"
+    node_public_ip_prefix_id: "{{ pip_output.state.id }}"
     spot_max_price: 85
     proximity_placement_group_id: "{{ proxi_output.state.id }}"
     enable_encryption_at_host: false
@@ -244,9 +245,9 @@
       max_surge: 50%
     power_state:
       code: Running
-    # enable_node_public_ip: true
+    enable_node_public_ip: true
     scale_set_priority: Regular
-    # node_public_ip_prefix_id: "{{ pip_output.state.id }}"
+    node_public_ip_prefix_id: "{{ pip_output.state.id }}"
     spot_max_price: 85
     proximity_placement_group_id: "{{ proxi_output.state.id }}"
     enable_encryption_at_host: false
