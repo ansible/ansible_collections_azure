@@ -3,6 +3,20 @@
     rpfx: "{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
   run_once: true
 
+- name: Create virtual network
+  azure_rm_virtualnetwork:
+    resource_group: "{{ resource_group }}"
+    name: "vnet-{{ rpfx }}"
+    address_prefixes: 10.42.0.0/24
+
+- name: Create subnet
+  azure_rm_subnet:
+    resource_group: "{{ resource_group }}"
+    name: "subnet-{{ rpfx }}"
+    address_prefix: 10.42.0.0/28
+    virtual_network: "vnet-{{ rpfx }}"
+  register: subnet_output
+
 - name: Create a web app
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
@@ -26,9 +40,16 @@
         action: "Allow"
         ip_address: "2.2.2.2/24"
         priority: 2
+      - name: "Datacenter 3"
+        action: Allow
+        priority: 3
+        description: "fred test 03"
+        tag: XffProxy
+        vnet_subnet_resource_id: "{{ subnet_output.state.id }}"
     scm_ip_security_restrictions_use_main: true
   register: output
   check_mode: true
+
 - name: Assert the resource is well created
   ansible.builtin.assert:
     that: output.changed
@@ -46,17 +67,26 @@
         action: "Allow"
         ip_address: "2.2.2.2/24"
         priority: 2
+      - name: "Datacenter 3"
+        action: Allow
+        priority: 3
+        description: "fred test 03"
+        tag: XffProxy
+        vnet_subnet_resource_id: "{{ subnet_output.state.id }}"
     scm_ip_security_restrictions_use_main: true
   register: output
 - name: Assert the resource is well created
   ansible.builtin.assert:
     that:
       - output.changed
-      - output.ip_security_restrictions | length == 2
+      - output.ip_security_restrictions | length == 3
       - output.ip_security_restrictions[0].action == 'Allow'
       - output.ip_security_restrictions[0].ip_address == '1.1.1.1/24'
       - output.ip_security_restrictions[1].action == 'Allow'
       - output.ip_security_restrictions[1].ip_address == '2.2.2.2/24'
+      - output.ip_security_restrictions[2].priority == 3
+      - output.ip_security_restrictions[2].tag == "XffProxy"
+      - output.ip_security_restrictions[2].vnet_subnet_resource_id == subnet_output.state.id
       - output.scm_ip_security_restrictions_use_main == true
 
 - name: "Check webapp access restriction facts 1"
@@ -68,11 +98,14 @@
   ansible.builtin.assert:
     that:
       - not output.changed
-      - output.ip_security_restrictions | length == 2
+      - output.ip_security_restrictions | length == 3
       - output.ip_security_restrictions[0].action == 'Allow'
       - output.ip_security_restrictions[0].ip_address == '1.1.1.1/24'
       - output.ip_security_restrictions[1].action == 'Allow'
       - output.ip_security_restrictions[1].ip_address == '2.2.2.2/24'
+      - output.ip_security_restrictions[2].priority == 3
+      - output.ip_security_restrictions[2].tag == "XffProxy"
+      - output.ip_security_restrictions[2].vnet_subnet_resource_id == subnet_output.state.id
       - output.scm_ip_security_restrictions_use_main == true
 
 - name: "Create webapp access restriction - idempotent"
@@ -88,8 +121,15 @@
         action: "Allow"
         ip_address: "2.2.2.2/24"
         priority: 2
+      - name: "Datacenter 3"
+        action: Allow
+        priority: 3
+        description: "fred test 03"
+        tag: XffProxy
+        vnet_subnet_resource_id: "{{ subnet_output.state.id }}"
     scm_ip_security_restrictions_use_main: true
   register: output
+
 - name: Assert the resource is not changed
   ansible.builtin.assert:
     that: not output.changed

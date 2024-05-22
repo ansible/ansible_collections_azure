@@ -14,10 +14,10 @@ module: azure_rm_localnetworkgateway
 
 version_added: "2.4.0"
 
-short_description: Gets or list the specified local network gateway in a resource group
+short_description: Manage Azure Local Network Gateway in a resource group
 
 description:
-    - Gets or list the specified local network gateway in a resource group.
+    - Create, update or delete Azure Local Network Gateway in a resource group
 
 options:
     resource_group:
@@ -114,7 +114,7 @@ EXAMPLES = '''
 RETURN = '''
 state:
     description:
-        - Gets the specified local network gateway in a resource group.
+        - Current state of the Azure Local Network Gateway resource.
     returned: always
     type: complex
     contains:

@@ -211,16 +211,35 @@ class AzureRMVirtualMachineScaleSetVMInfo(AzureRMModuleBase):
     def format_response(self, item):
         d = item.as_dict()
 
-        iv = self.mgmt_client.virtual_machine_scale_set_vms.get_instance_view(resource_group_name=self.resource_group,
-                                                                              vm_scale_set_name=self.vmss_name,
-                                                                              instance_id=d.get('instance_id', None)).as_dict()
-        power_state = ""
-        for index in range(len(iv['statuses'])):
-            code = iv['statuses'][index]['code'].split('/')
-            if code[0] == 'PowerState':
-                power_state = code[1]
-                break
-        d = {
+        instance = None
+        power_state = ''
+        if d.get('provisioning_state') is not None:
+            iv = self.mgmt_client.virtual_machine_scale_set_vms.get_instance_view(resource_group_name=self.resource_group,
+                                                                                  vm_scale_set_name=self.vmss_name,
+                                                                                  instance_id=d.get('instance_id', None)).as_dict()
+            for index in range(len(iv['statuses'])):
+                code = iv['statuses'][index]['code'].split('/')
+                if code[0] == 'PowerState':
+                    power_state = code[1]
+                    break
+        else:
+            try:
+                instance = self.compute_client.virtual_machines.instance_view(self.resource_group, d.get('instance_id', None)).as_dict()
+                vm_instance = self.compute_client.virtual_machines.get(self.resource_group, d.get('instance_id', None)).as_dict()
+            except Exception as exc:
+                self.fail("Getting Flexible VMSS instance instance failed, name {0} instance view - {1}".format(d.get('instance_id'), str(exc)))
+
+            for index in range(len(instance['statuses'])):
+                code = instance['statuses'][index]['code'].split('/')
+                if code[0] == 'PowerState':
+                    power_state = code[1]
+                elif code[0] == 'OSState' and code[1] == 'generalized':
+                    power_state = 'generalized'
+                    break
+                elif code[0] == 'ProvisioningState' and code[1] == 'failed':
+                    power_state = ''
+                    break
+        dd = {
             'resource_group': self.resource_group,
             'id': d.get('id', None),
             'tags': d.get('tags', None),
@@ -230,10 +249,17 @@ class AzureRMVirtualMachineScaleSetVMInfo(AzureRMModuleBase):
             'provisioning_state': d.get('provisioning_state', None),
             'power_state': power_state,
             'vm_id': d.get('vm_id', None),
-            'image_reference': d.get('storage_profile').get('image_reference', None),
-            'computer_name': d.get('os_profile').get('computer_name', None)
         }
-        return d
+        if d.get('provisioning_state') is not None:
+            dd['image_reference'] = d.get('storage_profile').get('image_reference', None)
+            dd['computer_name'] = d.get('os_profile').get('computer_name', None)
+        else:
+            dd['image_reference'] = vm_instance.get('storage_profile').get('image_reference', None)
+            dd['computer_name'] = vm_instance.get('os_profile').get('computer_name', None)
+            dd['provisioning_state'] = vm_instance.get('provisioning_state', None)
+            dd['tags'] = vm_instance.get('tags', None)
+            dd['vm_id'] = vm_instance.get('vm_id')
+        return dd
 
 
 def main():

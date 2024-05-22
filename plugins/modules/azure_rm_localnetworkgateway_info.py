@@ -63,7 +63,7 @@ EXAMPLES = '''
 RETURN = '''
 state:
     description:
-        - Gets the specified local network gateway in a resource group.
+        - Current state of the Azure Local Network Gateway resource.
     returned: always
     type: complex
     contains:

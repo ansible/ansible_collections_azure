@@ -268,6 +268,8 @@ options:
                 choices:
                     - loadBalancer
                     - userDefinedRouting
+                    - managedNATGateway
+                    - userAssignedNATGateway
     api_server_access_profile:
         description:
             - Profile of API Access configuration.
@@ -835,7 +837,7 @@ network_profile_spec = dict(
     dns_service_ip=dict(type='str'),
     docker_bridge_cidr=dict(type='str'),
     load_balancer_sku=dict(type='str', choices=['standard', 'basic']),
-    outbound_type=dict(type='str', default='loadBalancer', choices=['userDefinedRouting', 'loadBalancer'])
+    outbound_type=dict(type='str', default='loadBalancer', choices=['userDefinedRouting', 'loadBalancer', 'userAssignedNATGateway', 'managedNATGateway'])
 )
 
 
