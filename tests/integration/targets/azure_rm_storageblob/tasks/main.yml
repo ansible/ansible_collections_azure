@@ -2,7 +2,6 @@
   ansible.builtin.set_fact:
     storage_account: "sb{{ resource_group | hash('md5') | truncate(22, True, '') }}"
     test1_file: "./targets/azure_rm_storageblob/files/Ratings.png"
-    principal_id: "{{ azure_principal_id }}"
 
 - name: Create storage account
   azure_rm_storageaccount:
