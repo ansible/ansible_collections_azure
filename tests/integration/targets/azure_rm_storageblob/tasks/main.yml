@@ -9,6 +9,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ storage_account }}"
     account_type: Standard_LRS
+  register: az_storageaccount
 
 - name: Create container
   azure_rm_storageblob:
