@@ -262,6 +262,7 @@ try:
     from azure.mgmt.rdbms.postgresql import PostgreSQLManagementClient
     from azure.mgmt.rdbms.postgresql_flexibleservers import PostgreSQLManagementClient as PostgreSQLFlexibleManagementClient
     from azure.mgmt.rdbms.mysql import MySQLManagementClient
+    from azure.mgmt.rdbms.mysql _flexibleservers import MySQLManagementClient as MySQLFlexibleManagementClient
     from azure.mgmt.rdbms.mariadb import MariaDBManagementClient
     from azure.mgmt.containerregistry import ContainerRegistryManagementClient
     from azure.mgmt.containerinstance import ContainerInstanceManagementClient
@@ -433,6 +434,7 @@ class AzureRMModuleBase(object):
         self._marketplace_client = None
         self._sql_client = None
         self._mysql_client = None
+        self._mysql_flexible_client = None
         self._mariadb_client = None
         self._postgresql_client = None
         self._postgresql_flexible_client = None
@@ -1204,6 +1206,14 @@ class AzureRMModuleBase(object):
             self._postgresql_client = self.get_mgmt_svc_client(PostgreSQLManagementClient,
                                                                base_url=self._cloud_environment.endpoints.resource_manager)
         return self._postgresql_client
+
+    @property
+    def mysql_flexible_client(self):
+        self.log('Getting MySQL Flexible client')
+        if not self._mysql_flexible_client:
+            self._mysql_flexible_client = self.get_mgmt_svc_client(MySQLFlexibleManagementClient,
+                                                                   base_url=self._cloud_environment.endpoints.resource_manager)
+        return self._mysql_flexible_client
 
     @property
     def mysql_client(self):
