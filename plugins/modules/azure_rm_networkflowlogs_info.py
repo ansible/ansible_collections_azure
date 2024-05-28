@@ -80,7 +80,7 @@ flow_logs:
                 - Resource ID.
             returned: always
             type: str
-            sample: "/subscriptions/xxx-xxx/resourceGroups/NetworkWatcherRG/providers/Microsoft.Network/networkWatchers/netwatcher_eastus"
+            sample: 
         location:
             description:
                 - Resource location.
@@ -92,7 +92,43 @@ flow_logs:
                 - Resource name.
             returned: always
             type: str
+            sample: testflowlogs01
+        network_watcher_name:
+            descrition:
+                - The name of the network watcher.
+            type: str
+            returned: always
             sample: mynetworkwatcher01
+        target_resource_id:
+            descrition:
+                - ID of network security group to which flow log will be applied.
+            type: str
+            returned: always
+            sample: 
+        storage_id:
+            descrition:
+                - ID of the storage account which is used to store the flow log.
+            type: str
+            returned: always
+            sample: 
+        enanbled:
+            descrition:
+                - Flag to enable/disable flow logging.
+            type: str
+            returned: always
+            sample: 
+        retention_policy:
+            descrition:
+                - Parameters that define the retention policy for flow log.
+            type: str
+            returned: always
+            sample: 
+        flow_analytics_configuration:
+            descrition:
+                - Parameters that define the configuration of traffic analytics.
+            type: dict
+            returned: always
+            sample: 
         tags:
             description:
                 - Resource tags.
@@ -104,10 +140,10 @@ flow_logs:
                 - Resource type.
             returned: always
             type: str
-            sample: "Microsoft.Network/networkWatchers"
+            sample: 
         provisioning_state:
             description:
-                - The provisioning state of the network watcher resource.
+                - The provisioning state of the network flow logs resource.
             type: str
             returned: always
             sample: Succeeded

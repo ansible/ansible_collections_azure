@@ -12,9 +12,9 @@ DOCUMENTATION = '''
 ---
 module: azure_rm_networkflowlogs
 version_added: "2.5.0"
-short_description: Manage the network watcher
+short_description: Manage the network flow logs
 description:
-    - Create, update or delete the network watcher.
+    - Create, update or delete the network flow logs.
 options:
     resource_group:
         description:
@@ -27,9 +27,69 @@ options:
         type: str
     name:
         description:
-            - The name of the SSH public key.
+            - The name of the network flow logs.
         required: true
         type: str
+    network_watcher_name:
+        description:
+            - The name of the network watcher.
+        type: str
+        required: true
+    target_resource_id:
+        description:
+            -  ID of network security group to which flow log will be applied.
+        type: str
+    storage_id:
+        description:
+            - ID of the storage account which is used to store the flow log.
+        type: str
+    enabled:
+        description:
+            - Flag to enable/disable flow logging.
+        type: bool
+    retention_policy:
+        description:
+            - Parameters that define the retention policy for flow log.
+        type: dict
+        suboptions:
+            days:
+                description:
+                    - Number of days to retain flow log records.
+                type: int
+            enabled:
+                description:
+                    - Flag to enable/disable retention.
+                type: bool
+    flow_analytic_configuragion:
+        description:
+            - Parameters that define the configuration of traffic analytics.
+        type: dict
+        suboptions:
+            network_watcher_flow_analytics_configuration:
+                description:
+                    - Parameters that define the configuration of traffic analytics.
+                type: dict
+                suboptions:
+                    enabled:
+                        description:
+                            - Flag to enable/disable traffic analytics.
+                        type: bool
+                    workspace_id:
+                        description:
+                            - The resource guid of the attached workspace.
+                        type: str
+                    workspace_region:
+                        description:
+                            - The location of the attached workspace.
+                        type: str
+                    workspace_resource_id:
+                        description:
+                            - Resource Id of the attached workspace.
+                        type: str
+                    traffic_analytics_interval:
+                        description:
+                            - The interval in minutes which would decide how frequently TA service should do flow analytics.
+                        type: int
     state:
         description:
             - State of the Flow Logs. Use C(present) to create or update and C(absent) to delete.
@@ -54,6 +114,7 @@ EXAMPLES = '''
   azure_rm_networkflowlogs:
     resource_group: myResourceGroup
     name: myNetworkWatcher
+    *****
     location: eastus
     tags:
       testing: testing
@@ -96,6 +157,42 @@ state:
             returned: always
             type: str
             sample: mynetworkwatcher01
+        network_watcher_name:
+            descrition:
+                - The name of the network watcher.
+            type: str
+            returned: always
+            sample: mynetworkwatcher01
+        target_resource_id:
+            descrition:
+                - ID of network security group to which flow log will be applied.
+            type: str
+            returned: always
+            sample: 
+        storage_id:
+            descrition:
+                - ID of the storage account which is used to store the flow log.
+            type: str
+            returned: always
+            sample: 
+        enanbled:
+            descrition:
+                - Flag to enable/disable flow logging.
+            type: str
+            returned: always
+            sample: 
+        retention_policy:
+            descrition:
+                - Parameters that define the retention policy for flow log.
+            type: str
+            returned: always
+            sample: 
+        flow_analytics_configuration:
+            descrition:
+                - Parameters that define the configuration of traffic analytics.
+            type: dict
+            returned: always
+            sample: 
         tags:
             description:
                 - Resource tags.
@@ -229,10 +326,6 @@ class AzureRMNetworkWatcher(AzureRMModuleBase):
 
     def create_or_update(self, body):
         response = None
-        parameter = dict(
-                tags={'key1': 'value1', 'key2': 'value2'},
-                storage_id= ""
-            )
         try:
             response = self.to_dict(self.network_client.flow_logs.begin_create_or_update(self.resource_group, self.network_watcher_name, self.name, body))
         except Exception as exc:
