@@ -294,9 +294,9 @@ class AzureRMNetworkFlowLogInfo(AzureRMModuleBase):
                     results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_id'] = new_config.workspace_id
                     results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_region'] = new_config.workspace_region
                     results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_resource_id'] = \
-                            new_config.workspace_resource_id
+                        new_config.workspace_resource_id
                     results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['traffic_analytics_interval'] = \
-                            new_config.traffic_analytics_interval
+                        new_config.traffic_analytics_interval
 
         return results
 
