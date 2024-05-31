@@ -129,7 +129,7 @@ EXAMPLES = '''
     retention_policy:
       days: 2
       enabled: true
-    storage_id:  "/subscriptions/xxx-xxx/resourceGroups/AutoTagFunctionAppRG/providers/Microsoft.Storage/storageAccounts/autotagfunctionappr9a08"
+    storage_id: "/subscriptions/xxx-xxx/resourceGroups/AutoTagFunctionAppRG/providers/Microsoft.Storage/storageAccounts/autotagfunctionappr9a08"
     target_resource_id: "/subscriptions/xxx-xxx/resourceGroups/xz3mlwaiserv/providers/Microsoft.Network/virtualNetworks/xz3mlwvnet"
     tags:
       key2: value2
