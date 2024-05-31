@@ -60,7 +60,7 @@ options:
                 description:
                     - Flag to enable/disable retention.
                 type: bool
-    flow_analytic_configuragion:
+    flow_analytics_configuration:
         description:
             - Parameters that define the configuration of traffic analytics.
         type: dict
@@ -125,7 +125,7 @@ EXAMPLES = '''
         traffic_analytics_interval: 60
         workspace_id: 7c16a8dd-b983-4f75-b78b-a804c169306c
         workspace_region: eastus
-        workspace_resource_id: "/subscriptions/xxx-xxx/resourceGroups/DefaultResourceGroup-EUS/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace-0-EUS"
+        workspace_resource_id: "/subscriptions/xxx-xxx/resourceGroups/DefaultRG-EUS/providers/Microsoft.OperationalInsights/workspaces/DeWorkspace-0-EUS"
     retention_policy:
       days: 2
       enabled: true
@@ -174,31 +174,31 @@ state:
             type: str
             sample: xz-flowlog
         network_watcher_name:
-            descrition:
+            description:
                 - The name of the network watcher.
             type: str
             returned: always
             sample: NetWatcher_eastus
         target_resource_id:
-            descrition:
+            description:
                 - ID of network security group to which flow log will be applied.
             type: str
             returned: always
             sample: /subscriptions/xxx-xxx/resourceGroups/xz3mlwaiserv/providers/Microsoft.Network/virtualNetworks/xz3mlwvnet"
         storage_id:
-            descrition:
+            description:
                 - ID of the storage account which is used to store the flow log.
             type: str
             returned: always
             sample: "/subscriptions/xxx-xxx/resourceGroups/AutoTagFunctionAppRG/providers/Microsoft.Storage/storageAccounts/autotagfunc01"
         enanbled:
-            descrition:
+            description:
                 - Flag to enable/disable flow logging.
             type: str
             returned: always
             sample: true
         retention_policy:
-            descrition:
+            description:
                 - Parameters that define the retention policy for flow log.
             type: complex
             returned: always
@@ -216,7 +216,7 @@ state:
                     returned: always
                     sample: false
         flow_analytics_configuration:
-            descrition:
+            description:
                 - Parameters that define the configuration of traffic analytics.
             type: complex
             returned: always
@@ -299,7 +299,8 @@ class AzureRMNetworkFlowLog(AzureRMModuleBaseExt):
             target_resource_id=dict(type='str'),
             storage_id=dict(type='str'),
             enabled=dict(type='bool'),
-            retention_policy=dict(type='dict',
+            retention_policy=dict(
+                type='dict',
                 options=dict(
                     days=dict(type='int'),
                     enabled=dict(type='bool'),
@@ -336,12 +337,12 @@ class AzureRMNetworkFlowLog(AzureRMModuleBaseExt):
         )
 
         super(AzureRMNetworkFlowLog, self).__init__(self.module_arg_spec,
-                                                  supports_tags=True,
-                                                  supports_check_mode=True)
+                                                    supports_tags=True,
+                                                    supports_check_mode=True)
 
     def exec_module(self, **kwargs):
 
-        for key in list(self.module_arg_spec.keys())+['tags']:
+        for key in list(self.module_arg_spec.keys()) + ['tags']:
             if hasattr(self, key):
                 setattr(self, key, kwargs[key])
             elif kwargs[key] is not None:
@@ -360,9 +361,11 @@ class AzureRMNetworkFlowLog(AzureRMModuleBaseExt):
 
         if old_response is not None:
             if self.state == 'present':
-                if self.body.get('retention_policy') is not None and not self.default_compare({}, self.body.get('retention_policy'), old_response.get('retention_policy'), '', dict(compare=[])):
+                if self.body.get('retention_policy') is not None and\
+                   not self.default_compare({}, self.body.get('retention_policy'), old_response.get('retention_policy'), '', dict(compare=[])):
                     changed = True
-                elif self.body.get('flow_analytics_configuration') is not None and not self.default_compare({}, self.body.get('flow_analytics_configuration'), old_response.get('flow_analytics_configuration'), '', dict(compare=[])):
+                elif self.body.get('flow_analytics_configuration') is not None and\
+                   not self.default_compare({}, self.body.get('flow_analytics_configuration'), old_response.get('flow_analytics_configuration'), '', dict(compare=[])):
                     changed = True
 
                 elif self.body.get('enabled') is not None and bool(self.body['enabled']) != bool(old_response.get('enabled')):
@@ -371,7 +374,6 @@ class AzureRMNetworkFlowLog(AzureRMModuleBaseExt):
                     results = self.create_or_update(self.body)
                 else:
                     results = old_response
-
 
                 update_tags, new_tags = self.update_tags(old_response['tags'])
                 if update_tags:
@@ -458,8 +460,10 @@ class AzureRMNetworkFlowLog(AzureRMModuleBaseExt):
                     results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['enabled'] = new_config.enabled
                     results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_id'] = new_config.workspace_id
                     results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_region'] = new_config.workspace_region
-                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_resource_id'] = new_config.workspace_resource_id
-                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['traffic_analytics_interval'] = new_config.traffic_analytics_interval
+                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_resource_id'] = \
+                            new_config.workspace_resource_id
+                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['traffic_analytics_interval'] = \
+                            new_config.traffic_analytics_interval
 
             return results
         return None

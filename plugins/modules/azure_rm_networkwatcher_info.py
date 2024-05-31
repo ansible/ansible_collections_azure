@@ -141,9 +141,9 @@ class AzureRMNetworkWatcherInfo(AzureRMModuleBase):
         self.tags = None
 
         super(AzureRMNetworkWatcherInfo, self).__init__(self.module_arg_spec,
-                                                      supports_check_mode=True,
-                                                      supports_tags=False,
-                                                      facts_module=True)
+                                                        supports_check_mode=True,
+                                                        supports_tags=False,
+                                                        facts_module=True)
 
     def exec_module(self, **kwargs):
         for key in self.module_arg_spec:
