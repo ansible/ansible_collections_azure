@@ -380,9 +380,12 @@ class AzureRMADGroupInfo(AzureRMModuleBase):
         )
         if filters:
             request_configuration.query_parameters.filter = filters
-        response = await self._client.groups.by_group_id(group_id).transitive_members.get(
-            request_configuration=request_configuration)
-        return response.value
+        try:
+            response = await self._client.groups.by_group_id(group_id).transitive_members.get(
+                request_configuration=request_configuration)
+            return response.value
+        except Exception:
+            return
 
     async def get_raw_group_members(self, group_id, filters=None):
         request_configuration = GroupItemRequestBuilder.GroupItemRequestBuilderGetRequestConfiguration(
