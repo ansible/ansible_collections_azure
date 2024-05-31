@@ -27,7 +27,7 @@ options:
         type: str
     name:
         description:
-            - The name of the SSH public key.
+            - The name of the network watcher.
         required: true
         type: str
     state:
@@ -134,7 +134,6 @@ class AzureRMNetworkWatcher(AzureRMModuleBase):
             name=dict(type='str', required=True),
             state=dict(type='str', default='present', choices=['present', 'absent']),
             location=dict(type='str'),
-            public_key=dict(type='str'),
         )
 
         self.resource_group = None

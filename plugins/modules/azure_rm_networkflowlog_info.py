@@ -25,7 +25,7 @@ options:
             - The name of the resource group.
         type: str
         required: true
-    network_wather_name:
+    network_watcher_name:
         description:
             - Name of the network watcher.
         type: str
