@@ -10,7 +10,7 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: azure_rm_networkflowlogs_info
+module: azure_rm_networkflowlog_info
 
 version_added: "2.5.0"
 
@@ -51,15 +51,17 @@ author:
 
 EXAMPLES = '''
 - name: Get the network watcher facts
-  azure_rm_networkflowlogs_info:
+  azure_rm_networkflowlog_info:
     resource_group: myResourceGroup
     network_watcher_name: mywatcher01
     name: flowlogname
 
 - name: list the network flow logs and filter by tags
-  azure_rm_networkflowlogs_info:
+  azure_rm_networkflowlog_info:
     resource_group: myResourceGroup
     network_watcher_name: mywatcher01
+    tags:
+      - key1
 '''
 
 RETURN = '''
@@ -80,7 +82,7 @@ flow_logs:
                 - Resource ID.
             returned: always
             type: str
-            sample: 
+            sample: /subscriptions/xxx-xxx/resourceGroups/NetWatcherRG/providers/Microsoft.Network/networkWatchers/NetWatcher_eastus/flowLogs/xz-flowlog"
         location:
             description:
                 - Resource location.
@@ -92,43 +94,91 @@ flow_logs:
                 - Resource name.
             returned: always
             type: str
-            sample: testflowlogs01
+            sample: xz-flowlog
         network_watcher_name:
             descrition:
                 - The name of the network watcher.
             type: str
             returned: always
-            sample: mynetworkwatcher01
+            sample: NetWatcher_eastus
         target_resource_id:
             descrition:
                 - ID of network security group to which flow log will be applied.
             type: str
             returned: always
-            sample: 
+            sample: /subscriptions/xxx-xxx/resourceGroups/xz3mlwaiserv/providers/Microsoft.Network/virtualNetworks/xz3mlwvnet"
         storage_id:
             descrition:
                 - ID of the storage account which is used to store the flow log.
             type: str
             returned: always
-            sample: 
+            sample: "/subscriptions/xxx-xxx/resourceGroups/AutoTagFunctionAppRG/providers/Microsoft.Storage/storageAccounts/autotagfunc01"
         enanbled:
             descrition:
                 - Flag to enable/disable flow logging.
             type: str
             returned: always
-            sample: 
+            sample: true
         retention_policy:
             descrition:
                 - Parameters that define the retention policy for flow log.
-            type: str
+            type: complex
             returned: always
-            sample: 
+            contains:
+                day:
+                    description:
+                        - Number of days to retain flow log records.
+                    type: int
+                    returned: always
+                    sample: 0
+                enabled:
+                    description:
+                        - Flag to enable/disable retention.
+                    type: bool
+                    returned: always
+                    sample: false
         flow_analytics_configuration:
             descrition:
                 - Parameters that define the configuration of traffic analytics.
-            type: dict
+            type: complex
             returned: always
-            sample: 
+            contains:
+                network_watcher_flow_analytics_configuration:
+                    description:
+                        - Parameters that define the configuration of traffic analytics.
+                    type: complex
+                    returned: always
+                    contains:
+                        enabled:
+                            description:
+                                - Flag to enable/disable traffic analytics.
+                            type: bool
+                            returned: always
+                            sample: true
+                        workspace_id:
+                            description:
+                                - The resource guid of the attached workspace.
+                            type: str
+                            returned: always
+                            sample: 7c16a8dd-b983-4f75-b78b-a804c169306c
+                        workspace_region:
+                            description:
+                                - The location of the attached workspace.
+                            type: str
+                            returned: always
+                            sample: eastus
+                        workspace_resource_id:
+                            description:
+                                - Resource Id of the attached workspace.
+                            type: str
+                            returned: always
+                            sample: /subscriptions/xxx-xxx/resourceGroups/DefaulUS/providers/Microsoft.OperationalInsights/workspaces/DefaultWorkspace-0-EUS"
+                        traffic_analytics_interval:
+                            description:
+                                - The interval in minutes which would decide how frequently TA service should do flow analytics.
+                            type: str
+                            returned: always
+                            sample: 60
         tags:
             description:
                 - Resource tags.
@@ -140,7 +190,7 @@ flow_logs:
                 - Resource type.
             returned: always
             type: str
-            sample: 
+            sample: "Microsoft.Network/networkWatchers/flowLogs"
         provisioning_state:
             description:
                 - The provisioning state of the network flow logs resource.
@@ -151,8 +201,6 @@ flow_logs:
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
-    import logging
-    logging.basicConfig(filename='log.log', level=logging.INFO)
 except Exception:
     # This is handled in azure_rm_common
     pass
@@ -160,7 +208,7 @@ except Exception:
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
 
 
-class AzureRMNetworkFlowLogsInfo(AzureRMModuleBase):
+class AzureRMNetworkFlowLogInfo(AzureRMModuleBase):
 
     def __init__(self):
 
@@ -181,7 +229,7 @@ class AzureRMNetworkFlowLogsInfo(AzureRMModuleBase):
         self.name = None
         self.tags = None
 
-        super(AzureRMNetworkFlowLogsInfo, self).__init__(self.module_arg_spec,
+        super(AzureRMNetworkFlowLogInfo, self).__init__(self.module_arg_spec,
                                                       supports_check_mode=True,
                                                       supports_tags=False,
                                                       facts_module=True)
@@ -202,7 +250,7 @@ class AzureRMNetworkFlowLogsInfo(AzureRMModuleBase):
     def get_by_name(self):
         response = None
         try:
-            response = self.network_client.flow_logs.get(self.resource_group, self.network_watcher, self.name)
+            response = self.network_client.flow_logs.get(self.resource_group, self.network_watcher_name, self.name)
 
         except ResourceNotFoundError as exec:
             self.log("Failed to get network flow logs, Exception as {0}".format(exec))
@@ -212,7 +260,7 @@ class AzureRMNetworkFlowLogsInfo(AzureRMModuleBase):
     def list_by_network_watcher(self):
         response = []
         try:
-            response = self.network_client.flow_logs.list(self.resource_group)
+            response = self.network_client.flow_logs.list(self.resource_group, self.network_watcher_name)
         except Exception as exec:
             self.log("Faild to list network flow logs by network watcher, exception as {0}".format(exec))
         return response
@@ -232,14 +280,27 @@ class AzureRMNetworkFlowLogsInfo(AzureRMModuleBase):
                 target_resource_id=body.target_resource_id,
                 storage_id=body.storage_id,
                 enabled=body.enabled,
-                retention_policy=body.retention_policy,
-                flow_analytics_configuration=body.flow_analytics_configuration,
+                retention_policy=dict(),
+                flow_analytics_configuration=dict()
             )
+            if body.retention_policy is not None:
+                results['retention_policy']['days'] = body.retention_policy.days
+                results['retention_policy']['enabled'] = body.retention_policy.enabled
+            if body.flow_analytics_configuration is not None:
+                results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration'] = dict()
+                if body.flow_analytics_configuration.network_watcher_flow_analytics_configuration is not None:
+                    new_config = body.flow_analytics_configuration.network_watcher_flow_analytics_configuration
+                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['enabled'] = new_config.enabled
+                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_id'] = new_config.workspace_id
+                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_region'] = new_config.workspace_region
+                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['workspace_resource_id'] = new_config.workspace_resource_id
+                    results['flow_analytics_configuration']['network_watcher_flow_analytics_configuration']['traffic_analytics_interval'] = new_config.traffic_analytics_interval
+
         return results
 
 
 def main():
-    AzureRMNetworkFlowLogsInfo()
+    AzureRMNetworkFlowLogInfo()
 
 
 if __name__ == '__main__':

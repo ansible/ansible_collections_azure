@@ -173,7 +173,7 @@ class AzureRMNetworkWatcher(AzureRMModuleBase):
                 if update_tags:
                     changed = True
                     if not self.check_mode:
-                        results = self.update_tags(dict(tags=new_tags))
+                        results = self.update_watcher_tags(dict(tags=new_tags))
                 else:
                     results = old_response
             else:
@@ -213,7 +213,7 @@ class AzureRMNetworkWatcher(AzureRMModuleBase):
 
         return response
 
-    def update_tags(self, body):
+    def update_watcher_tags(self, body):
         response = None
         try:
             response = self.network_client.network_watchers.update_tags(self.resource_group, self.name, body)

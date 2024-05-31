@@ -199,7 +199,8 @@ class AzureRMNetworkWatcherInfo(AzureRMModuleBase):
                 type=body.type,
                 provisioning_state=body.provisioning_state,
             )
-        return results
+            return results
+        return None
 
 
 def main():
