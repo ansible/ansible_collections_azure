@@ -364,8 +364,8 @@ class AzureRMNetworkFlowLog(AzureRMModuleBaseExt):
                 if self.body.get('retention_policy') is not None and\
                    not self.default_compare({}, self.body.get('retention_policy'), old_response.get('retention_policy'), '', dict(compare=[])):
                     changed = True
-                elif (self.body.get('flow_analytics_configuration') is not None and\
-                   not self.default_compare({}, self.body['flow_analytics_configuration'], old_response['flow_analytics_configuration'], '', dict(compare=[]))):
+                elif (self.body.get('flow_analytics_configuration') is not None and
+                        not self.default_compare({}, self.body['flow_analytics_configuration'], old_response['flow_analytics_configuration'], '', dict(compare=[]))):
                     changed = True
 
                 elif self.body.get('enabled') is not None and bool(self.body['enabled']) != bool(old_response.get('enabled')):
