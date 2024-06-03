@@ -1837,7 +1837,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                     if self.capacity_reservation_group is not None:
                         if self.capacity_reservation_group.get('id') is not None:
                             capacity_reservation_group_resource = self.compute_models.SubResource(id=self.capacity_reservation_group['id'])
-                        elif self.proximity_placement_group.get('name') is not None and self.capacity_reservation_group.get('resource_group') is not None:
+                        elif self.capacity_reservation_group.get('name') is not None and self.capacity_reservation_group.get('resource_group') is not None:
                             capacity_reservation_group = self.get_capacity_reservation_group(self.capacity_reservation_group.get('resource_group'),
                                                                                              self.capacity_reservation_group.get('name'))
                             capacity_reservation_group_resource = self.compute_models.SubResource(id=capacity_reservation_group.id)
