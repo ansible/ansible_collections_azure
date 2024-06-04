@@ -586,8 +586,8 @@
     kind: StorageV2
     allow_shared_key_access: true
     default_to_o_auth_authentication: true
-    default_to_o_auth_authentication: true
-  registe: output
+    allow_cross_tenant_replication: true
+  register: output
 
 - name: Assert storage account is well created
   ansible.builtin.assert:
@@ -602,8 +602,8 @@
     kind: StorageV2
     allow_shared_key_access: true
     default_to_o_auth_authentication: true
-    default_to_o_auth_authentication: true
-  registe: output
+    allow_cross_tenant_replication: true
+  register: output
 
 - name: Assert storage account no changed
   ansible.builtin.assert:
@@ -618,8 +618,8 @@
     kind: StorageV2
     allow_shared_key_access: false
     default_to_o_auth_authentication: false
-    default_to_o_auth_authentication: false
-  registe: output
+    allow_cross_tenant_replication: false
+  register: output
 
 - name: Assert storage account is well updated
   ansible.builtin.assert:

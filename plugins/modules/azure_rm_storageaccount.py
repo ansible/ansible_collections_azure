@@ -1190,12 +1190,12 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             self.account_dict['default_to_o_auth_authentication'] = self.default_to_o_auth_authentication
             if not self.check_mode:
                 try:
-                    parameters = self.storage_models.StorageAccountUpdateParameters(allow_blob_public_access=self.allow_blob_public_access)
+                    parameters = self.storage_models.StorageAccountUpdateParameters(default_to_o_auth_authentication=self.default_to_o_auth_authentication)
                     self.storage_client.storage_accounts.update(self.resource_group,
                                                                 self.name,
                                                                 parameters)
                 except Exception as exc:
-                    self.fail("Failed to update allow public blob access: {0}".format(str(exc)))
+                    self.fail("Failed to update default_to_o_auth_authentication: {0}".format(str(exc)))
 
         if self.account_type:
             if self.account_type != self.account_dict['sku_name']:
