@@ -251,6 +251,21 @@ options:
         choices:
             - Enabled
             - Disabled
+    allow_cross_tenant_replication:
+        description:
+            - Allow or disallow cross AAD tenant object replication.
+        type: bool
+    allow_shared_key_access:
+        description:
+            - Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
+            - If false, then all requests, including shared access signatures, must be authorized with Azure Active Directory (Azure AD).
+            - The default value is null, which is equivalent to true.
+        type: bool
+    default_to_o_auth_authentication:
+        description:
+            - A boolean flag which indicates whether the default authentication is OAuth or not.
+            - The default interpretation is false for this property.
+        type: bool
     encryption:
         description:
             - The encryption settings on the storage account.
@@ -405,6 +420,25 @@ state:
             returned: always
             type: str
             sample: Standard_RAGRS
+        allow_cross_tenant_replication:
+            description:
+                - Allow or disallow cross AAD tenant object replication.
+            type: bool
+            returned: always
+            sample: true
+        allow_shared_key_access:
+            description:
+                - Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
+            type: bool
+            returned: always
+            sample: true
+        default_to_o_auth_authentication:
+            description:
+                - A boolean flag which indicates whether the default authentication is OAuth or not.
+                - The default interpretation is false for this property.
+            type: bool
+            returned: always
+            sample: true
         custom_domain:
             description:
                 - User domain assigned to the storage account.
@@ -740,6 +774,9 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             minimum_tls_version=dict(type='str', choices=['TLS1_0', 'TLS1_1', 'TLS1_2']),
             public_network_access=dict(type='str', choices=['Enabled', 'Disabled']),
             allow_blob_public_access=dict(type='bool'),
+            allow_shared_key_access=dict(type='bool'),
+            allow_cross_tenant_replication=dict(type='bool'),
+            default_to_o_auth_authentication=dict(type='bool'),
             network_acls=dict(type='dict'),
             blob_cors=dict(type='list', options=cors_rule_spec, elements='dict'),
             static_website=dict(type='dict', options=static_website_spec),
@@ -803,6 +840,9 @@ class AzureRMStorageAccount(AzureRMModuleBase):
         self.is_hns_enabled = None
         self.large_file_shares_state = None
         self.enable_nfs_v3 = None
+        self.allow_shared_key_access = None
+        self.allow_cross_tenant_replication = None
+        self.default_to_o_auth_authentication = None
 
         super(AzureRMStorageAccount, self).__init__(self.module_arg_spec,
                                                     supports_check_mode=True)
@@ -905,6 +945,9 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             minimum_tls_version=account_obj.minimum_tls_version,
             public_network_access=account_obj.public_network_access,
             allow_blob_public_access=account_obj.allow_blob_public_access,
+            default_to_o_auth_authentication=account_obj.default_to_o_auth_authentication,
+            allow_cross_tenant_replication=account_obj.allow_cross_tenant_replication,
+            allow_shared_key_access=account_obj.allow_shared_key_access,
             network_acls=account_obj.network_rule_set,
             is_hns_enabled=account_obj.is_hns_enabled if account_obj.is_hns_enabled else False,
             enable_nfs_v3=account_obj.enable_nfs_v3 if hasattr(account_obj, 'enable_nfs_v3') else None,
@@ -1118,6 +1161,42 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                 except Exception as exc:
                     self.fail("Failed to update allow public blob access: {0}".format(str(exc)))
 
+        if self.allow_shared_key_access is not None and self.allow_shared_key_access != self.account_dict.get('allow_shared_key_access'):
+            self.results['changed'] = True
+            self.account_dict['allow_shared_key_access'] = self.allow_shared_key_access
+            if not self.check_mode:
+                try:
+                    parameters = self.storage_models.StorageAccountUpdateParameters(allow_shared_key_access=self.allow_shared_key_access)
+                    self.storage_client.storage_accounts.update(self.resource_group,
+                                                                self.name,
+                                                                parameters)
+                except Exception as exc:
+                    self.fail("Failed to update allow shared key access: {0}".format(str(exc)))
+
+        if self.allow_cross_tenant_replication is not None and self.allow_cross_tenant_replication != self.account_dict.get('allow_cross_tenant_replication'):
+            self.results['changed'] = True
+            self.account_dict['allow_cross_tenant_replication'] = self.allow_cross_tenant_replication
+            if not self.check_mode:
+                try:
+                    parameters = self.storage_models.StorageAccountUpdateParameters(allow_cross_tenant_replication=self.allow_cross_tenant_replication)
+                    self.storage_client.storage_accounts.update(self.resource_group,
+                                                                self.name,
+                                                                parameters)
+                except Exception as exc:
+                    self.fail("Failed to update allow cross tenant replication: {0}".format(str(exc)))
+
+        if self.default_to_o_auth_authentication is not None and self.default_to_o_auth_authentication != self.account_dict.get('default_to_o_auth_authentication'):
+            self.results['changed'] = True
+            self.account_dict['default_to_o_auth_authentication'] = self.default_to_o_auth_authentication
+            if not self.check_mode:
+                try:
+                    parameters = self.storage_models.StorageAccountUpdateParameters(allow_blob_public_access=self.allow_blob_public_access)
+                    self.storage_client.storage_accounts.update(self.resource_group,
+                                                                self.name,
+                                                                parameters)
+                except Exception as exc:
+                    self.fail("Failed to update allow public blob access: {0}".format(str(exc)))
+
         if self.account_type:
             if self.account_type != self.account_dict['sku_name']:
                 # change the account type
@@ -1258,6 +1337,9 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                 is_hns_enabled=self.is_hns_enabled,
                 enable_nfs_v3=self.enable_nfs_v3,
                 large_file_shares_state=self.large_file_shares_state,
+                default_to_o_auth_authentication=self.default_to_o_auth_authentication,
+                allow_cross_tenant_replication=self.allow_cross_tenant_replication,
+                allow_shared_key_access=self.allow_shared_key_access,
                 tags=dict()
             )
             if self.tags:
@@ -1285,6 +1367,9 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                                                                         is_hns_enabled=self.is_hns_enabled,
                                                                         enable_nfs_v3=self.enable_nfs_v3,
                                                                         access_tier=self.access_tier,
+                                                                        allow_shared_key_access=self.allow_shared_key_access,
+                                                                        default_to_o_auth_authentication=self.default_to_o_auth_authentication,
+                                                                        allow_cross_tenant_replication=self.allow_cross_tenant_replication,
                                                                         large_file_shares_state=self.large_file_shares_state)
         self.log(str(parameters))
         try:
