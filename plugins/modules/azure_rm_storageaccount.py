@@ -1185,7 +1185,8 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                 except Exception as exc:
                     self.fail("Failed to update allow cross tenant replication: {0}".format(str(exc)))
 
-        if self.default_to_o_auth_authentication is not None and self.default_to_o_auth_authentication != self.account_dict.get('default_to_o_auth_authentication'):
+        if self.default_to_o_auth_authentication is not None and \
+           self.default_to_o_auth_authentication != self.account_dict.get('default_to_o_auth_authentication'):
             self.results['changed'] = True
             self.account_dict['default_to_o_auth_authentication'] = self.default_to_o_auth_authentication
             if not self.check_mode:
