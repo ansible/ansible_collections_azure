@@ -348,7 +348,7 @@
     resource_group: "{{ resource_group }}"
     gallery_name: myGallery{{ rpfx }}
     gallery_image_name: myImage
-    name: 10.1.3
+    name: 10.1.4
     location: eastus
     publishing_profile:
       end_of_life_date: "2050-10-01t00:00:00+00:00"
@@ -479,6 +479,20 @@
       - output.versions['location'] != None
       - output.versions['publishing_profile'] != None
       - output.versions['provisioning_state'] != None
+
+- name: Delete gallery image version from URI.
+  azure_rm_galleryimageversion:
+    resource_group: "{{ resource_group }}"
+    gallery_name: myGallery{{ rpfx }}
+    gallery_image_name: myImage
+    name: 10.1.4
+    state: absent
+  register: output
+
+- name: Assert the gallery image version from URI deleted
+  ansible.builtin.assert:
+    that:
+      - output.changed
 
 - name: Delete gallery image Version.
   azure_rm_galleryimageversion:
