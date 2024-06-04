@@ -817,7 +817,10 @@ class AzureRMGalleryImageVersions(AzureRMModuleBaseExt):
 
         while response['properties']['provisioningState'] == 'Creating':
             time.sleep(60)
+            old_response = response
             response = self.get_resource()
+            if response is False:
+                response = old_response
 
         return response
 
