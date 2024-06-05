@@ -14,9 +14,9 @@
     authorizations:
       - name: authorization_test
     service_provider_properties:
-      service_provider_name: Aryaka Networks
-      peering_location: Seattle
-      bandwidth_in_mbps: '200'
+      service_provider_name: Telstra Test
+      peering_location: Denver Test
+      bandwidth_in_mbps: 1000
     sku:
       tier: premium
       family: metereddata
@@ -40,9 +40,9 @@
     authorizations:
       - name: authorization_test
     service_provider_properties:
-      service_provider_name: Aryaka Networks
-      peering_location: Seattle
-      bandwidth_in_mbps: '200'
+      service_provider_name: Telstra Test
+      peering_location: Denver Test
+      bandwidth_in_mbps: 1000
     sku:
       tier: premium
       family: metereddata
@@ -65,9 +65,9 @@
     authorizations:
       - name: authorization_test
     service_provider_properties:
-      service_provider_name: Aryaka Networks
-      peering_location: Seattle
-      bandwidth_in_mbps: '200'
+      service_provider_name: Telstra Test
+      peering_location: Denver Test
+      bandwidth_in_mbps: 1000
     sku:
       tier: premium
       family: metereddata

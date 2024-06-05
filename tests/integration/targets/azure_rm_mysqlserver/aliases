@@ -8,3 +8,4 @@ azure_rm_mysqlfirewallrule
 azure_rm_mysqlfirewallrule_facts
 azure_rm_mysqlconfiguration
 azure_rm_mysqlconfiguration_facts
+disabled

@@ -8,6 +8,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ storage_account }}"
     account_type: Standard_LRS
+  register: az_storageaccount
 
 - name: Create container
   azure_rm_storageblob:
@@ -15,6 +16,24 @@
     resource_group: "{{ resource_group }}"
     account_name: "{{ storage_account }}"
     container_name: my-blobs
+
+- name: Lookup service principal object id
+  ansible.builtin.set_fact:
+    object_id: "{{ lookup('azure.azcollection.azure_service_principal_attribute',
+                   azure_client_id=azure_client_id,
+                   azure_secret=azure_secret,
+                   azure_tenant=azure_tenant) }}"
+  register: spn_facts
+
+- name: Create role assignment by scope (Storage Blob Data Contributor)
+  azure_rm_roleassignment:
+    scope: "{{ az_storageaccount.state.id }}/blobServices/default/containers/my-blobs"
+    assignee_object_id: "{{ spn_facts.ansible_facts.object_id }}"
+    role_definition_id: "/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+
+- name: Pause for 30 seconds
+  ansible.builtin.command: sleep 30
+  changed_when: true
 
 - name: Force upload blob
   azure_rm_storageblob:

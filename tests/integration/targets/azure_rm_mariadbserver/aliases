@@ -6,3 +6,4 @@ azure_rm_mariadbdatabase
 azure_rm_mariadbdatabase_facts
 azure_rm_mariadbfirewallrule
 azure_rm_mariadbfirewallrule_facts
+disabled
