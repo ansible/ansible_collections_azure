@@ -505,7 +505,7 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
             self.fail("Error restarting mysql flexible server {0} - {1}".format(self.name, str(exc)))
         return True
 
-    def create_update_mysqlserver(self, body):
+    def create_update_mysqlserver(self):
         '''
         Creates or updates MySQL Flexible Server with the specified configuration.
 
@@ -518,12 +518,12 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
             if self.to_do == Actions.Create:
                 response = self.mysql_flexible_client.servers.begin_create(resource_group_name=self.resource_group,
                                                                            server_name=self.name,
-                                                                           parameters=body)
+                                                                           parameters=self.parameters)
             else:
                 # structure of parameters for update must be changed
                 response = self.mysql_flexible_client.servers.begin_update(resource_group_name=self.resource_group,
                                                                            server_name=self.name,
-                                                                           parameters=body)
+                                                                           parameters=self.udpate_parameters)
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
 

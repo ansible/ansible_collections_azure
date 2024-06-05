@@ -238,7 +238,7 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
 
         return results
 
-    def list_bay_resource_group(s15yyelf):
+    def list_by_resource_group(self):
         response = None
         results = []
         try:
@@ -251,6 +251,7 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
             for item in response:
                 if self.has_tags(item.tags, self.tags):
                     results.append(self.format_item(item))
+        return results
 
     def list_all(self):
         response = None
@@ -265,33 +266,11 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
             for item in response:
                 if self.has_tags(item.tags, self.tags):
                     results.append(self.format_item(item))
-
         return results
 
     def format_item(self, item):
         d = item.as_dict()
-        d = {
-            'id': d['id'],
-            'resource_group': self.resource_group,
-            'name': d['name'],
-            'sku': d['sku'],
-            'storage': d['storage'],
-            'version': d['version'],
-            'admin_username': d['administrator_login'],
-            'admin_password': d['administrator_login_password'],
-            'create_mode': d['create_mode'],
-            'source_server_resource_id': d.get('source_server_resource_id'),
-            'restore_point_in_time': d.get('restore_point_in_time'),
-            'replication_role': d.get('replication_role')
-            'user_visible_state': d['user_visible_state'],
-            'fully_qualified_domain_name': d['fully_qualified_domain_name'],
-            'tags': d.get('tags'),
-            'backup': d.get('backup'),
-            'high_availability': d.get('high_availability'),
-            'network': d.get('network'),
-            'maintenance_window': d.get('maintenance_window')
-        }
-
+        d['resource_group'] = self.parse_resource_to_dict(result['id']).get('resource_group')
         return d
 
 
