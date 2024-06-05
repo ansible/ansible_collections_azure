@@ -79,8 +79,8 @@ EXAMPLES = '''
 - name: get ad app diff ---- by display name
   azure_rm_adapplication_info:
     app_diff:
-        - app_display_name: "{{ display_name }}"
-        - app_id: "{{ app_id }}"
+      - app_display_name: "{{ display_name }}"
+      - app_id: "{{ app_id }}"
 '''
 
 RETURN = '''
