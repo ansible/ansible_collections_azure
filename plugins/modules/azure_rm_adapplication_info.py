@@ -34,11 +34,18 @@ options:
         type: str
     app_display_name:
         description:
-            - The applications' Name.
+            - The application Name.
         type: str
     app_diff:
         description:
-            - The application Name or the app id.
+            - A list of applications
+            - The application name or application ID is mandatory
+            - All fields of the applications can also be provided (parsing from a JSON or YAML).
+            - With this option, you can compare your self-defined applications with the current state using an application list.\
+              The applications that are present only in current state but not in your list will be returned as a list with all fields\
+              and will receive an additional status of ABSENT.\
+              This allows you to first add applications with azure_rm_adapplication and then use azure_rm_adapplication_info (option diff)\
+              to identify the applications that should not be in the current state and subsequently delete them with azure_rm_adapplication
         type: list
         elements: dict
 
