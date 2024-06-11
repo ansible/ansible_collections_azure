@@ -220,6 +220,12 @@ vms:
             type: dict
             returned: always
             sample: { "id": "/subscriptions/xxx/resourceGroups/xxx/providers/Microsoft.Compute/proximityPlacementGroups/testid13"}
+        CapacityReservation:
+            description:
+                - The name or ID of the capacity reservation group to be associated with.
+            type: dict
+            returned: always
+            sample: { }
         os_disk_caching:
             description:
                 - Type of OS disk caching.
@@ -498,9 +504,13 @@ class AzureRMVirtualMachineInfo(AzureRMModuleBase):
         new_result['state'] = 'present'
         new_result['location'] = vm.location
         new_result['vm_size'] = result['hardware_profile']['vm_size']
+
         new_result['proximityPlacementGroup'] = result.get('proximity_placement_group')
         new_result['zones'] = result.get('zones', None)
         new_result['additional_capabilities'] = result.get('additional_capabilities')
+        new_result['capacity_reservation'] = dict()
+        if result.get('capacity_reservation') is not None:
+            new_result['capacity_reservation']['capacity_reservation_group'] = result.get('capacity_reservation').as_dict()
         os_profile = result.get('os_profile')
         if os_profile is not None:
             new_result['admin_username'] = os_profile.get('admin_username')

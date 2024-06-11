@@ -297,7 +297,9 @@ action_groups:
     - azure.azcollection.azure_rm_webappslot
     - azure.azcollection.azure_rm_webappvnetconnection
     - azure.azcollection.azure_rm_webappvnetconnection_info
-    - azure.azcollection.azure_rm_networkwacher
-    - azure.azcollection.azure_rm_networkwacher_info
+    - azure.azcollection.azure_rm_networkwatcher
+    - azure.azcollection.azure_rm_networkwatcher_info
     - azure.azcollection.azure_rm_networkflowlog
     - azure.azcollection.azure_rm_networkflowlog_info
+    - azure.azcollection.azure_rm_capacityreservationgroup
+    - azure.azcollection.azure_rm_capacityreservationgroup_info
