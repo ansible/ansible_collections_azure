@@ -233,6 +233,8 @@ class AzureRMSnapshots(AzureRMModuleBaseExt):
                         self.body['properties']['creationData']['createOption'] = kwargs[key].get('create_option')
                         self.body['properties']['creationData']['sourceUri'] = kwargs[key].get('source_uri')
                         self.body['properties']['creationData']['sourceResourceId'] = kwargs[key].get('source_id')
+                        if kwargs[key].get('source_uri') is not None:
+                            self.query_parameters['api-version'] = '2019-03-01'
                 else:
                     self.body[key] = kwargs[key]
 
