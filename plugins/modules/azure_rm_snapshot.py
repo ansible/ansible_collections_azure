@@ -210,7 +210,7 @@ class AzureRMSnapshots(AzureRMModuleBaseExt):
         self.body = {}
         self.body['properties'] = dict()
         self.query_parameters = {}
-        self.query_parameters['api-version'] = '2019-03-01'
+        self.query_parameters['api-version'] = '2022-03-02'
         self.header_parameters = {}
         self.header_parameters['Content-Type'] = 'application/json; charset=utf-8'
 
