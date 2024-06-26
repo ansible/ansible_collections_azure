@@ -1,0 +1,78 @@
+- name: Set Random Variables
+  ansible.builtin.set_fact:
+    rpfx: "{{ resource_group | hash('md5') | truncate(20, True, '') }}"
+
+- name: Create a Network Watcher(Checkmode test)
+  azure_rm_networkwatcher:
+    resource_group: "{{ resource_group }}"
+    name: "mynetwacher{{ rpfx }}"
+    location: westus3
+    tags:
+      testing: testing
+      delete: on-exit
+  check_mode: true
+
+- name: Create a new Network Watcher
+  azure_rm_networkwatcher:
+    resource_group: "{{ resource_group }}"
+    name: "mynetwacher{{ rpfx }}"
+    location: westus3
+    tags:
+      testing: testing
+      delete: on-exit
+  register: output
+
+- name: Assert the network watcher is well created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Create a Network Watcher again(Idempotent test)
+  azure_rm_networkwatcher:
+    resource_group: "{{ resource_group }}"
+    name: "mynetwacher{{ rpfx }}"
+    location: westus3
+    tags:
+      testing: testing
+      delete: on-exit
+  register: output
+
+- name: Assert the network watcher is no change
+  ansible.builtin.assert:
+    that:
+      - not output.changed
+
+- name: Get the network watcher facts
+  azure_rm_networkwatcher_info:
+    resource_group: "{{ resource_group }}"
+    name: "mynetwacher{{ rpfx }}"
+  register: output
+
+- name: Assert the network wacher facts
+  ansible.builtin.assert:
+    that:
+      - output.network_watchers[0].tags | length == 2
+
+- name: Get the network watcher facts and filter by tags
+  azure_rm_networkwatcher_info:
+    resource_group: "{{ resource_group }}"
+    tags:
+      - none-key
+  register: output
+
+- name: Assert the network wacher facts
+  ansible.builtin.assert:
+    that:
+      - output.network_watchers[0] == None
+
+- name: Delete the Network Watcher
+  azure_rm_networkwatcher:
+    resource_group: "{{ resource_group }}"
+    name: "mynetwacher{{ rpfx }}"
+    state: absent
+  register: output
+
+- name: Assert the network watcher is well delete
+  ansible.builtin.assert:
+    that:
+      - output.changed

@@ -2,6 +2,34 @@
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
 
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
+- name: Set Azure Region based on resource group location
+  ansible.builtin.set_fact:
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-aci-identity"
+    - "ansible-test-aci-identity-2"
+
+- name: Set identities IDs to test. Identities ansible-test-aci-identity and ansible-test-aci-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-aci-identity"
+    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-aci-identity-2"
+
 - name: Create sample container instance
   azure_rm_containerinstance:
     resource_group: "{{ resource_group }}"
@@ -69,8 +97,14 @@
         ports:
           - 80
           - 81
+    identity:
+      type: SystemAssigned
     force_update: true
   register: output
+
+- name: Print the created results
+  ansible.builtin.debug:
+    var: output
 
 - name: Assert the container instance is well created
   ansible.builtin.assert:
@@ -194,6 +228,72 @@
       - output.containerinstances[1]['ip_address'] != None
       - output.containerinstances[1]['ports'] != None
       - output.containerinstances[1]['containers'] != None
+
+- name: Create sample container instance -- User Identity
+  azure_rm_containerinstance:
+    resource_group: "{{ resource_group }}"
+    name: "aci{{ rpfx }}fourth"
+    os_type: linux
+    ip_address: public
+    location: eastus
+    ports:
+      - 80
+    containers:
+      - name: mycontainer1
+        image: httpd
+        memory: 1.5
+        ports:
+          - 80
+          - 81
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+          - "{{ user_identity_2 }}"
+  register: output
+
+- name: Gather facts for single Container Instance
+  azure_rm_containerinstance_info:
+    resource_group: "{{ resource_group }}"
+    name: "aci{{ rpfx }}fourth"
+  register: output
+
+- name: Print the container instance facts
+  ansible.builtin.debug:
+    var: output
+
+- name: Assert that user identities are used
+  ansible.builtin.assert:
+    that:
+      - output.changed == False
+      - user_identity_1 in output.containerinstances[0].identity.user_assigned_identities
+      - user_identity_2 in output.containerinstances[0].identity.user_assigned_identities
+
+- name: Remove container instance -- User Identity
+  azure_rm_containerinstance:
+    resource_group: "{{ resource_group }}"
+    name: "aci{{ rpfx }}fourth"
+    os_type: linux
+    ip_address: public
+    location: eastus
+    ports:
+      - 80
+    containers:
+      - name: mycontainer1
+        image: httpd
+        memory: 1.5
+        ports:
+          - 80
+          - 81
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+          - "{{ user_identity_2 }}"
+    state: absent
+  register: output
 
 - name: Create sample container instance with volume
   azure_rm_containerinstance:
@@ -362,3 +462,15 @@
   ansible.builtin.assert:
     that:
       - output.changed == False
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-aci-identity"
+    - "ansible-test-aci-identity-2"

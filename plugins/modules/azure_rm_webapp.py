@@ -398,6 +398,42 @@ options:
                     - The ConfigVersion of the Authentication / Authorization feature in use for the current app.
                     - The setting in this value can control the behavior of the control plane for Authentication / Authorization.
                 type: str
+    identity:
+        description:
+            - Identity for the WebApp.
+        type: dict
+        version_added: '2.5.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the WebApp
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
     state:
         description:
             - State of the Web App.
@@ -570,7 +606,8 @@ try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
     from azure.core.exceptions import HttpResponseError
-    from azure.mgmt.web.models import Site, AppServicePlan, SkuDescription, NameValuePair, SiteSourceControl, StringDictionary
+    from azure.mgmt.web.models import Site, AppServicePlan, SkuDescription, NameValuePair, SiteSourceControl, \
+        StringDictionary, ManagedServiceIdentity, UserAssignedIdentity
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -646,6 +683,35 @@ site_auth_settings_spec = dict(
 )
 
 
+user_assigned_identities_spec = dict(
+    id=dict(
+        type='list',
+        default=[],
+        elements='str'
+    ),
+    append=dict(
+        type='bool',
+        default=True
+    )
+)
+
+managed_identity_spec = dict(
+    type=dict(
+        type='str',
+        choices=['SystemAssigned',
+                 'UserAssigned',
+                 'SystemAssigned, UserAssigned',
+                 'None'],
+        default='None'
+    ),
+    user_assigned_identities=dict(
+        type='dict',
+        options=user_assigned_identities_spec,
+        default={}
+    ),
+)
+
+
 def _normalize_sku(sku):
     if sku is None:
         return sku
@@ -704,6 +770,7 @@ def webapp_to_dict(webapp):
         skip_custom_domain_verification=webapp.skip_custom_domain_verification if hasattr(webapp, 'skip_custom_domain_verification') else None,
         ttl_in_seconds=webapp.ttl_in_seconds if hasattr(webapp, 'ttl_in_seconds') else None,
         state=webapp.state,
+        identity=webapp.identity.as_dict() if webapp.identity else None,
         tags=webapp.tags if webapp.tags else None
     )
 
@@ -787,6 +854,10 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                 type='dict',
                 options=site_auth_settings_spec
             ),
+            identity=dict(
+                type='dict',
+                options=managed_identity_spec
+            ),
             state=dict(
                 type='str',
                 default='present',
@@ -805,6 +876,9 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
         self.https_only = None
 
         self.tags = None
+
+        # Managed Identity
+        self.identity = None
 
         # site config, e.g app settings, ssl
         self.site_config = dict()
@@ -854,10 +928,20 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
         self.supported_linux_frameworks = ['ruby', 'php', 'python', 'dotnetcore', 'node', 'java']
         self.supported_windows_frameworks = ['net_framework', 'php', 'python', 'node', 'java', 'dotnetcore']
 
+        self._managed_identity = None
+
         super(AzureRMWebApps, self).__init__(derived_arg_spec=self.module_arg_spec,
                                              mutually_exclusive=mutually_exclusive,
                                              supports_check_mode=True,
                                              supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": ManagedServiceIdentity,
+                                      "user_assigned": UserAssignedIdentity
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -980,6 +1064,9 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                     self.to_do.append(Actions.UpdateAuthSettings)
                 self.site.tags = self.tags
 
+                if self.identity:
+                    update_identity, self.site.identity = self.update_identities({})
+
                 # service plan is required for creation
                 if not self.plan:
                     self.fail("Please specify app service plan in plan parameter.")
@@ -1014,6 +1101,13 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                 self.log("Web App instance already exists")
 
                 self.log('Result: {0}'.format(old_response))
+
+                if self.identity:
+                    update_identity, self.site.identity = self.update_identities(old_response.get('identity', None))
+
+                    if update_identity:
+                        to_be_updated = True
+                        self.to_do.append(Actions.CreateOrUpdate)
 
                 update_tags, self.site.tags = self.update_tags(old_response.get('tags', None))
 

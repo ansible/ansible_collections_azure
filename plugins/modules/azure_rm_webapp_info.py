@@ -481,6 +481,7 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
         curated_output['enabled_host_names'] = webapp['enabled_host_names']
         curated_output['host_name_ssl_states'] = webapp['host_name_ssl_states']
         curated_output['outbound_ip_addresses'] = webapp['outbound_ip_addresses']
+        curated_output['identity'] = webapp.get('identity', None)
 
         # curated site_config
         if configuration:

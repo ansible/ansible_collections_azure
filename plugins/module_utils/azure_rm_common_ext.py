@@ -212,3 +212,45 @@ class AzureRMModuleBaseExt(AzureRMModuleBase):
                     return True
             else:
                 return True
+
+    def update_identities(self, curr_identity):
+        curr_identity = curr_identity or dict()
+        changed = False
+        current_managed_type = curr_identity.get('type', 'None')
+        current_managed_identities = set(curr_identity.get('user_assigned_identities', {}).keys())
+        param_identity = self.module.params.get('identity', {})
+        param_identities = set(param_identity.get('user_assigned_identities', {}).get('id', []))
+        external_identities = param_identities
+
+        # If type set to None, and Resource has None, nothing to do
+        if 'None' in param_identity.get('type', 'None') and current_managed_type == 'None':
+            pass
+        # If type set to None, and Resource has current identities, remove UserAssigned identities
+        elif param_identity.get('type', 'None') == 'None':
+            changed = True
+        # If type in module args different from current type, update identities
+        elif current_managed_type != param_identity.get('type', 'None'):
+            changed = True
+
+        # If type in module args contains 'UserAssigned'
+        if 'UserAssigned' in param_identity.get('type', 'None'):
+            if param_identity.get('user_assigned_identities', {}).get('append', False) is True:
+                external_identities = param_identities.union(current_managed_identities)
+                if len(current_managed_identities) != len(external_identities):
+                    # update identities
+                    changed = True
+            # If new identities have to overwrite current identities
+            else:
+                # Check if module args identities are different as current ones
+                if current_managed_identities.difference(external_identities) != set():
+                    changed = True
+
+        new_identity = self.managed_identity['identity'](type=param_identity.get('type'))
+
+        # Append identities to the model
+        if external_identities:
+            new_identity.user_assigned_identities = {}
+            for identity in external_identities:
+                new_identity.user_assigned_identities[identity] = self.managed_identity['user_assigned']()
+
+        return changed, new_identity
