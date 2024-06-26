@@ -120,5 +120,4 @@
 
 - name: Assert there is no application
   ansible.builtin.assert:
-    that:
-      output.applications | length == 0
+    that: output.applications | length == 0
