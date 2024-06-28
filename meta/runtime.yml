@@ -14,6 +14,8 @@ action_groups:
     - azure.azcollection.azure_rm_adserviceprincipal_info
     - azure.azcollection.azure_rm_aduser
     - azure.azcollection.azure_rm_aduser_info
+    - azure.azcollection.azure_rm_afdroute
+    - azure.azcollection.azure_rm_afdroute_info
     - azure.azcollection.azure_rm_aks
     - azure.azcollection.azure_rm_aks_info
     - azure.azcollection.azure_rm_aksagentpool
