@@ -1,5 +1,10 @@
 # Change Log
 
+## v2.6.0 (2024-07-01)
+
+### FEATURE ENHANCEMENT
+  - Minimum supported Ansible core version to v2.15 - Ansible v2.15 EOL(https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-community-changelogs) 
+
 ## v2.5.0 (2024-06-28)
 
 ### NEW MODULES
