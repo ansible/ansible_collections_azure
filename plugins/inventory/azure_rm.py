@@ -31,14 +31,18 @@ EXAMPLES = '''
 # powerstate: the VM's current power state, eg: 'running', 'stopped', 'deallocated'
 # provisioning_state: the VM's current provisioning state, eg: 'succeeded'
 # tags: dictionary of the VM's defined tag values
-# resource_type: the VM's resource type, eg: 'Microsoft.Compute/virtualMachine', 'Microsoft.Compute/virtualMachineScaleSets/virtualMachines'
+# resource_type: the VM's resource type, eg: 'Microsoft.Compute/virtualMachine', 'Microsoft.Compute/virtualMachineScaleSets/virtualMachines', 'microsoft.azurestackhci/virtualmachineinstances'
 # vmid: the VM's internal SMBIOS ID, eg: '36bca69d-c365-4584-8c06-a62f4a1dc5d2'
 # vmss: if the VM is a member of a scaleset (vmss), a dictionary including the id and name of the parent scaleset
 # availability_zone: availability zone in which VM is deployed, eg '1','2','3'
 # creation_time: datetime object of when the VM was created, eg '2023-07-21T09:30:30.4710164+00:00'
 #
-# The following host variables are sometimes availble:
+# The following host variables are sometimes available:
 # computer_name: the Operating System's hostname. Will not be available if azure agent is not available and picking it up.
+# The following host variables are available for Azure Stack HCI vms:
+# customLocation: the azure arc custom location.
+# virtual_machine_memoryMB: RAM allowed (static)
+# virtual_machine_processors: number of vCPUs
 
 
 # sample 'myazuresub.azure_rm.yaml'
@@ -58,6 +62,10 @@ include_vm_resource_groups:
 # fetches VMs from VMSSs in all resource groups (defaults to no VMSS fetch)
 include_vmss_resource_groups:
     - '*'
+
+# fetches VMs from Azure StackHCI in specific resource groups (defaults to all)
+include_hcivm_resource_groups:
+    - myrg1
 
 # places a host in the named group if the associated condition evaluates to true
 conditional_groups:
@@ -191,6 +199,8 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         # FUTURE: use API profiles with defaults
         self._compute_api_version = '2021-11-01'
         self._network_api_version = '2015-06-15'
+        self._hybridcompute_api_version = '2024-05-20-preview'
+        self._stackhci_api_version = '2024-01-01'
 
         self._default_header_parameters = {'Content-Type': 'application/json; charset=utf-8'}
 
@@ -285,6 +295,15 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         url = url.format(subscriptionId=self._clientconfig.subscription_id, rg=rg)
         self._enqueue_get(url=url, api_version=self._compute_api_version, handler=self._on_vm_page_response)
 
+    def _enqueue_arcvm_list(self, rg='*'):
+        if not rg or rg == '*':
+            url = '/subscriptions/{subscriptionId}/providers/Microsoft.HybridCompute/machines'
+        else:
+            url = '/subscriptions/{subscriptionId}/resourceGroups/{rg}/providers/Microsoft.HybridCompute/machines'
+
+        url = url.format(subscriptionId=self._clientconfig.subscription_id, rg=rg)
+        self._enqueue_get(url=url, api_version=self._hybridcompute_api_version, handler=self._on_arcvm_page_response)
+
     def _enqueue_vmss_list(self, rg=None):
         if not rg or rg == '*':
             url = '/subscriptions/{subscriptionId}/providers/Microsoft.Compute/virtualMachineScaleSets'
@@ -301,6 +320,9 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         else:
             for vm_rg in self.get_option('include_vm_resource_groups'):
                 self._enqueue_vm_list(vm_rg)
+
+        for vm_rg in self.get_option('include_hcivm_resource_groups'):
+            self._enqueue_arcvm_list(vm_rg)
 
         for vmss_rg in self.get_option('include_vmss_resource_groups'):
             self._enqueue_vmss_list(vmss_rg)
@@ -397,16 +419,28 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         except Empty:
             pass
 
-    def _on_vm_page_response(self, response, vmss=None):
+    def _on_vm_page_response(self, response, vmss=None, arcvm=None):
         next_link = response.get('nextLink')
 
         if next_link:
-            self._enqueue_get(url=next_link, api_version=self._compute_api_version, handler=self._on_vm_page_response)
+            self._enqueue_get(url=next_link, api_version=self._compute_api_version, handler=self._on_vm_page_response, handler_args=dict(vmss=vmss, arcvm=arcvm))
 
         if 'value' in response:
             for h in response['value']:
                 # FUTURE: add direct VM filtering by tag here (performance optimization)?
-                self._hosts.append(AzureHost(h, self, vmss=vmss, legacy_name=self._legacy_hostnames))
+                self._hosts.append(AzureHost(h, self, vmss=vmss, arcvm=arcvm, legacy_name=self._legacy_hostnames))
+
+    def _on_arcvm_page_response(self, response):
+        next_link = response.get('nextLink')
+
+        if next_link:
+            self._enqueue_get(url=next_link, api_version=self._compute_api_version, handler=self._on_arcvm_page_response)
+
+        # FUTURE: add direct VMSS filtering by tag here (performance optimization)?
+        for arcvm in response['value']:
+            url = '{0}/providers/Microsoft.AzureStackHCI/virtualMachineInstances'.format(arcvm['id'])
+            # VMSS instances look close enough to regular VMs that we can share the handler impl...
+            self._enqueue_get(url=url, api_version=self._stackhci_api_version, handler=self._on_vm_page_response, handler_args=dict(arcvm=arcvm))
 
     def _on_vmss_page_response(self, response):
         next_link = response.get('nextLink')
@@ -512,25 +546,32 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
 class AzureHost(object):
     _powerstate_regex = re.compile('^PowerState/(?P<powerstate>.+)$')
 
-    def __init__(self, vm_model, inventory_client, vmss=None, legacy_name=False):
+    def __init__(self, vm_model, inventory_client, vmss=None, arcvm=None, legacy_name=False):
         self._inventory_client = inventory_client
         self._vm_model = vm_model
         self._vmss = vmss
+        self._arcvm = arcvm
 
         self._instanceview = None
 
         self._powerstate = "unknown"
         self.nics = []
 
+        vm_name = self._arcvm['name'] if self._arcvm else self._vm_model['name']
+
         if legacy_name:
-            self.default_inventory_hostname = vm_model['name']
+            self.default_inventory_hostname = vm_name
         else:
             # Azure often doesn't provide a globally-unique filename, so use resource name + a chunk of ID hash
-            self.default_inventory_hostname = '{0}_{1}'.format(vm_model['name'], hashlib.sha1(to_bytes(vm_model['id'])).hexdigest()[0:4])
+            self.default_inventory_hostname = '{0}_{1}'.format(vm_name, hashlib.sha1(to_bytes(vm_model['id'])).hexdigest()[0:4])
 
         self._hostvars = {}
 
-        inventory_client._enqueue_get(url="{0}/instanceView".format(vm_model['id']),
+        if self._arcvm:
+            self._instanceview = self._vm_model
+            self._powerstate = self._vm_model['properties'].get('status', {}).get('powerState', '').lower() # 'Running'
+        else:
+            inventory_client._enqueue_get(url="{0}/instanceView".format(vm_model['id']),
                                       api_version=self._inventory_client._compute_api_version,
                                       handler=self._on_instanceview_response)
 
@@ -538,7 +579,9 @@ class AzureHost(object):
         for nic in nic_refs:
             # single-nic instances don't set primary, so figure it out...
             is_primary = nic.get('properties', {}).get('primary', len(nic_refs) == 1)
-            inventory_client._enqueue_get(url=nic['id'], api_version=self._inventory_client._network_api_version,
+            api_version = self._inventory_client._stackhci_api_version if self._arcvm else self._inventory_client._network_api_version
+            inventory_client._enqueue_get(url=nic['id'],
+                                          api_version=api_version,
                                           handler=self._on_nic_response,
                                           handler_args=dict(is_primary=is_primary))
 
@@ -548,7 +591,9 @@ class AzureHost(object):
             return self._hostvars
 
         system = "unknown"
-        if 'osProfile' in self._vm_model['properties']:
+        if self._arcvm:
+            system = self._arcvm['properties']['osType']
+        elif 'osProfile' in self._vm_model['properties']:
             if 'linuxConfiguration' in self._vm_model['properties']['osProfile']:
                 system = 'linux'
             if 'windowsConfiguration' in self._vm_model['properties']['osProfile']:
@@ -563,6 +608,8 @@ class AzureHost(object):
         if 'zones' in self._vm_model:
             av_zone = self._vm_model['zones']
 
+        createdAt = self._vm_model.get('systemData',{}).get('createdAt') # hci specific
+
         new_hostvars = dict(
             network_interface=[],
             mac_address=[],
@@ -575,13 +622,13 @@ class AzureHost(object):
             private_ipv4_addresses=[],
             subnet=[],
             id=self._vm_model['id'],
-            location=self._vm_model['location'],
-            name=self._vm_model['name'],
+            location=self._arcvm['location'] if self._arcvm else self._vm_model['location'],
+            name=self._arcvm['name'] if self._arcvm else self._vm_model['name'],
             computer_name=self._vm_model['properties'].get('osProfile', {}).get('computerName'),
             availability_zone=av_zone,
             powerstate=self._powerstate,
             provisioning_state=self._vm_model['properties']['provisioningState'].lower(),
-            tags=self._vm_model.get('tags', {}),
+            tags=self._arcvm.get('tags', {}) if self._arcvm else self._vm_model.get('tags', {}),
             resource_type=self._vm_model.get('type', "unknown"),
             vmid=self._vm_model['properties']['vmId'],
             os_profile=dict(
@@ -595,9 +642,13 @@ class AzureHost(object):
             plan=self._vm_model['properties']['plan']['name'] if self._vm_model['properties'].get('plan') else None,
             resource_group=parse_resource_id(self._vm_model['id']).get('resource_group').lower(),
             default_inventory_hostname=self.default_inventory_hostname,
-            creation_time=self._vm_model['properties']['timeCreated'],
-            license_type=self._vm_model['properties'].get('licenseType', 'Unknown')
+            creation_time=createdAt if createdAt else self._vm_model['properties'].get('timeCreated'),
+            license_type=self._vm_model['properties'].get('licenseType', 'Unknown') # licence for arc vm: self._arcvm['properties'].get('licenseProfile', {}).get('esuProfile', {}).get(?)
         )
+        if self._arcvm:
+            new_hostvars['customLocation']=self._vm_model.get('extendedLocation',{}).get('name', '').split('/')[-1]
+            new_hostvars['virtual_machine_memoryMB']=self._vm_model['properties']['hardwareProfile'].get('memoryMB')
+            new_hostvars['virtual_machine_processors']=self._vm_model['properties']['hardwareProfile'].get('processors')
 
         # set nic-related values from the primary NIC first
         for nic in sorted(self.nics, key=lambda n: n.is_primary, reverse=True):
@@ -658,15 +709,24 @@ class AzureHost(object):
             new_hostvars['os_disk'] = dict(
                 name=osDisk.get('name'),
                 operating_system_type=osDisk.get('osType').lower() if osDisk.get('osType') else None,
-                id=osDisk.get('managedDisk', {}).get('id')
+                id=storageProfile.get('vmConfigStoragePathId') if self._arcvm else osDisk.get('managedDisk', {}).get('id')
             )
-            new_hostvars['data_disks'] = [
-                dict(
-                    name=dataDisk.get('name'),
-                    lun=dataDisk.get('lun'),
-                    id=dataDisk.get('managedDisk', {}).get('id')
-                ) for dataDisk in storageProfile.get('dataDisks', [])
-            ]
+
+            if self._arcvm:
+                new_hostvars['data_disks'] = [
+                    dict(
+                        name=dataDisk.get('id').split('/')[-1],
+                        id=dataDisk.get('id')
+                    ) for dataDisk in storageProfile.get('dataDisks', [])
+                ]
+            else:
+                new_hostvars['data_disks'] = [
+                    dict(
+                        name=dataDisk.get('name'),
+                        lun=dataDisk.get('lun'),
+                        id=dataDisk.get('managedDisk', {}).get('id')
+                    ) for dataDisk in storageProfile.get('dataDisks', [])
+                ]
 
         self._hostvars = new_hostvars
         return self._hostvars
