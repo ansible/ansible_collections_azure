@@ -66,6 +66,26 @@ options:
             - batch_service
             - user_subscription
         type: str
+    identity:
+        description:
+            - Identity for this resource.
+        type: dict
+        version_added: '2.5.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - 'None'
+                default: 'None'
+                type: str
+            user_assigned_identity:
+                description:
+                    - User Assigned Managed Identity associated to this resource
+                required: false
+                type: str
     state:
         description:
             - Assert the state of the Batch Account.
@@ -117,6 +137,7 @@ try:
     from azure.core.polling import LROPoller
     from azure.mgmt.batch import BatchManagementClient
     from azure.core.exceptions import ResourceNotFoundError
+    from azure.mgmt.batch.models import BatchAccountIdentity, UserAssignedIdentities
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -154,6 +175,10 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
                 type='str',
                 choices=['batch_service', 'user_subscription']
             ),
+            identity=dict(
+                type="dict",
+                options=self.managed_identity_single_spec
+            ),
             state=dict(
                 type='str',
                 default='present',
@@ -169,10 +194,21 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
         self.mgmt_client = None
         self.state = None
         self.to_do = Actions.NoAction
+        self._managed_identity = None
+        self.identity = None
 
         super(AzureRMBatchAccount, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                   supports_check_mode=True,
                                                   supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {
+                "identity": BatchAccountIdentity,
+                "user_assigned": UserAssignedIdentities,
+            }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -209,6 +245,12 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
                                                     base_url=self._cloud_environment.endpoints.resource_manager)
 
         old_response = self.get_batchaccount()
+        curr_identity = old_response["identity"] if old_response else None
+
+        update_identity = False
+        if self.identity:
+            update_identity, identity_result = self.update_single_managed_identity(curr_identity=curr_identity, new_identity=self.identity)
+            self.batch_account["identity"] = identity_result.as_dict()
 
         if not old_response:
             self.log("Batch Account instance doesn't exist")
@@ -229,7 +271,7 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
                 if self.batch_account.get('auto_storage_account') is not None:
                     if old_response['auto_storage']['storage_account_id'] != self.batch_account['auto_storage']['storage_account_id']:
                         self.to_do = Actions.Update
-                if update_tags:
+                if update_tags or update_identity:
                     self.to_do = Actions.Update
 
         if (self.to_do == Actions.Create) or (self.to_do == Actions.Update):
@@ -258,7 +300,8 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
         if self.state == 'present':
             self.results.update({
                 'id': response.get('id', None),
-                'account_endpoint': response.get('account_endpoint', None)
+                'account_endpoint': response.get('account_endpoint', None),
+                'new': response
             })
         return self.results
 
@@ -279,7 +322,8 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
                 response = self.mgmt_client.batch_account.update(resource_group_name=self.resource_group,
                                                                  account_name=self.name,
                                                                  parameters=dict(tags=self.tags,
-                                                                                 auto_storage=self.batch_account.get('self.batch_account')))
+                                                                                 auto_storage=self.batch_account.get('auto_storage'),
+                                                                                 identity=self.batch_account.get('identity')))
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
         except Exception as exc:
@@ -338,7 +382,8 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
             'low_priority_core_quota': item['low_priority_core_quota'],
             'pool_quota': item['pool_quota'],
             'active_job_and_job_schedule_quota': item['active_job_and_job_schedule_quota'],
-            'tags': item.get('tags')
+            'tags': item.get('tags'),
+            'identity': item.get('identity')
         }
         return result
 

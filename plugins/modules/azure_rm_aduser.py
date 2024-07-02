@@ -75,6 +75,17 @@ options:
             - The password for the user.
             - Used when either creating or updating a user account.
         type: str
+    password_force_change:
+        description:
+            - Whether or not the user will be forced to change their password at next logon.
+            - If unspecified, Azure defaults this to true for new users.
+            - Used when either creating or updating a user account.
+        type: bool
+    password_force_change_mfa:
+        description:
+            - Identical behavior to password_force_change except multi-factor authentication (MFA) must be performed prior to changing the password.
+            - Used when either creating or updating a user account.
+        type: bool
     usage_location:
         description:
             - A two letter country code, ISO standard 3166.
@@ -260,6 +271,8 @@ class AzureRMADUser(AzureRMModuleBase):
             account_enabled=dict(type='bool'),
             display_name=dict(type='str'),
             password_profile=dict(type='str', no_log=True),
+            password_force_change=dict(type='bool', no_log=False),
+            password_force_change_mfa=dict(type='bool', no_log=False),
             mail_nickname=dict(type='str'),
             on_premises_immutable_id=dict(type='str', aliases=['immutable_id']),
             usage_location=dict(type='str'),
@@ -280,6 +293,8 @@ class AzureRMADUser(AzureRMModuleBase):
         self.account_enabled = None
         self.display_name = None
         self.password_profile = None
+        self.password_force_change = None
+        self.password_force_change_mfa = None
         self.mail_nickname = None
         self.on_premises_immutable_id = None
         self.usage_location = None
@@ -327,12 +342,11 @@ class AzureRMADUser(AzureRMModuleBase):
 
                 if ad_user:  # Update, changed
 
-                    password = None
-
-                    if self.password_profile:
-                        password = PasswordProfile(
-                            password=self.password_profile,
-                        )
+                    password_profile = PasswordProfile(
+                        password=self.password_profile,
+                        force_change_password_next_sign_in=self.password_force_change,
+                        force_change_password_next_sign_in_with_mfa=self.password_force_change_mfa
+                    )
 
                     should_update = False
                     if self.on_premises_immutable_id and ad_user.on_premises_immutable_id != self.on_premises_immutable_id:
@@ -349,7 +363,11 @@ class AzureRMADUser(AzureRMModuleBase):
                         should_update = True
                     if should_update or self.display_name and ad_user.display_name != self.display_name:
                         should_update = True
-                    if should_update or password:
+                    if should_update or self.password_profile is not None:
+                        should_update = True
+                    if should_update or self.password_force_change is not None:
+                        should_update = True
+                    if should_update or self.password_force_change_mfa is not None:
                         should_update = True
                     if should_update or self.user_principal_name and ad_user.user_principal_name != self.user_principal_name:
                         should_update = True
@@ -362,7 +380,7 @@ class AzureRMADUser(AzureRMModuleBase):
                             self.on_premises_extension_attributes_to_dict(ad_user.on_premises_extension_attributes) != self.on_premises_extension_attributes):
                         should_update = True
                     if should_update:
-                        asyncio.get_event_loop().run_until_complete(self.update_user(ad_user, password, extension_attributes))
+                        asyncio.get_event_loop().run_until_complete(self.update_user(ad_user, password_profile, extension_attributes))
 
                         self.results['changed'] = True
 
@@ -453,7 +471,7 @@ class AzureRMADUser(AzureRMModuleBase):
             on_premises_extension_attributes=self.on_premises_extension_attributes_to_dict(object.on_premises_extension_attributes)
         )
 
-    async def update_user(self, ad_user, password, extension_attributes):
+    async def update_user(self, ad_user, password_profile, extension_attributes):
         request_body = User(
             on_premises_immutable_id=self.on_premises_immutable_id,
             usage_location=self.usage_location,
@@ -462,7 +480,7 @@ class AzureRMADUser(AzureRMModuleBase):
             user_type=self.user_type,
             account_enabled=self.account_enabled,
             display_name=self.display_name,
-            password_profile=password,
+            password_profile=password_profile,
             user_principal_name=self.user_principal_name,
             mail_nickname=self.mail_nickname,
             company_name=self.company_name,
@@ -471,13 +489,15 @@ class AzureRMADUser(AzureRMModuleBase):
         return await self._client.users.by_user_id(ad_user.id).patch(body=request_body)
 
     async def create_user(self, extension_attributes):
-        password = PasswordProfile(
-            password=self.password_profile
+        password_profile = PasswordProfile(
+            password=self.password_profile,
+            force_change_password_next_sign_in=self.password_force_change,
+            force_change_password_next_sign_in_with_mfa=self.password_force_change_mfa
         )
         request_body = User(
             account_enabled=self.account_enabled,
             display_name=self.display_name,
-            password_profile=password,
+            password_profile=password_profile,
             user_principal_name=self.user_principal_name,
             mail_nickname=self.mail_nickname,
             on_premises_immutable_id=self.on_premises_immutable_id,
