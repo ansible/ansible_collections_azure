@@ -24,7 +24,7 @@ options:
         default: ['*']
     include_hcivm_resource_groups:
         description: A list of resource group names to search for Azure StackHCI virtual machines. '\*' will include all resource groups in the subscription.
-        default: ['*']
+        default: []
     include_vmss_resource_groups:
         description: A list of resource group names to search for virtual machine scale sets (VMSSs). '\*' will
             include all resource groups in the subscription.

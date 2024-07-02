@@ -63,7 +63,7 @@ include_vm_resource_groups:
 include_vmss_resource_groups:
     - '*'
 
-# fetches VMs from Azure StackHCI in specific resource groups (defaults to all)
+# fetches VMs from Azure StackHCI in specific resource groups (defaults to no HCI vm fetch)
 include_hcivm_resource_groups:
     - myrg1
 
