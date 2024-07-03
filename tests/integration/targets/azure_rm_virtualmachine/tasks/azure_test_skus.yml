@@ -1,6 +1,14 @@
 - name: Set variables
   ansible.builtin.include_tasks: setup.yml
 
+- name: Set variables
+  ansible.builtin.set_fact:
+    network: 10.42.0.0/24
+    subnet: 10.42.0.0/28
+    vm_name: "vm{{ resource_group | hash('md5') | truncate(6, True, '') }}"
+    network_name: "vnet{{ resource_group | hash('md5') | truncate(6, True, '') }}"
+    subnet_name: "subnet{{ resource_group | hash('md5') | truncate(6, True, '') }}"
+
 - name: Gather Resource Group info
   azure.azcollection.azure_rm_resourcegroup_info:
     name: "{{ resource_group }}"
@@ -45,6 +53,20 @@
       {%- endfor %}
       {{ skus_result }}
   failed_when: skus_result[0] is not defined
+
+- name: SETUP | Create virtual network
+  azure_rm_virtualnetwork:
+    resource_group: "{{ resource_group }}"
+    name: "{{ network_name }}"
+    location: westus2
+    address_prefixes: "{{ network }}"
+
+- name: SETUP | Create subnet
+  azure_rm_subnet:
+    resource_group: "{{ resource_group }}"
+    name: "{{ subnet_name }}"
+    address_prefix: "{{ subnet }}"
+    virtual_network: "{{ network_name }}"
 
 - name: Create VM with first sku in avilable skus list
   azure_rm_virtualmachine:

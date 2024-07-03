@@ -1,6 +1,7 @@
 - name: Set varialbles
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(8, True, '') }}"
+    location: westus2
 
 - name: Find available k8s version
   azure_rm_aksversion_info:
@@ -20,7 +21,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -67,7 +68,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -101,7 +102,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -150,7 +151,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -184,7 +185,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -228,7 +229,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
