@@ -91,8 +91,8 @@
     that:
       - output.changed == false
 
-- name: Pause for 120 seconds
-  ansible.builtin.command: sleep 120
+- name: Pause for 600 seconds
+  ansible.builtin.command: sleep 600
   changed_when: true
 
 - name: Create again instance of Database Account -- change something
