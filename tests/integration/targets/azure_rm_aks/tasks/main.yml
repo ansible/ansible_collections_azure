@@ -7,7 +7,7 @@
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(8, True, '') }}"
     noderpfx: "{{ resource_group | hash('md5') | truncate(4, True, '') }}"
-    location: "{{ __rg_info.resourcegroups.0.location }}"
+    location: westus2
 
 - name: Create User Managed Identity
   azure_rm_resource:
