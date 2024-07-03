@@ -52,7 +52,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         node_labels: {"release":"stable"}
@@ -93,7 +93,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         node_labels: {"release":"stable"}
@@ -144,7 +144,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         node_labels: {"release":"stable", "environment":"dev"}
@@ -203,7 +203,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         max_pods: 42
@@ -242,7 +242,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         max_pods: 42
@@ -282,7 +282,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         max_pods: 42
@@ -319,7 +319,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         enable_auto_scaling: true
@@ -360,7 +360,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         enable_auto_scaling: true
@@ -397,7 +397,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         enable_auto_scaling: true
@@ -409,7 +409,7 @@
           - 2
       - name: default2
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: User
     node_resource_group: "node{{ noderpfx }}"
@@ -445,7 +445,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         enable_auto_scaling: true
         max_count: 6
@@ -456,7 +456,7 @@
           - 2
       - name: default2
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: User
     node_resource_group: "node{{ noderpfx }}"
@@ -486,7 +486,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
         enable_auto_scaling: true
@@ -498,7 +498,7 @@
           - 2
       - name: default2
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
     node_resource_group: "node{{ noderpfx }}"
@@ -534,7 +534,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         enable_auto_scaling: true
         max_count: 6
@@ -545,7 +545,7 @@
           - 2
       - name: default2
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_B8ms
         type: VirtualMachineScaleSets
         mode: System
     node_resource_group: "node{{ noderpfx }}"
