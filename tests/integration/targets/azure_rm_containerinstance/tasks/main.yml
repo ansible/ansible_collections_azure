@@ -41,7 +41,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -69,7 +69,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -92,7 +92,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -125,7 +125,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -169,7 +169,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -240,7 +240,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -281,7 +281,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -408,7 +408,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -432,7 +432,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
@@ -450,7 +450,7 @@
       - 80
     containers:
       - name: mycontainer1
-        image: httpd
+        image: "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
         memory: 1.5
         ports:
           - 80
