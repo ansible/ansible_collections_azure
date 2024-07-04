@@ -354,7 +354,7 @@
       - output.repositories[0].tags | length == 2
       - output.repositories[0].tags[0].name == 'latest'
       - output.repositories[0].tags[1].name == 'v1'
-      - output.repositories[1].name == 'library/hello-world'
+      - output.repositories[1].name == 'azuredocs/aci-helloworld'
       - output.repositories[1].tags | length == 2
       - output.repositories[1].tags[0].name == 'latest'
       - output.repositories[1].tags[1].name == 'myversion'
