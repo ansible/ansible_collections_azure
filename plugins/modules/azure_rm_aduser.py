@@ -69,6 +69,7 @@ options:
         description:
             - Mobile phone number of the user.
             - Used when either creating or updating a user account.
+        type: str
     mail_nickname:
         description:
             - The mail alias for the user.
