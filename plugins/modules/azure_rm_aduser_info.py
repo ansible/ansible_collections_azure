@@ -142,7 +142,7 @@ mobile_phone:
         - The mobile phone number of the user.
     type: str
     returned: always
-    sample: '+1234567890123' 
+    sample: '+1234567890123'
 company_name:
     description:
         - The name of the company that the user is associated with.
