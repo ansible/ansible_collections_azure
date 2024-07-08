@@ -80,11 +80,6 @@ options:
         description:
             - The password to log in container image registry server.
         type: str
-    acr_identity:
-        description:
-            - The Identity to use for access to the registry server.
-        type: str
-        version_added: '2.5.0'
     containers:
         description:
             - List of containers.
@@ -239,36 +234,6 @@ options:
                         description:
                             - Commit hash for the specified revision
                         type: str
-    identity:
-        description:
-            - Identity for the Server.
-        type: dict
-        version_added: '2.5.0'
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                required: false
-                choices:
-                    - SystemAssigned
-                    - SystemAssigned, UserAssigned
-                    - UserAssigned
-                default: None
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned identities IDs associated to the VM
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
     force_update:
         description:
             - Force update of existing container instance. Any update will result in deletion and recreation of existing containers.
@@ -456,15 +421,12 @@ volumes:
             }
 '''
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
 from ansible.module_utils.common.dict_transformations import _snake_to_camel
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
-    from azure.mgmt.containerinstance.models import (
-        ContainerGroupIdentity,
-    )
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -558,31 +520,7 @@ volumes_spec = dict(
 )
 
 
-user_assigned_identities_spec = dict(
-    id=dict(
-        type='list',
-        default=[],
-        elements='str'
-    ),
-)
-
-managed_identity_spec = dict(
-    type=dict(
-        type='str',
-        choices=['SystemAssigned',
-                 'UserAssigned',
-                 'SystemAssigned, UserAssigned'],
-        default='None'
-    ),
-    user_assigned_identities=dict(
-        type='dict',
-        options=user_assigned_identities_spec,
-        default={}
-    ),
-)
-
-
-class AzureRMContainerInstance(AzureRMModuleBaseExt):
+class AzureRMContainerInstance(AzureRMModuleBase):
     """Configuration class for an Azure RM container instance resource"""
 
     def __init__(self):
@@ -634,10 +572,6 @@ class AzureRMContainerInstance(AzureRMModuleBaseExt):
                 default=None,
                 no_log=True
             ),
-            acr_identity=dict(
-                type='str',
-                default=None,
-            ),
             containers=dict(
                 type='list',
                 elements='dict',
@@ -660,10 +594,6 @@ class AzureRMContainerInstance(AzureRMModuleBaseExt):
                 type='list',
                 elements='str',
             ),
-            identity=dict(
-                type='dict',
-                options=managed_identity_spec
-            ),
         )
 
         self.resource_group = None
@@ -675,13 +605,11 @@ class AzureRMContainerInstance(AzureRMModuleBaseExt):
         self.containers = None
         self.restart_policy = None
         self.subnet_ids = None
-        self.identity = None
 
         self.tags = None
 
         self.results = dict(changed=False, state=dict())
         self.cgmodels = None
-        self._managed_identity = None
 
         required_if = [
             ('state', 'present', ['containers']), ('ip_address', 'private', ['subnet_ids'])
@@ -691,14 +619,6 @@ class AzureRMContainerInstance(AzureRMModuleBaseExt):
                                                        supports_check_mode=True,
                                                        supports_tags=True,
                                                        required_if=required_if)
-
-    @property
-    def managed_identity(self):
-        if not self._managed_identity:
-            self._managed_identity = {"identity": ContainerGroupIdentity,
-                                      "user_assigned": dict
-                                      }
-        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -719,10 +639,6 @@ class AzureRMContainerInstance(AzureRMModuleBaseExt):
             self.location = resource_group.location
 
         response = self.get_containerinstance()
-
-        # Format identities
-        if self.identity:
-            update_identity, self.identity = self.update_identities({})
 
         if not response:
             self.log("Container Group doesn't exist")
@@ -801,8 +717,7 @@ class AzureRMContainerInstance(AzureRMModuleBaseExt):
         if self.registry_login_server is not None:
             registry_credentials = [self.cgmodels.ImageRegistryCredential(server=self.registry_login_server,
                                                                           username=self.registry_username,
-                                                                          password=self.registry_password,
-                                                                          identity=self.acr_identity)]
+                                                                          password=self.registry_password)]
 
         ip_address = None
 
@@ -861,7 +776,6 @@ class AzureRMContainerInstance(AzureRMModuleBaseExt):
             subnet_ids = [self.cgmodels.ContainerGroupSubnetId(id=item) for item in self.subnet_ids]
 
         parameters = self.cgmodels.ContainerGroup(location=self.location,
-                                                  identity=self.identity,
                                                   containers=containers,
                                                   image_registry_credentials=registry_credentials,
                                                   restart_policy=_snake_to_camel(self.restart_policy, True) if self.restart_policy else None,

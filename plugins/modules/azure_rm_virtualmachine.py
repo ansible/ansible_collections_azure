@@ -159,39 +159,22 @@ options:
         description:
             - Name or ID of an existing availability set to add the VM to. The I(availability_set) should be in the same resource group as VM.
         type: str
-    capacity_reservation_group:
-        description:
-            - The name or ID of the capacity reservation group to be associated with.
-        type: dict
-        suboptions:
-            id:
-                description:
-                    - The ID of the capacity reservation group to be associated with.
-                type: str
-            name:
-                description:
-                    - The Name of the capacity reservation group to be associated with.
-                type: str
-            resource_group:
-                description:
-                    - The resource group of capcacity reservation group to be associated with.
-                type: str
     proximity_placement_group:
         description:
-            - The name or ID of the proximity placement group to be associated with.
+            - The name or ID of the proximity placement group the VM should be associated with.
         type: dict
         suboptions:
             id:
                 description:
-                    - The ID of the proximity placement group to be associated with.
+                    - The ID of the proximity placement group the VM should be associated with.
                 type: str
             name:
                 description:
-                    - The Name of the proximity placement group to be associated with.
+                    - The Name of the proximity placement group the VM should be associated with.
                 type: str
             resource_group:
                 description:
-                    - The resource group of the proximity placement group to be associated with.
+                    - The resource group of the proximity placement group the VM should be associated with.
                 type: str
     storage_account_name:
         description:
@@ -945,7 +928,6 @@ azure_vm:
             "proximityPlacementGroup": {
                     "id": "/subscriptions/xxx/resourceGroups/xxx/providers/Microsoft.Compute/proximityPlacementGroups/testid13"
             },
-            "CapacityReservation": {},
             "hardwareProfile": {
                 "vmSize": "Standard_D1"
             },
@@ -1089,6 +1071,7 @@ import time
 try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
+    from azure.core.exceptions import ResourceNotFoundError
     from azure.mgmt.core.tools import parse_resource_id
 except ImportError:
     # This is handled in azure_rm_common
@@ -1115,13 +1098,6 @@ def extract_names_from_blob_uri(blob_uri, storage_suffix):
         raise Exception("unable to parse blob uri '%s'" % blob_uri)
     extracted_names = m.groupdict()
     return extracted_names
-
-
-capacity_reservation_group_spec = dict(
-    id=dict(type='str'),
-    name=dict(type='str'),
-    resource_group=dict(type='str')
-)
 
 
 proximity_placement_group_spec = dict(
@@ -1182,7 +1158,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
             managed_disk_type=dict(type='str', choices=['Standard_LRS', 'StandardSSD_LRS', 'StandardSSD_ZRS', 'Premium_LRS', 'Premium_ZRS', 'UltraSSD_LRS']),
             os_disk_name=dict(type='str'),
             proximity_placement_group=dict(type='dict', options=proximity_placement_group_spec),
-            capacity_reservation_group=dict(type='dict', options=capacity_reservation_group_spec),
             os_type=dict(type='str', choices=['Linux', 'Windows'], default='Linux'),
             public_ip_allocation_method=dict(type='str', choices=['Dynamic', 'Static', 'Disabled'], default='Static',
                                              aliases=['public_ip_allocation']),
@@ -1284,7 +1259,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
         self.managed_disk_type = None
         self.os_disk_name = None
         self.proximity_placement_group = None
-        self.capacity_reservation_group = None
         self.network_interface_names = None
         self.remove_on_absent = set()
         self.tags = None
@@ -1447,7 +1421,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                 elif self.image.get('id'):
                     try:
                         image_reference = self.compute_models.ImageReference(id=self.image['id'])
-                    except Exception:
+                    except Exception as exc:
                         self.fail("id Error: Cannot get image from the reference id - {0}".format(self.image['id']))
                 else:
                     self.fail("parameter error: expecting image to contain [publisher, offer, sku, version], [name, resource_group] or [id]")
@@ -1759,29 +1733,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                     else:
                         self.fail("Parameter error: Please recheck your proximity placement group ")
 
-                if self.capacity_reservation_group is not None:
-                    if vm_dict.get('capacity_reservation') is None:
-                        changed = True
-                        differences.append('capacity_reservation_group')
-                        if self.capacity_reservation_group.get('name') is not None and self.capacity_reservation_group.get('resource_group') is not None:
-                            capacity_reservation_group = self.get_capacity_reservation_group(self.capacity_reservation_group.get('resource_group'),
-                                                                                             self.capacity_reservation_group.get('name'))
-                            self.capacity_reservation_group['id'] = capacity_reservation_group.id
-
-                    elif self.capacity_reservation_group.get('id') is not None:
-                        if vm_dict['capacity_reservation'].get('id', "").lower() != self.capacity_reservation_group['id'].lower():
-                            changed = True
-                            differences.append('capacity_reservation_group')
-                    elif self.capacity_reservation_group.get('name') is not None and self.capacity_reservation_group.get('resource_group') is not None:
-                        capacity_reservation_group = self.get_capacity_reservation_group(self.capacity_reservation_group.get('resource_group'),
-                                                                                         self.capacity_reservation_group.get('name'))
-                        if vm_dict['capacity_reservation'].get('id', "").lower() != capacity_reservation_group.id.lower():
-                            changed = True
-                            differences.append('capacity_reservation_group')
-                            self.capacity_reservation_group['id'] = capacity_reservation_group.id
-                    else:
-                        self.fail("Parameter error: Please recheck your capacity reservation group ")
-
                 self.differences = differences
 
             elif self.state == 'absent':
@@ -1840,17 +1791,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                             proximity_placement_group_resource = self.compute_models.SubResource(id=proximity_placement_group.id)
                         else:
                             self.fail("Parameter error: Please recheck your proximity placement group ")
-
-                    capacity_reservation_group_resource = None
-                    if self.capacity_reservation_group is not None:
-                        if self.capacity_reservation_group.get('id') is not None:
-                            capacity_reservation_group_resource = self.compute_models.SubResource(id=self.capacity_reservation_group['id'])
-                        elif self.capacity_reservation_group.get('name') is not None and self.capacity_reservation_group.get('resource_group') is not None:
-                            capacity_reservation_group = self.get_capacity_reservation_group(self.capacity_reservation_group.get('resource_group'),
-                                                                                             self.capacity_reservation_group.get('name'))
-                            capacity_reservation_group_resource = self.compute_models.SubResource(id=capacity_reservation_group.id)
-                        else:
-                            self.fail("Parameter error: Please recheck your capacity reservation group ")
 
                     # Get defaults
                     if not self.network_interface_names:
@@ -1934,7 +1874,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                         ),
                         availability_set=availability_set_resource,
                         proximity_placement_group=proximity_placement_group_resource,
-                        capacity_reservation=self.compute_models.CapacityReservationProfile(capacity_reservation_group=capacity_reservation_group_resource),
                         plan=plan,
                         zones=self.zones,
                     )
@@ -2167,20 +2106,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                             # pass if the proximity Placement Group
                             pass
 
-                    capacity_reservation_group_resource = None
-                    if self.capacity_reservation_group is not None:
-                        try:
-                            capacity_reservation_group_resource = self.compute_models.SubResource(id=self.capacity_reservation_group.get('id'))
-                        except Exception:
-                            # pass if the proximity Placement Group
-                            pass
-                    else:
-                        try:
-                            capacity_reservation_group_resource = self.compute_models.SubResource(id=vm_dict['capacity_reservation_group'].get('id'))
-                        except Exception:
-                            # pass if the proximity Placement Group
-                            pass
-
                     availability_set_resource = None
                     try:
                         availability_set_resource = self.compute_models.SubResource(id=vm_dict['availability_set'].get('id'))
@@ -2223,7 +2148,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                         ),
                         availability_set=availability_set_resource,
                         proximity_placement_group=proximity_placement_group_resource,
-                        capacity_reservation=self.compute_models.CapacityReservationProfile(capacity_reservation_group=capacity_reservation_group_resource),
                         network_profile=self.compute_models.NetworkProfile(
                             network_interfaces=nics
                         )
@@ -2466,7 +2390,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
             os_disk['managed_disk'] = dict(id=response.id)
             os_disk['create_option'] = response.creation_data.create_option
             return os_disk
-        except Exception:
+        except Exception as ec:
             self.fail('Could not find os disk {0} in resource group {1}'.format(os_disk_name, resource_group_name))
 
     def get_vm(self):
@@ -2818,12 +2742,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
 
         self.fail("Error could not find image with name {0}".format(name))
         return None
-
-    def get_capacity_reservation_group(self, resource_group, name):
-        try:
-            return self.compute_client.capacity_reservation_groups.get(resource_group, name)
-        except Exception as exc:
-            self.fail("Error fetching capacity reservation group {0} - {1}".format(name, str(exc)))
 
     def get_proximity_placement_group(self, resource_group, name):
         try:

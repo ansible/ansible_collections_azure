@@ -1,41 +1,5 @@
 # Change Log
 
-## v2.6.0 (2024-07-01)
-
-### FEATURE ENHANCEMENT
-  - Minimum supported Ansible core version to v2.15 - Ansible v2.15 EOL(https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html#ansible-community-changelogs) 
-
-## v2.5.0 (2024-06-28)
-
-### NEW MODULES
-  - azure_rm_capacityreservationgroup: Add support for managed capacity reservation group ([#1557](https://github.com/ansible-collections/azure/pull/1557))
-  - azure_rm_capacityreservationgroup_info: Add support for get capacity reservation group ([#1557](https://github.com/ansible-collections/azure/pull/1557))
-  - azure_rm_networkwatcher: Add support for managed network watcher ([#1576](https://github.com/ansible-collections/azure/pull/1576))
-  - azure_rm_networkwatcher_info: Add support for get network watcher facts ([#1576](https://github.com/ansible-collections/azure/pull/1576))
-  - azure_rm_networkflowlogs: Add support for managed network flow logs ([#1576](https://github.com/ansible-collections/azure/pull/1576))
-  - azure_rm_networkflowlogs_info: Add support for get network flow logs ([#1576](https://github.com/ansible-collections/azure/pull/1576))
-
-### FEATURE ENHANCEMENT
-  - azure_rm_webapp: Add support for `identity` ([#1566](https://github.com/ansible-collections/azure/pull/1566))
-  - azure_rm_webapp_info: Add support for `identity` ([#1566](https://github.com/ansible-collections/azure/pull/1566))
-  - azure_rm_galleryimageversion: Allow creating gallery image versions from storage accounts ([#1466](https://github.com/ansible-collections/azure/pull/1466))
-  - requirements.txt:
-    - Bump `azure-storage-blob` from 12.11.0 to 12.13.0 ([#1572](https://github.com/ansible-collections/azure/pull/1572))
-    - Update `azure-cli-core` to 2.61.0 ([#1593](https://github.com/ansible-collections/azure/pull/1593))
-    - Bump `azure-identity` from 1.14.0 to 1.16.1 ([#1596](https://github.com/ansible-collections/azure/pull/1596))
-    - Limit `azure-iot-hub` to `x86_64 platforms` ([#1609](https://github.com/ansible-collections/azure/pull/1609))
-  - azure_rm_containerinstance: Add support for `identity` ([#1581](https://github.com/ansible-collections/azure/pull/1581))
-  - azure_rm_containerinstance_info: Add support for `identity` ([#1581](https://github.com/ansible-collections/azure/pull/1581))
-  - azure_rm_storageaccount: Add support for `allow_shared_key_access` ([#1583](https://github.com/ansible-collections/azure/pull/1583))
-  - azure_rm_virtualmachinescaleset: Add support for `identity` ([#1585](https://github.com/ansible-collections/azure/pull/1585))
-  - azure_rm_virtualmachinescaleset_info: Add support for `identity` ([#1585](https://github.com/ansible-collections/azure/pull/1585))
-
-### BUG FIXING
-  - azure_rm_webapp: Delete the imported logging module ([#1567](https://github.com/ansible-collections/azure/pull/1567))
-  - azure_rm_postgresqlflexiblefirewallrule: Delete the imported logging module ([#1567](https://github.com/ansible-collections/azure/pull/1567))
-  - azure_rm_adgroup_info: Return None if not a member of the group ([#1579](https://github.com/ansible-collections/azure/pull/1579))
-
-
 ## v2.4.0 (2024-05-30)
 
 ### NEW MODULES

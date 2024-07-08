@@ -101,8 +101,8 @@ keyed_groups:
 exclude_host_filters:
     # excludes hosts in the eastus region
     - location in ['eastus']
-    - tags['tagkey'] is defined and tags['tagkey'] == 'tagvalue'
-    - tags['tagkey2'] is defined and tags['tagkey2'] == 'tagvalue2'
+    - tags['tagkey'] is defined and tags['tagkey'] == 'tagkey'
+    - tags['tagkey2'] is defined and tags['tagkey2'] == 'tagkey2'
     # excludes hosts that are powered off
     - powerstate != 'running'
 
@@ -110,9 +110,9 @@ exclude_host_filters:
 include_host_filters:
     # includes hosts that in the eastus region and power on
     - location in ['eastus'] and powerstate == 'running'
-    # includes hosts in the eastus region and power on OR includes hosts in the eastus2 region and tagkey value is tagvalue
+    # includes hosts in the eastus region and power on OR includes hosts in the eastus2 region and tagkey is tagkey
     - location in ['eastus'] and powerstate == 'running'
-    - location in ['eastus2'] and tags['tagkey'] is defined and tags['tagkey'] == 'tagvalue'
+    - location in ['eastus2'] and tags['tagkey'] is defined and tags['tagkey'] == 'tagkey'
 '''
 
 # FUTURE: do we need a set of sane default filters, separate from the user-defineable ones?

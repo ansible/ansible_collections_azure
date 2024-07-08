@@ -14,6 +14,8 @@ action_groups:
     - azure.azcollection.azure_rm_adserviceprincipal_info
     - azure.azcollection.azure_rm_aduser
     - azure.azcollection.azure_rm_aduser_info
+    - azure.azcollection.azure_rm_afdorigingroup
+    - azure.azcollection.azure_rm_afdorigingroup_info
     - azure.azcollection.azure_rm_afdendpoint
     - azure.azcollection.azure_rm_afdendpoint_info
     - azure.azcollection.azure_rm_aks

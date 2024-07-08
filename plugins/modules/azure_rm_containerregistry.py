@@ -52,41 +52,6 @@ options:
             - Basic
             - Standard
             - Premium
-    identity:
-        description:
-            - Identity for the Container Registry.
-        type: dict
-        version_added: '2.4.0'
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - None
-                default: None
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned identities IDs associated to the Container Registry
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
-                    append:
-                        description:
-                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
-                        required: false
-                        type: bool
-                        default: True
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -183,7 +148,7 @@ tags:
     type: dict
 '''
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
@@ -192,41 +157,10 @@ try:
         RegistryUpdateParameters,
         Sku,
         RegistryNameCheckRequest,
-        IdentityProperties,
-        UserIdentityProperties,
     )
 except ImportError as exc:
     # This is handled in azure_rm_common
     pass
-
-
-user_assigned_identities_spec = dict(
-    id=dict(
-        type='list',
-        default=[],
-        elements='str'
-    ),
-    append=dict(
-        type='bool',
-        default=True
-    )
-)
-
-
-managed_identity_spec = dict(
-    type=dict(
-        type='str',
-        choices=['SystemAssigned',
-                 'UserAssigned',
-                 'None'],
-        default='None'
-    ),
-    user_assigned_identities=dict(
-        type='dict',
-        options=user_assigned_identities_spec,
-        default={}
-    ),
-)
 
 
 def create_containerregistry_dict(registry, credentials):
@@ -245,7 +179,6 @@ def create_containerregistry_dict(registry, credentials):
         provisioning_state=registry.provisioning_state if registry is not None else "",
         login_server=registry.login_server if registry is not None else "",
         credentials=dict(),
-        identity=registry.identity.as_dict() if registry is not None and registry.identity else None,
         tags=registry.tags if registry is not None else ""
     )
     if credentials:
@@ -261,7 +194,7 @@ class Actions:
     NoAction, Create, Update = range(3)
 
 
-class AzureRMContainerRegistry(AzureRMModuleBaseExt):
+class AzureRMContainerRegistry(AzureRMModuleBase):
     """Configuration class for an Azure RM container registry resource"""
 
     def __init__(self):
@@ -286,10 +219,6 @@ class AzureRMContainerRegistry(AzureRMModuleBaseExt):
                 type='bool',
                 default=False
             ),
-            identity=dict(
-                type='dict',
-                options=managed_identity_spec
-            ),
             sku=dict(
                 type='str',
                 default='Standard',
@@ -303,9 +232,6 @@ class AzureRMContainerRegistry(AzureRMModuleBaseExt):
         self.state = None
         self.sku = None
         self.tags = None
-        self.identity = None
-
-        self._managed_identity = None
 
         self.results = dict(changed=False, state=dict())
 
@@ -313,14 +239,6 @@ class AzureRMContainerRegistry(AzureRMModuleBaseExt):
             derived_arg_spec=self.module_arg_spec,
             supports_check_mode=True,
             supports_tags=True)
-
-    @property
-    def managed_identity(self):
-        if not self._managed_identity:
-            self._managed_identity = {"identity": IdentityProperties,
-                                      "user_assigned": UserIdentityProperties
-                                      }
-        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -339,21 +257,15 @@ class AzureRMContainerRegistry(AzureRMModuleBaseExt):
 
         if self.state == 'present':
             if not response:
-                if self.identity:
-                    update_identity, self.identity = self.update_identities({})
                 to_do = Actions.Create
             else:
                 self.log('Results : {0}'.format(response))
                 self.results.update(response)
                 if response['provisioning_state'] == "Succeeded":
-                    if self.identity:
-                        update_identity, self.identity = self.update_identities(response.get('identity', None))
                     to_do = Actions.NoAction
                     if (self.location is not None) and self.location != response['location']:
                         to_do = Actions.Update
                     elif (self.sku is not None) and self.sku != response['sku']:
-                        to_do = Actions.Update
-                    elif (self.identity is not None) and update_identity:
                         to_do = Actions.Update
                 else:
                     to_do = Actions.NoAction
@@ -405,8 +317,7 @@ class AzureRMContainerRegistry(AzureRMModuleBaseExt):
                                     name=self.sku
                                 ),
                                 tags=self.tags,
-                                admin_user_enabled=self.admin_user_enabled,
-                                identity=self.identity
+                                admin_user_enabled=self.admin_user_enabled
                             )
                         )
                     else:
@@ -422,8 +333,7 @@ class AzureRMContainerRegistry(AzureRMModuleBaseExt):
                                     name=self.sku
                                 ),
                                 tags=self.tags,
-                                admin_user_enabled=self.admin_user_enabled,
-                                identity=self.identity
+                                admin_user_enabled=self.admin_user_enabled
                             )
                         )
                     else:

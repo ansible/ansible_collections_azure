@@ -700,8 +700,8 @@ class AzureRMModuleBase(object):
         try:
             self.log("Getting storage account detail")
             account = self.storage_client.storage_accounts.get_properties(resource_group_name=resource_group_name, account_name=storage_account_name)
-            if auth_mode == 'login' and self.azure_auth.credentials.get('credentials'):
-                credential = self.azure_auth.credentials['credentials']
+            if auth_mode == 'login' and self.azure_auth.credentials.get('credential'):
+                credential = self.azure_auth.credentials['credential']
             elif (auth_mode == 'login' and self.azure_auth.credentials.get('tenant')
                   and self.azure_auth.credentials.get('client_id')
                   and self.azure_auth.credentials.get('secret')):
