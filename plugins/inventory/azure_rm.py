@@ -31,7 +31,8 @@ EXAMPLES = '''
 # powerstate: the VM's current power state, eg: 'running', 'stopped', 'deallocated'
 # provisioning_state: the VM's current provisioning state, eg: 'succeeded'
 # tags: dictionary of the VM's defined tag values
-# resource_type: the VM's resource type, eg: 'Microsoft.Compute/virtualMachine', 'Microsoft.Compute/virtualMachineScaleSets/virtualMachines', 'microsoft.azurestackhci/virtualmachineinstances'
+# resource_type: the VM's resource type, eg: 'Microsoft.Compute/virtualMachine', 'Microsoft.Compute/virtualMachineScaleSets/virtualMachines',
+# 'microsoft.azurestackhci/virtualmachineinstances'
 # vmid: the VM's internal SMBIOS ID, eg: '36bca69d-c365-4584-8c06-a62f4a1dc5d2'
 # vmss: if the VM is a member of a scaleset (vmss), a dictionary including the id and name of the parent scaleset
 # availability_zone: availability zone in which VM is deployed, eg '1','2','3'
@@ -423,7 +424,8 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         next_link = response.get('nextLink')
 
         if next_link:
-            self._enqueue_get(url=next_link, api_version=self._compute_api_version, handler=self._on_vm_page_response, handler_args=dict(vmss=vmss, arcvm=arcvm))
+            self._enqueue_get(url=next_link, api_version=self._compute_api_version, handler=self._on_vm_page_response,
+                              handler_args=dict(vmss=vmss, arcvm=arcvm))
 
         if 'value' in response:
             for h in response['value']:
@@ -569,11 +571,11 @@ class AzureHost(object):
 
         if self._arcvm:
             self._instanceview = self._vm_model
-            self._powerstate = self._vm_model['properties'].get('status', {}).get('powerState', '').lower() # 'Running'
+            self._powerstate = self._vm_model['properties'].get('status', {}).get('powerState', '').lower()  # 'Running'
         else:
             inventory_client._enqueue_get(url="{0}/instanceView".format(vm_model['id']),
-                                      api_version=self._inventory_client._compute_api_version,
-                                      handler=self._on_instanceview_response)
+                                          api_version=self._inventory_client._compute_api_version,
+                                          handler=self._on_instanceview_response)
 
         nic_refs = vm_model['properties']['networkProfile']['networkInterfaces']
         for nic in nic_refs:
@@ -608,7 +610,7 @@ class AzureHost(object):
         if 'zones' in self._vm_model:
             av_zone = self._vm_model['zones']
 
-        createdAt = self._vm_model.get('systemData',{}).get('createdAt') # hci specific
+        createdAt = self._vm_model.get('systemData', {}).get('createdAt')  # hci specific
 
         new_hostvars = dict(
             network_interface=[],
@@ -643,12 +645,12 @@ class AzureHost(object):
             resource_group=parse_resource_id(self._vm_model['id']).get('resource_group').lower(),
             default_inventory_hostname=self.default_inventory_hostname,
             creation_time=createdAt if createdAt else self._vm_model['properties'].get('timeCreated'),
-            license_type=self._vm_model['properties'].get('licenseType', 'Unknown') # licence for arc vm: self._arcvm['properties'].get('licenseProfile', {}).get('esuProfile', {}).get(?)
+            license_type=self._vm_model['properties'].get('licenseType', 'Unknown')
         )
         if self._arcvm:
-            new_hostvars['customLocation']=self._vm_model.get('extendedLocation',{}).get('name', '').split('/')[-1]
-            new_hostvars['virtual_machine_memoryMB']=self._vm_model['properties']['hardwareProfile'].get('memoryMB')
-            new_hostvars['virtual_machine_processors']=self._vm_model['properties']['hardwareProfile'].get('processors')
+            new_hostvars['customLocation'] = self._vm_model.get('extendedLocation', {}).get('name', '').split('/')[-1]
+            new_hostvars['virtual_machine_memoryMB'] = self._vm_model['properties']['hardwareProfile'].get('memoryMB')
+            new_hostvars['virtual_machine_processors'] = self._vm_model['properties']['hardwareProfile'].get('processors')
 
         # set nic-related values from the primary NIC first
         for nic in sorted(self.nics, key=lambda n: n.is_primary, reverse=True):
