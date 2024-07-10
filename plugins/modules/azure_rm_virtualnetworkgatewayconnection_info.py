@@ -12,7 +12,7 @@ DOCUMENTATION = '''
 ---
 module: azure_rm_virtualnetworkgatewayconnection_info
 
-version_added: "2.5.0"
+version_added: "2.7.0"
 
 short_description: Gets or list the specified virtual network gateway connection
 
@@ -63,7 +63,7 @@ EXAMPLES = '''
 RETURN = '''
 state:
     description:
-        - Current state of the Azure Local Network Gateway resource.
+        - Current state of the Azure Virtual Network Gateway Connection resource.
     returned: always
     type: complex
     contains:
@@ -78,7 +78,7 @@ state:
                 - The authorizationKey.
             type: str
             returned: always
-            sample: null
+            sample: "308201E806092A864886F*************B9FADDAC2D"
         connection_mode:
             description:
                 - The connection mode for this connection.
@@ -292,6 +292,7 @@ class AzureRMVirutalNetworkGatewayConnectionInfo(AzureRMModuleBase):
             return []
 
     def format_response(self, vngwconn):
+
         result = dict(
             resource_group=self.resource_group,
             authorization_key=vngwconn.authorization_key,
@@ -308,19 +309,18 @@ class AzureRMVirutalNetworkGatewayConnectionInfo(AzureRMModuleBase):
             name=vngwconn.name,
             provisioning_state=vngwconn.provisioning_state,
             routing_weight=vngwconn.routing_weight,
-            shared_key=vngwconn.shared_key,
             tags=vngwconn.tags,
             traffic_selector_policies=vngwconn.traffic_selector_policies,
+            shared_key=vngwconn.shared_key,
             use_local_azure_ip_address=vngwconn.use_local_azure_ip_address,
             use_policy_based_traffic_selectors=vngwconn.use_policy_based_traffic_selectors,
-            virtual_network_gateway1=dict(id=vngwconn.virtual_network_gateway1.id),
+            virtual_network_gateway1=None,
+            virtual_network_gateway2=None,
         )
-        if vngwconn.local_network_gateway2:
-            result['local_network_gateway2'] = dict(id=vngwconn.local_network_gateway2.id)
         if vngwconn.virtual_network_gateway2:
             result['virtual_network_gateway2'] = dict(id=vngwconn.virtual_network_gateway2.id)
-        if vngwconn.local_network_gateway2:
-            result['local_network_gateway2'] = dict(id=vngwconn.local_network_gateway2.id)
+        if vngwconn.virtual_network_gateway1:
+            result['virtual_network_gateway1'] = dict(id=vngwconn.virtual_network_gateway2.id)
 
         return result
 

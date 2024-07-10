@@ -1,11 +1,9 @@
 - name: Set Storage Account Names
   ansible.builtin.set_fact:
-    rpfx: fredtest001
-    vngname: fredvng
-    vnetname: vnet01
-    pubipname: pubip01
-    #rpfx: "{{ resource_group | hash('md5') | truncate(21, True, '') }}"
-  tags: fred
+    vngname: "vng{{ resource_group | hash('md5') | truncate(7, True, '') }}"
+    vnetname: "vnet{{ resource_group | hash('md5') | truncate(7, True, '') }}"
+    pubipname: "pip{{ resource_group | hash('md5') | truncate(7, True, '') }}"
+    rpfx: "{{ resource_group | hash('md5') | truncate(21, True, '') }}"
 
 - name: Create a new local network gateway
   azure_rm_localnetworkgateway:
@@ -92,36 +90,13 @@
       common: "xyz"
   register: network_gateway_output2
 
-- name: Get the virtual network connection
-  azure_rm_virtualnetworkgatewayconnection_info:
-    resource_group: "{{ resource_group }}"
-    name: "new{{ rpfx }}"
-  tags: fred
-  register: output
-- debug:
-    var: output
-  tags: fred
-- name: Delete the virtual network connection
-  azure_rm_virtualnetworkgatewayconnection:
-    resource_group: "{{ resource_group }}"
-    name: "new{{ rpfx }}"
-    state: absent
-  tags: fred
-
-- name: Get the virtual network connection
-  azure_rm_virtualnetworkgatewayconnection_info:
-    resource_group: "{{ resource_group }}"
-    name: "new{{ rpfx }}"
-  register: output
-- debug:
-    var: output
 - name: Create a virtual network connection
   azure_rm_virtualnetworkgatewayconnection:
     resource_group: "{{ resource_group }}"
     name: "new{{ rpfx }}"
     virtual_network_gateway1: "{{ network_gateway1_output.state.id }}"
     virtual_network_gateway2: "{{ network_gateway2_output.state.id }}"
-    local_network_gateway: "{{ local_gateway_output.id }}"
+    local_network_gateway2: "{{ local_gateway_output.id }}"
     authorization_key: Password@0329
     connection_type: Vnet2Vnet
     connection_protocol: IKEv2
@@ -131,11 +106,85 @@
     use_local_azure_ip_address: false
     use_policy_based_traffic_selectors: false
     express_route_gateway_bypass: false
-  tags: fred
+  register: output
+
+- name: Assert the resource created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Create a virtual network connection(Idempotent test)
+  azure_rm_virtualnetworkgatewayconnection:
+    resource_group: "{{ resource_group }}"
+    name: "new{{ rpfx }}"
+    virtual_network_gateway1: "{{ network_gateway1_output.state.id }}"
+    virtual_network_gateway2: "{{ network_gateway2_output.state.id }}"
+    local_network_gateway2: "{{ local_gateway_output.id }}"
+    authorization_key: Password@0329
+    connection_type: Vnet2Vnet
+    connection_protocol: IKEv2
+    routing_weight: 0
+    dpd_timeout_seconds: 45
+    enable_bgp: false
+    use_local_azure_ip_address: false
+    use_policy_based_traffic_selectors: false
+    express_route_gateway_bypass: false
+  register: output
+
+- name: Assert the resource no change
+  ansible.builtin.assert:
+    that:
+      - not output.changed
+
+- name: Update the virtual network connection(Update test)
+  azure_rm_virtualnetworkgatewayconnection:
+    resource_group: "{{ resource_group }}"
+    name: "new{{ rpfx }}"
+    virtual_network_gateway1: "{{ network_gateway1_output.state.id }}"
+    virtual_network_gateway2: "{{ network_gateway2_output.state.id }}"
+    local_network_gateway2: "{{ local_gateway_output.id }}"
+    authorization_key: Password@0329
+    connection_type: Vnet2Vnet
+    connection_protocol: IKEv2
+    routing_weight: 1
+    dpd_timeout_seconds: 60
+    enable_bgp: false
+    use_local_azure_ip_address: false
+    use_policy_based_traffic_selectors: false
+    express_route_gateway_bypass: false
+    tags:
+      key1: value1
+  register: output
+
+- name: Assert the resource updated
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
 - name: Get the virtual network connection
   azure_rm_virtualnetworkgatewayconnection_info:
     resource_group: "{{ resource_group }}"
     name: "new{{ rpfx }}"
-  tags: fred
   register: output
-- debug:
+
+- name: Assert the resource facts
+  ansible.builtin.assert:
+    that:
+      - output.state[0].dpd_timeout_seconds == 60
+      - output.state[0].enable_bgp == false
+      - output.state[0].routing_weight == 1
+      - output.state[0].tags |length == 1
+      - output.state[0].use_local_azure_ip_address == false
+      - output.state[0].use_policy_based_traffic_selectors == false
+
+- name: Delete the virtual network connection
+  azure_rm_virtualnetworkgatewayconnection:
+    resource_group: "{{ resource_group }}"
+    name: "new{{ rpfx }}"
+    state: absent
+  register: output
+
+- name: Assert the resource deleted
+  ansible.builtin.assert:
+    that:
+      - output.changed

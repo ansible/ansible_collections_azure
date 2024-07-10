@@ -12,12 +12,12 @@ DOCUMENTATION = '''
 ---
 module: virtualnetworkgatewayconnection
 
-version_added: "2.4.0"
+version_added: "2.7.0"
 
-short_description: Manage Azure Local Network Gateway in a resource group
+short_description: Manage Azure Virtual Network Gateway Connection in a resource group
 
 description:
-    - Create, update or delete Azure Local Network Gateway in a resource group
+    - Create, update or delete Azure Virtual Network Gateway Connection in a resource group
 
 options:
     resource_group:
@@ -34,45 +34,70 @@ options:
         description:
             - The location of the network gateway connection.
         type: str
-    local_network_address_space:
+    local_network_gateway2::
         description:
-            - Local network site address space.
-        type: dict
-        suboptions:
-            address_prefixes:
-                description:
-                    - A list of address blocks reserved for this virtual network in CIDR notation.
-                type: list
-                elements: str
-    gateway_ip_address:
-        description:
-            - IP address of network gateway connection.
+            - The reference to local network gateway resource.
         type: str
-    fqdn:
+    virtual_network_gateway1:
         description:
-            - FQDN of network gateway connection.
+            - The reference to virtual network gateway resource.
         type: str
-    bgp_settings:
+    virtual_network_gateway2:
         description:
-            - Local network gateway's BGP speaker settings.
-        type: dict
-        suboptions:
-            asn:
-                description:
-                    - The BGP speaker's ASN.
-                type: int
-            bgp_peering_address:
-                description:
-                    - The BGP peering address and BGP identifier of this BGP speaker.
-                type: str
-            peer_weight:
-                description:
-                    - The weight added to routes learned from this BGP speaker.
-                type: int
+            - The reference to virtual network gateway resource.
+        type: str
+    authorization_key:
+        description:
+            - The authorizationKey.
+        type: str
+    connection_type:
+        description:
+            - Gateway connection type.
+        type: str
+        choices:
+            - IPsec
+            - Vnet2Vnet
+            - ExpressRoute
+            - VPNClient
+    connection_protocol:
+        description:
+            - Connection protocol used for this connection.
+        choices:
+            - IKEv2
+            - IKEv1
+        type: str
+    routing_weight:
+        description:
+            - The routing weight.
+        type: int
+    dpd_timeout_seconds:
+        description:
+            - The dead peer detection timeout of this connection in seconds.
+        type: int
+    shared_key:
+        description:
+            - The IPSec shared key.
+        type: str
+    enable_bgp:
+        description:
+            - EnableBgp flag.
+        type: bool
+    use_local_azure_ip_address:
+        description:
+            - Use private local Azure IP for the connection.
+        type: bool
+    use_policy_based_traffic_selectors:
+        description:
+            - Enable policy-based traffic selectors.
+        type: bool
+    express_route_gateway_bypass:
+        description:
+            - Bypass ExpressRoute Gateway for data forwarding.
+        type: bool
     state:
         description:
-            - Use C(present) to create or update a network gateway connection.
-            - Use C(absent) to delete the network gateway connection.
+            - Use C(present) to create or update a virtual network gateway connection.
+            - Use C(absent) to delete the virtual network gateway connection.
         type: str
         default: present
         choices:
@@ -88,21 +113,24 @@ author:
 '''
 
 EXAMPLES = '''
-- name: Create a new network gateway connection
-  virtualnetworkgatewayconnection:
+- name: Create a new virtual network gateway connection
+  azure_rm_virtualnetworkgatewayconnection:
     resource_group: "{{ resource_group }}"
-    name: "localgateway-name"
-    local_network_address_space:
-      address_prefixes:
-        - 10.0.0.0/24
-        - 20.0.0.0/24
-    fqdn: fredtest.com
+    name: "new{{ rpfx }}"
+    virtual_network_gateway1: "{{ virtual_network_gateway1 }}"
+    virtual_network_gateway2: "{{ virtual_network_gateway2 }}"
+    local_network_gateway2: "{{ local_network_gateway2 }}"
+    authorization_key: Password@0329
+    connection_type: Vnet2Vnet
+    connection_protocol: IKEv2
+    routing_weight: 1
+    dpd_timeout_seconds: 60
+    enable_bgp: false
+    use_local_azure_ip_address: false
+    use_policy_based_traffic_selectors: false
+    express_route_gateway_bypass: false
     tags:
-      key: value
-    bgp_settings:
-      asn: 8
-      bgp_peering_address: 10.3.0.1
-      peer_weight: 3
+      key1: value1
 
 - name: Delete network gateway connection
   virtualnetworkgatewayconnection:
@@ -129,7 +157,7 @@ state:
                 - The authorizationKey.
             type: str
             returned: always
-            sample: null
+            sample: "308201E806092A864********************78B9FADDAC2D"
         connection_mode:
             description:
                 - The connection mode for this connection.
@@ -213,6 +241,7 @@ state:
                 - The IPSec shared key.
             type: str
             returned: always
+            sample: null
         tags:
             description:
                 - The resource tags.
@@ -265,12 +294,8 @@ state:
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
-import logging
-logging.basicConfig(filename='log.log', level=logging.INFO)
-
 try:
     from azure.core.exceptions import HttpResponseError
-    from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
 except Exception:
     # handled in azure_rm_common
@@ -289,7 +314,7 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
             location=dict(type='str'),
             virtual_network_gateway1=dict(type='str', required=False),
             virtual_network_gateway2=dict(type='str'),
-            local_network_gateway=dict(type='str'),
+            local_network_gateway2=dict(type='str'),
             authorization_key=dict(type='str', no_log=True),
             connection_type=dict(type='str', choices=["IPsec", "Vnet2Vnet", "ExpressRoute", "VPNClient"]),
             connection_protocol=dict(type='str', choices=["IKEv2", "IKEv1"]),
@@ -308,7 +333,7 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
         self.state = None
         self.virtual_network_gateway1 = None
         self.virtual_network_gateway2 = None
-        self.local_network_gateway = None
+        self.local_network_gateway2 = None
         self.authorization_key = None
         self.connection_type = None
         self.connection_protocol = None
@@ -347,19 +372,29 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
 
         if self.state == 'present':
             if old_response is not None:
-                pass
+                if self.dpd_timeout_seconds and (self.dpd_timeout_seconds != old_response['dpd_timeout_seconds']):
+                    changed = True
+                elif bool(self.use_local_azure_ip_address) != bool(old_response['use_local_azure_ip_address']):
+                    changed = True
+                elif bool(self.enable_bgp) != bool(old_response['enable_bgp']):
+                    changed = True
+                elif bool(self.use_policy_based_traffic_selectors) != bool(old_response['use_policy_based_traffic_selectors']):
+                    changed = True
+                elif self.routing_weight and (self.routing_weight != old_response['routing_weight']):
+                    changed = True
+                elif bool(self.express_route_gateway_bypass) != bool(old_response['express_route_gateway_bypass']):
+                    changed = True
             else:
                 changed = True
 
             if changed:
                 if not self.check_mode:
                     response = self.create_or_update_network_gateway_connection()
-
             if old_response is not None:
                 update_tags, new_tags = self.update_tags(old_response.get('tags'))
                 if update_tags:
                     if not self.check_mode:
-                        response = self.update_local_network_gateway_tags(new_tags)
+                        response = self.update_vngwc_tags(new_tags)
                     changed = True
         else:
             if not self.check_mode:
@@ -390,12 +425,10 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
         """Create or Update network gateway connection"""
         response = None
         try:
-            #body = self.network_models.VirtualNetworkGatewayConnection(
             body = dict(
                     location=self.location,
                     virtual_network_gateway1=dict(id=self.virtual_network_gateway1),
                     virtual_network_gateway2=dict(id=self.virtual_network_gateway2),
-                    #local_network_gateway2=dict(id=self.local_network_gateway),
                     authorization_key=self.authorization_key,
                     connection_type=self.connection_type,
                     connection_protocol=self.connection_protocol,
@@ -419,11 +452,13 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
 
         return self.format_response(response)
 
-    def update_network_gateway_connection_tags(self, tags):
+    def update_vngwc_tags(self, tags):
         """Updates a network gateway connection tags"""
         response = None
         try:
-            response = self.network_client.virtual_network_gateway_connections.begin_update_tags(self.resource_group, self.name, tags)
+            response = self.network_client.virtual_network_gateway_connections.begin_update_tags(self.resource_group, self.name, dict(tags=tags))
+            if isinstance(response, LROPoller):
+                response = self.get_poller_result(response)
         except HttpResponseError as ec:
             self.fail("Update a network gateway connection tags Failed, Exception as {0}".format(ec))
         return self.format_response(response)
@@ -454,19 +489,21 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
             name=vngwconn.name,
             provisioning_state=vngwconn.provisioning_state,
             routing_weight=vngwconn.routing_weight,
-            shared_key=vngwconn.shared_key,
             tags=vngwconn.tags,
             traffic_selector_policies=vngwconn.traffic_selector_policies,
+            shared_key=vngwconn.shared_key,
             use_local_azure_ip_address=vngwconn.use_local_azure_ip_address,
             use_policy_based_traffic_selectors=vngwconn.use_policy_based_traffic_selectors,
-            virtual_network_gateway1=dict(id=vngwconn.virtual_network_gateway1.id),
+            virtual_network_gateway2=None,
+            local_network_gateway2=None,
+            virtual_network_gateway1=None,
         )
         if vngwconn.local_network_gateway2:
             result['local_network_gateway2'] = dict(id=vngwconn.local_network_gateway2.id)
         if vngwconn.virtual_network_gateway2:
             result['virtual_network_gateway2'] = dict(id=vngwconn.virtual_network_gateway2.id)
-        if vngwconn.local_network_gateway2:
-            result['local_network_gateway2'] = dict(id=vngwconn.local_network_gateway2.id)
+        if vngwconn.virtual_network_gateway1:
+            result['virtual_network_gateway1'] = dict(id=vngwconn.virtual_network_gateway1.id)
         return result
 
 
