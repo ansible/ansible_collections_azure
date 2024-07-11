@@ -53,7 +53,7 @@
     virtual_network: "{{ vnetname }}"
     tags:
       common: "xyz"
-  register: network1_gateway_output
+  register: network_gateway1_output
 
 - name: Create virtual network
   azure_rm_virtualnetwork:
@@ -86,7 +86,7 @@
     virtual_network: "{{ vnetname }}02"
     tags:
       common: "xyz"
-  register: network_gateway_output2
+  register: network_gateway2_output
 
 - name: Create a virtual network connection
   azure_rm_virtualnetworkgatewayconnection:
