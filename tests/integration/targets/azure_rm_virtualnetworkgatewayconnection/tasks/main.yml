@@ -42,7 +42,7 @@
     name: "{{ pubipname }}"
     sku: standard
 
-- name: Create virtual network gateway without bgp settings
+- name: Create first virtual network gateway without bgp settings
   azure_rm_virtualnetworkgateway:
     resource_group: "{{ resource_group }}"
     name: "{{ vngname }}"
@@ -75,7 +75,7 @@
     name: "{{ pubipname }}02"
     sku: standard
 
-- name: Create virtual network gateway without bgp settings
+- name: Create secondary virtual network gateway without bgp settings
   azure_rm_virtualnetworkgateway:
     resource_group: "{{ resource_group }}"
     name: "{{ vngname }}02"
@@ -92,9 +92,9 @@
   azure_rm_virtualnetworkgatewayconnection:
     resource_group: "{{ resource_group }}"
     name: "new{{ rpfx }}"
-    virtual_network_gateway1: "{{ network_gateway1_output.state.id }}"
-    virtual_network_gateway2: "{{ network_gateway2_output.state.id }}"
-    local_network_gateway2: "{{ local_gateway_output.id }}"
+    virtual_network_gateway1: "{{ network_gateway1_output.id }}"
+    virtual_network_gateway2: "{{ network_gateway2_output.id }}"
+    local_network_gateway2: "{{ local_gateway_output.state.id }}"
     authorization_key: Password@0329
     connection_type: Vnet2Vnet
     connection_protocol: IKEv2
@@ -115,9 +115,9 @@
   azure_rm_virtualnetworkgatewayconnection:
     resource_group: "{{ resource_group }}"
     name: "new{{ rpfx }}"
-    virtual_network_gateway1: "{{ network_gateway1_output.state.id }}"
-    virtual_network_gateway2: "{{ network_gateway2_output.state.id }}"
-    local_network_gateway2: "{{ local_gateway_output.id }}"
+    virtual_network_gateway1: "{{ network_gateway1_output.id }}"
+    virtual_network_gateway2: "{{ network_gateway2_output.id }}"
+    local_network_gateway2: "{{ local_gateway_output.state.id }}"
     authorization_key: Password@0329
     connection_type: Vnet2Vnet
     connection_protocol: IKEv2
@@ -138,9 +138,9 @@
   azure_rm_virtualnetworkgatewayconnection:
     resource_group: "{{ resource_group }}"
     name: "new{{ rpfx }}"
-    virtual_network_gateway1: "{{ network_gateway1_output.state.id }}"
-    virtual_network_gateway2: "{{ network_gateway2_output.state.id }}"
-    local_network_gateway2: "{{ local_gateway_output.id }}"
+    virtual_network_gateway1: "{{ network_gateway1_output.id }}"
+    virtual_network_gateway2: "{{ network_gateway2_output.id }}"
+    local_network_gateway2: "{{ local_gateway_output.state.id }}"
     authorization_key: Password@0329
     connection_type: Vnet2Vnet
     connection_protocol: IKEv2
