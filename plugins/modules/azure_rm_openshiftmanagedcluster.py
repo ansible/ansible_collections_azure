@@ -586,6 +586,8 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                 if key == 'cluster_profile':
                     self.body['properties']['clusterProfile'] = {}
                     for item in ['pull_secret', 'cluster_resource_group_id', 'domain', 'version']:
+                        if not kwargs[key].get(item):
+                            continue
                         if item == 'pull_secret':
                             self.body['properties']['clusterProfile']['pullSecret'] = kwargs[key].get(item)
                         elif item == 'cluster_resource_group_id':
