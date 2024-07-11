@@ -46,7 +46,6 @@
   azure_rm_virtualnetworkgateway:
     resource_group: "{{ resource_group }}"
     name: "{{ vngname }}"
-    enable_private_ip_address: true
     ip_configurations:
       - name: testipconfig
         private_ip_allocation_method: Dynamic
@@ -80,7 +79,6 @@
   azure_rm_virtualnetworkgateway:
     resource_group: "{{ resource_group }}"
     name: "{{ vngname }}02"
-    enable_private_ip_address: true
     ip_configurations:
       - name: testipconfig
         private_ip_allocation_method: Dynamic

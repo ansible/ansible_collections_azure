@@ -88,7 +88,7 @@ state:
         connection_protocol:
             description:
                 - Connection protocol used for this connection.
-            type: IKEv2
+            type: str
             returned: always
             sample: IKEv2
         connection_type:
@@ -100,7 +100,7 @@ state:
         dpd_timeout_seconds:
             description:
                 - The dead peer detection timeout of this connection in seconds.
-            type: s
+            type: int
             returned: always
             sample: 45
         enable_bgp:
@@ -148,7 +148,7 @@ state:
         resource_group:
             description:
                 - The resource group of the virtual network gateway connection.
-            type: rg
+            type: str
             returned: always
             sample: rg
         routing_weight:

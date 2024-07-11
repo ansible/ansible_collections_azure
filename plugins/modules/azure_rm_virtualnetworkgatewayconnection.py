@@ -10,7 +10,7 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: virtualnetworkgatewayconnection
+module: azure_rm_virtualnetworkgatewayconnection
 
 version_added: "2.7.0"
 
@@ -34,7 +34,7 @@ options:
         description:
             - The location of the network gateway connection.
         type: str
-    local_network_gateway2::
+    local_network_gateway2:
         description:
             - The reference to local network gateway resource.
         type: str
@@ -167,7 +167,7 @@ state:
         connection_protocol:
             description:
                 - Connection protocol used for this connection.
-            type: IKEv2
+            type: str
             returned: always
             sample: IKEv2
         connection_type:
@@ -179,7 +179,7 @@ state:
         dpd_timeout_seconds:
             description:
                 - The dead peer detection timeout of this connection in seconds.
-            type: s
+            type: int
             returned: always
             sample: 45
         enable_bgp:
@@ -227,7 +227,7 @@ state:
         resource_group:
             description:
                 - The resource group of the virtual network gateway connection.
-            type: rg
+            type: str
             returned: always
             sample: rg
         routing_weight:
@@ -351,9 +351,9 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
         )
 
         super(AzureRMVirutalNetworkGatewayConnection, self).__init__(derived_arg_spec=self.module_arg_spec,
-                                                    supports_check_mode=True,
-                                                    supports_tags=True,
-                                                    facts_module=False)
+                                                                     supports_check_mode=True,
+                                                                     supports_tags=True,
+                                                                     facts_module=False)
 
     def exec_module(self, **kwargs):
 
@@ -425,22 +425,20 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
         """Create or Update network gateway connection"""
         response = None
         try:
-            body = dict(
-                    location=self.location,
-                    virtual_network_gateway1=dict(id=self.virtual_network_gateway1),
-                    virtual_network_gateway2=dict(id=self.virtual_network_gateway2),
-                    authorization_key=self.authorization_key,
-                    connection_type=self.connection_type,
-                    connection_protocol=self.connection_protocol,
-                    routing_weight=self.routing_weight,
-                    dpd_timeout_seconds=self.dpd_timeout_seconds,
-                    shared_key=self.shared_key,
-                    enable_bgp=self.enable_bgp,
-                    use_local_azure_ip_address=self.use_local_azure_ip_address,
-                    use_policy_based_traffic_selector=self.use_policy_based_traffic_selectors,
-                    express_route_gateway_bypass=self.express_route_gateway_bypass,
-                    tags=self.tags
-                )
+            body = dict(location=self.location,
+                        virtual_network_gateway1=dict(id=self.virtual_network_gateway1),
+                        virtual_network_gateway2=dict(id=self.virtual_network_gateway2),
+                        authorization_key=self.authorization_key,
+                        connection_type=self.connection_type,
+                        connection_protocol=self.connection_protocol,
+                        routing_weight=self.routing_weight,
+                        dpd_timeout_seconds=self.dpd_timeout_seconds,
+                        shared_key=self.shared_key,
+                        enable_bgp=self.enable_bgp,
+                        use_local_azure_ip_address=self.use_local_azure_ip_address,
+                        use_policy_based_traffic_selector=self.use_policy_based_traffic_selectors,
+                        express_route_gateway_bypass=self.express_route_gateway_bypass,
+                        tags=self.tags)
         except Exception as ec:
             pass
         try:
