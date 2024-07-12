@@ -345,6 +345,9 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
         self.use_policy_based_traffic_selectors = None
         self.express_route_gateway_bypass = None
 
+        required_if = [('connection_type', 'IPsec', ['name', 'local_network_gateway2']),
+                       ('connection_type', 'Vnet2Vnet', ['name', 'virtual_network_gateway2'])]
+
         self.results = dict(
             changed=False,
             state=dict(),
@@ -353,6 +356,7 @@ class AzureRMVirutalNetworkGatewayConnection(AzureRMModuleBase):
         super(AzureRMVirutalNetworkGatewayConnection, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                                      supports_check_mode=True,
                                                                      supports_tags=True,
+                                                                     required_if=required_if,
                                                                      facts_module=False)
 
     def exec_module(self, **kwargs):
