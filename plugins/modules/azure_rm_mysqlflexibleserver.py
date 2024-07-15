@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2017 Zim Kalinowski, <zikalino@microsoft.com>
+# Copyright (c) 2024 xuzhang3 (@xuzhang3), Fred-sun (@Fred-sun)
 #
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -11,7 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: azure_rm_mysqlflexibleserver
-version_added: "0.1.2"
+version_added: "2.7.0"
 short_description: Manage MySQL Flexible Server instance
 description:
     - Create, update and delete instance of MySQL Flexible Server.
@@ -27,6 +27,10 @@ options:
             - The name of the server.
         required: True
         type: str
+    location:
+        description:
+            - Resource location. If not set, location from the resource group will be used as default.
+        type: str
     sku:
         description:
             - The SKU (pricing tier) of the server.
@@ -34,50 +38,32 @@ options:
         suboptions:
             name:
                 description:
-                    - The name of the sku, typically, tier + family + cores, for example C(B_Gen4_1), C(GP_Gen5_8).
+                    - The name of the sku, e.g. Standard_D32s_v3.
                 type: str
             tier:
                 description:
-                    - The tier of the particular SKU, for example C(Basic).
+                    - The tier of the particular SKU,
                 type: str
                 choices:
-                    - basic
-                    - standard
-            capacity:
-                description:
-                    - The scale up/out capacity, representing server's compute units.
-                type: str
-            size:
-                description:
-                    - The size code, to be interpreted by resource as appropriate.
-                type: int
-    location:
-        description:
-            - Resource location. If not set, location from the resource group will be used as default.
-        type: str
-    storage_profile:
+                    - Burstable
+                    - GeneralPurpose
+                    - MemoryOptimized
+    storage:
         description:
             - Storage Profile properties of a server.
         type: dict
         suboptions:
-            storage_mb:
+            storage_size_gb:
                 description:
-                    - The maximum storage allowed for a server.
+                    - Max storage size allowed for a server.
                 type: int
-            backup_retention_days:
+            iops:
                 description:
-                    - Backup retention days for the server
+                    - Storage IOPS for a server.
                 type: int
-            geo_redundant_backup:
+            auto_grow:
                 description:
-                    - Enable Geo-redundant or not for server backup.
-                type: str
-                choices:
-                    - Disabled
-                    - Enabled
-            storage_autogrow:
-                description:
-                    - Enable Storage Auto Grow.
+                    - Enable Storage Auto Grow or not.
                 type: str
                 choices:
                     - Disabled
@@ -88,12 +74,7 @@ options:
         type: str
         choices:
             - '5.7'
-            - '8.0'
-    enforce_ssl:
-        description:
-            - Enable SSL enforcement.
-        type: bool
-        default: False
+            - '8.0.21'
     admin_username:
         description:
             - The administrator's login name of a server.
@@ -103,16 +84,105 @@ options:
         description:
             - The password of the administrator login.
         type: str
-    create_mode:
+    availability_zone:
         description:
-            - Create mode of SQL Server.
-        default: Default
+            - Availability Zone information of the server.
         type: str
-    restarted:
+    restore_point_in_time:
         description:
-            - Set to C(true) with I(state=present) to restart a running mysql server.
-        default: False
-        type: bool
+            - Restore point creation time (ISO8601 format), specifying the time to restore from.
+        type: str
+    source_server_resource_id:
+        description:
+            - The source MySQL server id.
+        type: str
+    replication_role:
+        description:
+            - The replication role.
+        type: str
+        choices:
+            - None
+            - Source
+            - Replica
+    backup:
+        description:
+            - Backup related properties of a server.
+        type: dict
+        suboptions:
+            geo_redundant_backup:
+                description:
+                    - Whether or not geo redundant backup is enabled.
+                type: str
+                choices:
+                    - Enabled
+                    - Disabled
+            backup_retention_days:
+                description:
+                    - Backup retention days for the server.
+                type: int
+    network:
+        description:
+            - Network related properties of a server.
+        type: dict
+        suboptions:
+            delegated_subnet_resource_id:
+                description:
+                    - Delegated subnet resource id used to setup vnet for a server.
+                type: str
+            private_dns_zone_resource_id:
+                description:
+                    - Private DNS zone resource id.
+                type: str
+    maintenance_window:
+        description:
+            - Maintenance window of a server..
+        type: dict
+        suboptions:
+            custom_window:
+                description:
+                    - Indicates whether custom window is enabled or disabled.
+                type: str
+                choices:
+                    - Enabled
+                    - Disabled
+            start_hour:
+                description:
+                    - Start hour for maintenance window.
+                type: int
+            start_minuts:
+                description:
+                    - Start minute for maintenance window.
+                type: int
+            day_of_week:
+                descrition:
+                   - Day of week for maintenance window.
+            type: int
+    high_availability:
+        description:
+            - High availability related properties of a server.
+        type: dict
+        suboptions:
+            mode:
+                description:
+                    - High availability mode for a server.
+                type: str
+                choices:
+                    - Disabled
+                    - ZoneRedundant
+                    - SameZone
+            standby_availability_zone:
+                description:
+                    - Vailability zone of the standby server.
+                type: str
+    status:
+        description:
+            Set the server state.
+        type: str
+        choices:
+            - restart
+            - start
+            - stop
+            - failover
     state:
         description:
             - Assert the state of the MySQL Flexible Server. Use C(present) to create or update a server and C(absent) to delete it.
@@ -127,7 +197,8 @@ extends_documentation_fragment:
     - azure.azcollection.azure_tags
 
 author:
-    - Zim Kalinowski (@zikalino)
+    - xuzhang3 (@xuzhang3)
+    - Fred-sun (@Fred-sun)
 
 '''
 
@@ -149,39 +220,243 @@ EXAMPLES = '''
     version: 5.7
     admin_username: cloudsa
     admin_password: password
+- name: Create mysql flexible server
+  azure_rm_mysqlflexibleserver:
+    resource_group: "{{ resource_group }}"
+    name: postflexible{{ rpfx }}
+    sku:
+      name: Standard_D2ds_v4
+      tier: GeneralPurpose
+    administrator_login: azureuser
+    administrator_login_password: Fred@0329
+    location: northeurope
+    version: 5.7
+    storage:
+      storage_size_gb: 128
+      iops: 500
+      auto_grow: Enabled
+    high_availability:
+      mode: ZoneRedundant
+      standby_availability_zone: 3
+    backup:
+      backup_retention_days: 7
+      geo_redundant_backup: Disabled
+    maintenance_window:
+      custom_window: 0
+      start_hour: 8
+      start_minute: 4
+      day_of_week: 3
+    availability_zone: 1
 '''
 
 RETURN = '''
-id:
+servers:
     description:
-        - Resource ID.
+        - The facts of the flexible servers.
     returned: always
-    type: str
-    sample: /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/servers/mysqlsrv1b6dd89593
-version:
-    description:
-        - Server version. Possible values include C(5.6), C(5.7), C(8.0).
-    returned: always
-    type: str
-    sample: 5.7
-state:
-    description:
-        - A state of a server that is visible to user. Possible values include C(Ready), C(Dropping), C(Disabled).
-    returned: always
-    type: str
-    sample: Ready
-fully_qualified_domain_name:
-    description:
-        - The fully qualified domain name of a server.
-    returned: always
-    type: str
-    sample: mysqlsrv1b6dd89593.mysql.database.azure.com
+    type: complex
+    contains:
+        id:
+            description:
+                - Resource ID.
+            returned: always
+            type: str
+            sample: /subscriptions/xxxx-xxxx/resourceGroups/testRG/providers/Microsoft.DBforMySQL/flexibleServers/server01
+        resource_group:
+            description:
+                - Resource group name.
+            returned: always
+            type: str
+            sample: testRG
+        name:
+            description:
+                - Resource name.
+            returned: always
+            type: str
+            sample: server01
+        location:
+            description:
+                - The location the resource resides in.
+            returned: always
+            type: str
+            sample: eastus
+        sku:
+            description:
+                - The SKU of the server.
+            returned: always
+            type: complex
+            contains:
+                name:
+                    description:
+                        - The name of the SKU.
+                    returned: always
+                    type: str
+                    sample: Standard_D32s_v3
+                tier:
+                    description:
+                        - The tier of the particular SKU.
+                    returned: always
+                    type: str
+                    sample: GeneralPurpose
+        storage:
+            description:
+                - Storage related properties of a server.
+            type: complex
+            returned: always
+            contains:
+                storage_size_gb:
+                    description:
+                        - Max storage size allowed for a server.
+                    returned: always
+                    type: int
+                    sample: 128000
+                iops:
+                    description:
+                        - Storage IOPS for a server.
+                    returned: always
+                    type: int
+                    sample: 684
+                auto_grow:
+                    description:
+                        - Enable Storage Auto Grow or not.
+                    returned: always
+                    type: str
+                    sample: Disabled
+        availability_zone:
+            description:
+                - Availability Zone information of the server.
+            returned: always
+            type: str
+            sample: 1
+        administrator_login:
+            description:
+                - The administrator's login name of a server.
+            returned: always
+            type: str
+            sample: serveradmin
+        backup:
+            description:
+                - Backup related properties of a server.
+            type: complex
+            returned: always
+            contains:
+                backup_retention_days
+                    description:
+                        - Backup retention days for the server.
+                    type: int
+                    returned: always
+                    sample: 7
+                geo_redundant_backup:
+                    description:
+                        - Whether or not geo redundant backup is enabled.
+                    type: str
+                    returned: always
+                    sample: Disabled
+        version:
+            description:
+                - Server version.
+            returned: always
+            type: str
+            sample: "5.7"
+        restore_point_in_time:
+        source_server_resource_id:
+        replication_role:
+        network:
+        maintenance_window:
+        high_availability:
+        status:
+            description:
+                - Set server state.
+            type: str
+            choices:
+                - restart
+                - start
+                - stop
+                - failover
+        state:
+            description:
+                - A state of a server that is visible to user.
+            returned: always
+            type: str
+            sample: Ready
+        fully_qualified_domain_name:
+            description:
+                - The fully qualified domain name of a server.
+            returned: always
+            type: str
+            sample: myabdud1223.mys.database.azure.com
+        high_availability:
+            description:
+                - High availability related properties of a server.
+            type: complex
+            returned: always
+            contains:
+                mode:
+                    description:
+                        - High availability mode for a server.
+                    type: str
+                    sample: Disabled
+                    returned: always
+                standby_availability_zone:
+                    description:
+                        - Availability zone of the standby server.
+                    type: str
+                    sample: Availability zone of the standby server.
+                    returned: always
+        network:
+            description:
+                - Network related properties of a server.
+            type: complex
+            returned: always
+            contains:
+                delegated_subnet_resource_id:
+                    description:
+                        - Delegated subnet resource id used to setup vnet for a server.
+                    type: str
+                    sample: null
+                    returned: always
+                private_dns_zone_resource_id:
+                    description:
+                        - Private DNS zone resource id.
+                    type: str
+                    sample: null
+                    returned: always
+        restore_point_in_time:
+            description:
+                - Restore point creation time (ISO8601 format), specifying the time to restore from.
+            type: str
+            returned: always
+            sample: null
+        replication_role:
+            descrition:
+                - The replication role.
+            type: dict
+            returned: always
+            sample: {}
+        source_server_resource_id:
+            description:
+                - The source MySQL server id.
+            type: str
+            returned: always
+            sample: null
+        tags:
+            description:
+                - Tags assigned to the resource. Dictionary of string:string pairs.
+            type: dict
+            returned: always
+            sample: { tag1: abc }
+        type:
+            description:
+                - The type of the resource.
+            type: str
+            returned: always
+            sample: Microsoft.DBforMySQL/flexibleServers
 '''
 
 import time
 
 try:
-    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
 except ImportError:
@@ -238,7 +513,7 @@ class Actions:
     NoAction, Create, Update, Delete = range(4)
 
 
-class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
+class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM MySQL Flexible Server resource"""
 
     def __init__(self):
@@ -262,14 +537,10 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
                 type='str',
                 choices=['5.7', '8.0.21']
             ),
-            create_mode=dict(
-                type='str',
-                default='Default'
-            ),
-            admin_username=dict(
+            administrator_login=dict(
                 type='str'
             ),
-            admin_password=dict(
+            administrator_login_password=dict(
                 type='str',
                 no_log=True
             ),
@@ -308,7 +579,7 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
             ),
             status=dict(
                 type='str',
-                choices=['started', 'restarted', 'stop', 'failover']
+                choices=['restart', 'start', 'stop', 'failover']
             ),
             state=dict(
                 type='str',
@@ -346,16 +617,13 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
                     self.parameters["location"] = kwargs[key]
                 elif key == "storage":
                     self.parameters["storage"] = kwargs[key]
-                    self.update_parameters["sku"] = kwargs[key]
+                    self.update_parameters["storage"] = kwargs[key]
                 elif key == "version":
                     self.parameters["version"] = kwargs[key]
-                elif key == "create_mode":
-                    self.parameters["create_mode"] = kwargs[key]
-                elif key == "admin_username":
+                elif key == "administrator_login":
                     self.parameters["administrator_login"] = kwargs[key]
-                elif key == "admin_password":
+                elif key == "administrator_login_password":
                     self.parameters["administrator_login_password"] = kwargs[key]
-                    self.update_parameters["administrator_login_password"] = kwargs[key]
                 elif key == 'availability_zone':
                     self.parameters['availability_zone'] = kwargs[key]
                 elif key == 'source_server_resource_id':
@@ -390,10 +658,6 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
         old_response = self.get_mysqlserver()
 
         if not old_response:
-            self.log("MySQL Flexible Server instance doesn't exist")
-            if self.status is not None:
-                self.fail("Mysql server instance doesn't exist, can't be restart/stop/restart/failover")
-
             if self.state == 'absent':
                 self.log("The mysql flexible server didn't exist")
             else:
@@ -406,14 +670,15 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
                 self.to_do = Actions.Delete
             else:
                 self.log("Whether the MySQL Flexible Server instance need update")
-                update_tags, update_parameters['tags'] = self.update_tags(old_response.get('tags'))
+                update_tags, self.update_parameters['tags'] = self.update_tags(old_response.get('tags'))
                 if update_tags:
                     changed = True
                     self.to_do = Actions.Update
 
-                if not self.default_compare({}, self.update_parameters, old_response, '', dict(compare=[])):
-                    changed = True
-                    self.to_do = Actions.Update
+                for item in ['sku', 'network', 'storage', 'replication_role', 'backup', 'high_availability', 'maintenance_window']:
+                    if not self.default_compare({}, self.update_parameters.get(item), old_response[item], '', dict(compare=[])):
+                        changed = True
+                        self.to_do = Actions.Update
 
         if (self.to_do == Actions.Create) or (self.to_do == Actions.Update):
             self.log("Need to Create / Update the MySQL Flexible Server instance")
@@ -425,11 +690,8 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
             self.log("MySQL Flexible Server instance deleted")
             if not self.check_mode:
                 self.delete_mysqlserver()
-        else:
-            self.log("MySQL Flexible Server instance unchanged")
-            response = old_response
         
-        if self.to_do == Actions.Update and self.status is not None:
+        if self.status is not None:
             if self.status == 'start':
                 self.start_mysqlserver()
                 changed = True
@@ -444,8 +706,8 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
                 changed = True
             else:
                 pass
-        self.results['changed'] = False
-        self.results['state'] = response
+        self.results['changed'] = changed
+        self.results['state'] = self.get_mysqlserver()
         return self.results
 
     def failover_mysqlserver(self):
@@ -523,14 +785,14 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
                 # structure of parameters for update must be changed
                 response = self.mysql_flexible_client.servers.begin_update(resource_group_name=self.resource_group,
                                                                            server_name=self.name,
-                                                                           parameters=self.udpate_parameters)
+                                                                           parameters=self.update_parameters)
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
 
         except Exception as exc:
             self.log('Error attempting to create the MySQL Flexible Server instance.')
             self.fail("Error creating the MySQL Flexible Server instance: {0}".format(str(exc)))
-        return response.as_dict()
+        return self.format_item(response)
 
     def delete_mysqlserver(self):
         '''
@@ -565,9 +827,67 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBase):
         except ResourceNotFoundError as e:
             self.log('Did not find the MySQL Flexible Server instance.')
         if found is True:
-            return response.as_dict()
+            return self.format_item(response)
 
         return False
+
+    def format_item(self, item):
+        results = dict(
+            resource_group=self.parse_resource_to_dict(item.id).get('resource_group'),
+            id=item.id,
+            name=item.name,
+            type=item.type,
+            tags=item.tags,
+            location=item.location,
+            sku=dict(),
+            administrator_login=item.administrator_login,
+            version=item.version,
+            availability_zone=item.availability_zone,
+            source_server_resource_id=item.source_server_resource_id,
+            restore_point_in_time=item.restore_point_in_time,
+            replication_role=dict(),
+            state=item.state,
+            fully_qualified_domain_name=item.fully_qualified_domain_name,
+            storage=dict(),
+            backup=dict(),
+            high_availability=dict(),
+            network=dict(),
+            maintenance_window=dict()
+        )
+        if item.sku not in [None, 'None']:
+            results['sku']['name'] = item.sku.name
+            results['sku']['tier'] = item.sku.tier
+        else:
+            results['sku'] = None
+        if item.storage not in [None, 'None']:
+            results['storage']['storage_size_gb'] = item.storage.storage_size_gb
+            results['storage']['iops'] = item.storage.iops
+            results['storage']['auto_grow'] = item.storage.auto_grow
+        else:
+            results['storage'] = None
+        if item.high_availability not in [None, 'None']:
+            results['high_availability']['standby_availability_zone'] = item.high_availability.standby_availability_zone
+            results['high_availability']['mode'] = item.high_availability.mode
+        else:
+            results['high_availability'] = None
+        if item.maintenance_window not in [None, 'None']:
+            results['maintenance_window']['custom_window'] = item.maintenance_window.custom_window
+            results['maintenance_window']['start_hour'] = item.maintenance_window.start_hour
+            results['maintenance_window']['start_minute'] = item.maintenance_window.start_minute
+            results['maintenance_window']['day_of_week'] = item.maintenance_window.day_of_week
+        else:
+            results['maintenance_window'] = None
+        if item.backup not in [None, 'None']:
+            results['backup']['backup_retention_days'] = item.backup.backup_retention_days
+            results['backup']['geo_redundant_backup'] = item.backup.geo_redundant_backup
+        else:
+            results['backup'] = None
+        if item.network not in [None, 'None']:
+            results['network']['delegated_subnet_resource_id'] = item.network.delegated_subnet_resource_id
+            results['network']['private_dns_zone_resource_id'] = item.network.private_dns_zone_resource_id
+        else:
+            results['network'] = None
+        return results
 
 
 def main():

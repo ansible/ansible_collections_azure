@@ -11,7 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: azure_rm_mysqlflexibleserver_info
-version_added: "2.5.0"
+version_added: "2.6.0"
 short_description: Get Azure MySQL Flexible Server facts
 description:
     - Get facts of MySQL Flexible Server.
@@ -68,19 +68,19 @@ servers:
                 - Resource ID.
             returned: always
             type: str
-            sample: /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/servers/myabdud1223
+            sample: /subscriptions/xxxx-xxxx/resourceGroups/testRG/providers/Microsoft.DBforMySQL/flexibleServers/server01
         resource_group:
             description:
                 - Resource group name.
             returned: always
             type: str
-            sample: myResourceGroup
+            sample: testRG
         name:
             description:
                 - Resource name.
             returned: always
             type: str
-            sample: myabdud1223
+            sample: server01
         location:
             description:
                 - The location the resource resides in.
@@ -98,68 +98,74 @@ servers:
                         - The name of the SKU.
                     returned: always
                     type: str
-                    sample: GP_Gen4_2
+                    sample: Standard_D32s_v3
                 tier:
                     description:
                         - The tier of the particular SKU.
                     returned: always
                     type: str
                     sample: GeneralPurpose
-                capacity:
-                    description:
-                        - The scale capacity.
-                    returned: always
-                    type: int
-                    sample: 2
-        storage_profile:
+        storage:
             description:
-                - Storage Profile properties of a server.
+                - Storage related properties of a server.
             type: complex
             returned: always
             contains:
-                storage_mb:
+                storage_size_gb:
                     description:
-                        - The maximum storage allowed for a server.
+                        - Max storage size allowed for a server.
                     returned: always
                     type: int
                     sample: 128000
-                backup_retention_days:
+                iops:
                     description:
-                        - Backup retention days for the server
+                        - Storage IOPS for a server.
                     returned: always
                     type: int
-                    sample: 7
-                geo_redundant_backup:
+                    sample: 684
+                auto_grow:
                     description:
-                        - Enable Geo-redundant or not for server backup.
+                        - Enable Storage Auto Grow or not.
                     returned: always
                     type: str
                     sample: Disabled
-                storage_autogrow:
-                    description:
-                        - Enable Storage Auto Grow.
-                    returned: always
-                    type: str
-                    sample: Disabled
-        enforce_ssl:
+        availability_zone:
             description:
-                - Enable SSL enforcement.
+                - Availability Zone information of the server.
             returned: always
-            type: bool
-            sample: False
-        admin_username:
+            type: str
+            sample: 1
+        administrator_login:
             description:
                 - The administrator's login name of a server.
             returned: always
             type: str
             sample: serveradmin
+        backup:
+            description:
+                - Backup related properties of a server.
+            type: complex
+            returned: always
+            contains:
+                backup_retention_days
+                    description:
+                        - Backup retention days for the server.
+                    type: int
+                    returned: always
+                    sample: 7
+                geo_redundant_backup:
+                    description:
+                        - Whether or not geo redundant backup is enabled.
+                    type: str
+                    returned: always
+                    sample: Disabled
         version:
             description:
                 - Server version.
             returned: always
             type: str
-            sample: "9.6"
-        user_visible_state:
+            sample: "5.7"
+        state:
             description:
                 - A state of a server that is visible to user.
             returned: always
@@ -171,11 +177,66 @@ servers:
             returned: always
             type: str
             sample: myabdud1223.mys.database.azure.com
+        high_availability:
+            description:
+                - High availability related properties of a server.
+            type: complex
+            returned: always
+            contains:
+                mode:
+                    description:
+                        - High availability mode for a server.
+                    type: str
+                    sample: Disabled
+                    returned: always
+                standby_availability_zone:
+                    description:
+                        - Availability zone of the standby server.
+                    type: str
+                    sample: Availability zone of the standby server.
+                    returned: always
+        network:
+            description:
+                - Network related properties of a server.
+            type: complex
+            returned: always
+            contains:
+                delegated_subnet_resource_id:
+                    description:
+                        - Delegated subnet resource id used to setup vnet for a server.
+                    type: str
+                    sample: null
+                    returned: always
+                private_dns_zone_resource_id:
+                    description:
+                        - Private DNS zone resource id.
+                    type: str
+                    sample: null
+                    returned: always
+        restore_point_in_time:
+            description:
+                - Restore point creation time (ISO8601 format), specifying the time to restore from.
+            type: str
+            returned: always
+            sample: null
+        source_server_resource_id:
+            description:
+                - The source MySQL server id.
+            type: str
+            returned: always
+            sample: null
         tags:
             description:
                 - Tags assigned to the resource. Dictionary of string:string pairs.
             type: dict
+            returned: always
             sample: { tag1: abc }
+        type:
+            description:
+                - The type of the resource.
+            type: str
+            returned: always
+            sample: Microsoft.DBforMySQL/flexibleServers
 '''
 
 try:
@@ -201,7 +262,6 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
                 elements='str'
             )
         )
-        # store the results of the module operation
         self.results = dict(
             changed=False
         )
@@ -231,7 +291,7 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
                                                               server_name=self.name)
             self.log("Response : {0}".format(response))
         except HttpResponseError as e:
-            self.log('Could not get facts for MySQL Flexible Server.')
+            self.log('Could not get facts for MySQL Flexible Server. Exception as {0}'.format(e))
 
         if response and self.has_tags(response.tags, self.tags):
             results.append(self.format_item(response))
@@ -245,7 +305,7 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
             response = self.mysql_flexible_client.servers.list_by_resource_group(resource_group_name=self.resource_group)
             self.log("Response : {0}".format(response))
         except HttpResponseError as e:
-            self.log('Could not get facts for MySQL Flexible Servers.')
+            self.log('Could not get facts for MySQL Flexible Servers. Exception as {0}'.format(e))
 
         if response is not None:
             for item in response:
@@ -260,7 +320,7 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
             response = self.mysql_flexible_client.servers.list()
             self.log("Response : {0}".format(response))
         except HttpResponseError as e:
-            self.log('Could not get facts for MySQL Flexible Servers.')
+            self.log('Could not get facts for MySQL Flexible Servers. Exception as {0}'.format(e))
 
         if response is not None:
             for item in response:
@@ -269,9 +329,50 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
         return results
 
     def format_item(self, item):
-        d = item.as_dict()
-        d['resource_group'] = self.parse_resource_to_dict(result['id']).get('resource_group')
-        return d
+        results = dict(
+            resource_group=self.parse_resource_to_dict(item.id).get('resource_group'),
+            id=item.id,
+            name=item.name,
+            type=item.type,
+            tags=item.tags,
+            location=item.location,
+            sku=dict(),
+            administrator_login=item.administrator_login,
+            version=item.version,
+            availability_zone=item.availability_zone,
+            source_server_resource_id=item.source_server_resource_id,
+            restore_point_in_time=item.restore_point_in_time,
+            replication_role=item.replication_role,
+            state=item.state,
+            fully_qualified_domain_name=item.fully_qualified_domain_name,
+            storage=dict(),
+            backup=dict(),
+            high_availability=dict(),
+            network=dict(),
+            maintenance_window=dict()
+        )
+        if item.sku not in [None, 'None']:
+            results['sku']['name'] = item.sku.name
+            results['sku']['tier'] = item.sku.tier
+        if item.storage not in [None, 'None']:
+            results['storage']['storage_size_gb'] = item.storage.storage_size_gb
+            results['storage']['iops'] = item.storage.iops
+            results['storage']['auto_grow'] = item.storage.auto_grow
+        if item.high_availability not in [None, 'None']:
+            results['high_availability']['standby_availability_zone'] = item.high_availability.standby_availability_zone
+            results['high_availability']['mode'] = item.high_availability.mode
+        if item.maintenance_window not in [None, 'None']:
+            results['maintenance_window']['custom_window'] = item.maintenance_window.custom_window
+            results['maintenance_window']['start_hour'] = item.maintenance_window.start_hour
+            results['maintenance_window']['start_minute'] = item.maintenance_window.start_minute
+            results['maintenance_window']['day_of_week'] = item.maintenance_window.day_of_week
+        if item.backup not in [None, 'None']:
+            results['backup']['backup_retention_days'] = item.backup.backup_retention_days
+            results['backup']['geo_redundant_backup'] = item.backup.geo_redundant_backup
+        if item.network not in [None, 'None']:
+            results['network']['delegated_subnet_resource_id'] = item.network.delegated_subnet_resource_id
+            results['network']['private_dns_zone_resource_id'] = item.network.private_dns_zone_resource_id
+        return results
 
 
 def main():
