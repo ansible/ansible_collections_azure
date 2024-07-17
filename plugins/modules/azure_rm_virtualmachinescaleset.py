@@ -122,42 +122,6 @@ options:
               Set C(key_data) to the actual value of the public key.
         type: list
         elements: dict
-    identity:
-        description:
-            - Identity for this resource.
-        type: dict
-        version_added: '2.5.0'
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - SystemAssigned, UserAssigned
-                    - 'None'
-                default: 'None'
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned IDs associated to this resource
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
-                    append:
-                        description:
-                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
-                        required: false
-                        type: bool
-                        default: True
     image:
         description:
             - Specifies the image used to build the VM.
@@ -689,14 +653,12 @@ try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.mgmt.core.tools import parse_resource_id
     from azure.core.exceptions import ResourceNotFoundError
-    from azure.mgmt.compute.models import (VirtualMachineScaleSetIdentity, UserAssignedIdentitiesValue)
 
 except ImportError:
     # This is handled in azure_rm_common
     pass
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import azure_id_to_dict, format_resource_id
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase, azure_id_to_dict, format_resource_id
 from ansible.module_utils.basic import to_native, to_bytes
 
 
@@ -705,37 +667,7 @@ AZURE_OBJECT_CLASS = 'VirtualMachineScaleSet'
 AZURE_ENUM_MODULES = ['azure.mgmt.compute.models']
 
 
-user_assigned_identities_spec = dict(
-    id=dict(
-        type='list',
-        default=[],
-        elements='str'
-    ),
-    append=dict(
-        type='bool',
-        default=True
-    )
-)
-
-
-managed_identity_spec = dict(
-    type=dict(
-        type='str',
-        choices=['SystemAssigned',
-                 'UserAssigned',
-                 'SystemAssigned, UserAssigned',
-                 'None'],
-        default='None'
-    ),
-    user_assigned_identities=dict(
-        type='dict',
-        options=user_assigned_identities_spec,
-        default={}
-    ),
-)
-
-
-class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
+class AzureRMVirtualMachineScaleSet(AzureRMModuleBase):
 
     def __init__(self):
 
@@ -812,10 +744,6 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
                     )
                 )
             ),
-            identity=dict(
-                type='dict',
-                options=managed_identity_spec
-            ),
         )
 
         self.resource_group = None
@@ -858,8 +786,6 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
         self.orchestration_mode = None
         self.os_disk_size_gb = None
         self.security_profile = None
-        self._managed_identity = None
-        self.identity = None
 
         mutually_exclusive = [('load_balancer', 'application_gateway')]
         self.results = dict(
@@ -872,14 +798,6 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
             derived_arg_spec=self.module_arg_spec,
             supports_check_mode=True,
             mutually_exclusive=mutually_exclusive)
-
-    @property
-    def managed_identity(self):
-        if not self._managed_identity:
-            self._managed_identity = {"identity": VirtualMachineScaleSetIdentity,
-                                      "user_assigned": UserAssignedIdentitiesValue
-                                      }
-        return self._managed_identity
 
     def exec_module(self, **kwargs):
 
@@ -1058,12 +976,6 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
                     changed = True
                     vmss_dict['virtual_machine_profile']['storage_profile']['image_reference'] = image_reference.as_dict()
 
-                if self.identity:
-                    update_identity, self.identity = self.update_identities(vmss_dict.get('identity', dict()))
-                    if update_identity:
-                        differences.append('Identity')
-                        changed = True
-
                 update_tags, vmss_dict['tags'] = self.update_tags(vmss_dict.get('tags', dict()))
                 if update_tags:
                     differences.append('Tags')
@@ -1186,8 +1098,6 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
             if self.state == 'present':
                 self.log("CHANGED: virtual machine scale set {0} does not exist but state is 'present'.".format(self.name))
                 changed = True
-                if self.identity:
-                    update_identity, self.identity = self.update_identities(dict())
 
         self.results['changed'] = changed
         self.results['ansible_facts']['azure_vmss'] = results
@@ -1298,9 +1208,6 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
                         ),
                         zones=self.zones
                     )
-
-                    if self.identity:
-                        vmss_resource.identity = self.identity
 
                     if self.priority == 'Spot':
                         vmss_resource.virtual_machine_profile.priority = self.priority
@@ -1445,9 +1352,6 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
 
                     if self.terminate_event_timeout_minutes:
                         vmss_resource.virtual_machine_profile.scheduled_events_profile = self.gen_scheduled_event_profile()
-
-                    if self.identity:
-                        vmss_resource.identity = self.identity
 
                     if image_reference is not None:
                         vmss_resource.virtual_machine_profile.storage_profile.image_reference = image_reference
