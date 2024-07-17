@@ -10,11 +10,11 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: azure_rm_mysqlflexibledatabase_info
+module: azure_rm_mysqlflexibleconfiguration_info
 version_added: "2.7.0"
-short_description: Get Azure MySQL Flexible Database facts
+short_description: Get Azure MySQL Flexible Configuration facts
 description:
-    - Get facts of MySQL Flexible Database.
+    - Get facts of Azure MySQL Flexible Configuration.
 
 options:
     resource_group:
@@ -24,12 +24,12 @@ options:
         type: str
     server_name:
         description:
-            - The name of the flexible server.
+            - The name of the server.
         required: True
         type: str
     name:
         description:
-            - The name of the database.
+            - Setting name.
         type: str
 
 extends_documentation_fragment:
@@ -41,73 +41,61 @@ author:
 '''
 
 EXAMPLES = '''
-- name: Get instance of MySQL Flexible Database
-  azure_rm_mysqlflexibledatabase_info:
+- name: Get specific setting of MySQL Server
+  azure_rm_mysqlflexibleconfiguration_info:
     resource_group: myResourceGroup
-    server_name: server_name
-    name: database_name
+    server_name: testmysqlserver
+    name: deadlock_timeout
 
-- name: List instances of MySQL Flexible Database
-  azure_rm_mysqlflexibledatabase_info:
+- name: Get all settings of MySQL Server
+  azure_rm_mysqlflexibleconfiguration_info:
     resource_group: myResourceGroup
     server_name: server_name
 '''
 
 RETURN = '''
-databases:
+settings:
     description:
-        - A list of dictionaries containing facts for MySQL Flexible Databases.
+        - A list of dictionaries containing MySQL Server settings.
     returned: always
     type: complex
     contains:
         id:
             description:
-                - Resource ID.
+                - Setting resource ID.
             returned: always
             type: str
-            sample: "/subscriptions/xxx----xxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/flexibleserver/testser
-                    ver/databases/db1"
-        resource_group:
-            description:
-                - Resource group name.
-            returned: always
-            type: str
-            sample: testrg
-        server_name:
-            description:
-                - Server name.
-            returned: always
-            type: str
-            sample: testserver
+            sample: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/flexibleservers/testmysqlser
+                     ver/configurations/deadlock_timeout"
         name:
             description:
-                - Resource name.
+                - Setting name.
             returned: always
             type: str
-            sample: db1
-        charset:
+            sample: deadlock_timeout
+        value:
             description:
-                - The charset of the database.
+                - Setting value.
             returned: always
-            type: str
-            sample: utf8
-        collation:
+            type: raw
+            sample: 1000
+        source:
             description:
-                - The collation of the database.
+                - Source of the configuration.
             returned: always
             type: str
-            sample: English_United States.1252
+            sample: system-default
 '''
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
-    from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
+    from azure.core.exceptions import ResourceNotFoundError
 except ImportError:
     # This is handled in azure_rm_common
     pass
 
 
-class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
+class AzureRMMySqlFlexibleConfigurationInfo(AzureRMModuleBase):
     def __init__(self):
         # define user inputs into argument
         self.module_arg_spec = dict(
@@ -124,39 +112,41 @@ class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
             )
         )
         # store the results of the module operation
-        self.results = dict(
-            changed=False
-        )
+        self.results = dict(changed=False)
         self.resource_group = None
         self.server_name = None
         self.name = None
-        super(AzureRMMySqlFlexibleDatabaseInfo, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=False)
+        super(AzureRMMySqlFlexibleConfigurationInfo, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=False)
 
     def exec_module(self, **kwargs):
+        is_old_facts = self.module._name == 'azure_rm_mysqlconfiguration_facts'
+        if is_old_facts:
+            self.module.deprecate("The 'azure_rm_mysqlconfiguration_facts' module has been renamed to 'azure_rm_mysqlflexibleconfiguration_info'", version=(2.9, ))
+
         for key in self.module_arg_spec:
             setattr(self, key, kwargs[key])
 
-        if (self.resource_group is not None and
-                self.server_name is not None and
-                self.name is not None):
-            self.results['databases'] = self.get()
-        elif (self.resource_group is not None and
-              self.server_name is not None):
-            self.results['databases'] = self.list_by_server()
+        if self.name is not None:
+            self.results['settings'] = self.get()
+        else:
+            self.results['settings'] = self.list_by_server()
         return self.results
 
     def get(self):
+        '''
+        Gets facts of the specified MySQL Flexible Configuration.
+
+        :return: deserialized MySQL Flexible Configurationinstance state dictionary
+        '''
         response = None
         results = []
         try:
-            response = self.mysql_flexible_client.databases.get(resource_group_name=self.resource_group,
-                                                                server_name=self.server_name,
-                                                                database_name=self.name)
+            response = self.mysql_flexible_client.configurations.get(resource_group_name=self.resource_group,
+                                                                     server_name=self.server_name,
+                                                                     configuration_name=self.name)
             self.log("Response : {0}".format(response))
         except ResourceNotFoundError as e:
-            self.log('Could not get facts for Databases.')
-        except HttpResponseError as e:
-            self.log("Get MySQL Flexible Database instance error. code: {0}, message: {1}".format(e.status_code, str(e.error)))
+            self.log('Could not get facts for Configurations.')
 
         if response is not None:
             results.append(self.format_item(response))
@@ -164,14 +154,19 @@ class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
         return results
 
     def list_by_server(self):
+        '''
+        Gets facts of the specified MySQL Flexible Configuration.
+
+        :return: deserialized MySQL Flexible Configurationinstance state dictionary
+        '''
         response = None
         results = []
         try:
-            response = self.mysql_flexible_client.databases.list_by_server(resource_group_name=self.resource_group,
-                                                                           server_name=self.server_name)
+            response = self.mysql_flexible_client.configurations.list_by_server(resource_group_name=self.resource_group,
+                                                                                server_name=self.server_name)
             self.log("Response : {0}".format(response))
         except Exception as e:
-            self.fail("Error listing for server {0} - {1}".format(self.server_name, str(e)))
+            self.log('Could not get facts for Configurations.')
 
         if response is not None:
             for item in response:
@@ -184,14 +179,16 @@ class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
         d = {
             'resource_group': self.resource_group,
             'server_name': self.server_name,
+            'id': d['id'],
             'name': d['name'],
-            'charset': d['charset'],
-            'collation': d['collation']
+            'value': d['value'],
+            'source': d['source']
         }
         return d
 
+
 def main():
-    AzureRMMySqlFlexibleDatabaseInfo()
+    AzureRMMySqlFlexibleConfigurationInfo()
 
 
 if __name__ == '__main__':

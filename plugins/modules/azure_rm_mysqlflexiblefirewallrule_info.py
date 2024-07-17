@@ -10,16 +10,16 @@ __metaclass__ = type
 
 DOCUMENTATION = '''
 ---
-module: azure_rm_mysqlflexibledatabase_info
+module: azure_rm_mysqlflexiblefirewallrule_info
 version_added: "2.7.0"
-short_description: Get Azure MySQL Flexible Database facts
+short_description: Get Azure MySQL Flexible Firewall Rule facts
 description:
-    - Get facts of MySQL Flexible Database.
+    - Get facts of Azure MySQL Flexible Firewall Rule.
 
 options:
     resource_group:
         description:
-            - The name of the resource group that contains the resource. You can obtain this value from the Azure Resource Manager API or the portal.
+            - The name of the resource group.
         required: True
         type: str
     server_name:
@@ -29,7 +29,7 @@ options:
         type: str
     name:
         description:
-            - The name of the database.
+            - The name of the flexible server firewall rule.
         type: str
 
 extends_documentation_fragment:
@@ -38,25 +38,26 @@ extends_documentation_fragment:
 author:
     - xuzhang3 (@xuzhang3)
     - Fred-sun (@Fred-sun)
+
 '''
 
 EXAMPLES = '''
-- name: Get instance of MySQL Flexible Database
-  azure_rm_mysqlflexibledatabase_info:
+- name: Get instance of MySQL Flexible Firewall Rule
+  azure_rm_mysqlflexiblefirewallrule_info:
     resource_group: myResourceGroup
     server_name: server_name
-    name: database_name
+    name: firewall_rule_name
 
-- name: List instances of MySQL Flexible Database
-  azure_rm_mysqlflexibledatabase_info:
+- name: List instances of MySQL Flexible Firewall Rule
+  azure_rm_mysqlflexiblefirewallrule_info:
     resource_group: myResourceGroup
     server_name: server_name
 '''
 
 RETURN = '''
-databases:
+rules:
     description:
-        - A list of dictionaries containing facts for MySQL Flexible Databases.
+        - A list of dictionaries containing facts for MySQL Flexible Firewall Rule.
     returned: always
     type: complex
     contains:
@@ -65,17 +66,11 @@ databases:
                 - Resource ID.
             returned: always
             type: str
-            sample: "/subscriptions/xxx----xxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/flexibleserver/testser
-                    ver/databases/db1"
-        resource_group:
-            description:
-                - Resource group name.
-            returned: always
-            type: str
-            sample: testrg
+            sample: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/TestGroup/providers/Microsoft.DBforMySQL/servers/testserver/fire
+                    wallRules/rule1"
         server_name:
             description:
-                - Server name.
+                - The name of the server.
             returned: always
             type: str
             sample: testserver
@@ -84,30 +79,30 @@ databases:
                 - Resource name.
             returned: always
             type: str
-            sample: db1
-        charset:
+            sample: rule1
+        start_ip_address:
             description:
-                - The charset of the database.
+                - The start IP address of the MySQL flexible firewall rule.
             returned: always
             type: str
-            sample: utf8
-        collation:
+            sample: 10.0.0.16
+        end_ip_address:
             description:
-                - The collation of the database.
+                - The end IP address of the MySQL flexible firewall rule.
             returned: always
             type: str
-            sample: English_United States.1252
+            sample: 10.0.0.18
 '''
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
-    from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
+    from azure.core.exceptions import ResourceNotFoundError
 except ImportError:
     # This is handled in azure_rm_common
     pass
 
 
-class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
+class AzureRMMySqlFlexibleFirewallRuleInfo(AzureRMModuleBase):
     def __init__(self):
         # define user inputs into argument
         self.module_arg_spec = dict(
@@ -130,33 +125,28 @@ class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
         self.resource_group = None
         self.server_name = None
         self.name = None
-        super(AzureRMMySqlFlexibleDatabaseInfo, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=False)
+        super(AzureRMMySqlFlexibleFirewallRuleInfo, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=False)
 
     def exec_module(self, **kwargs):
         for key in self.module_arg_spec:
             setattr(self, key, kwargs[key])
 
-        if (self.resource_group is not None and
-                self.server_name is not None and
-                self.name is not None):
-            self.results['databases'] = self.get()
-        elif (self.resource_group is not None and
-              self.server_name is not None):
-            self.results['databases'] = self.list_by_server()
+        if (self.name is not None):
+            self.results['rules'] = self.get()
+        else:
+            self.results['rules'] = self.list_by_server()
         return self.results
 
     def get(self):
         response = None
         results = []
         try:
-            response = self.mysql_flexible_client.databases.get(resource_group_name=self.resource_group,
-                                                                server_name=self.server_name,
-                                                                database_name=self.name)
+            response = self.mysql_flexible_client.firewall_rules.get(resource_group_name=self.resource_group,
+                                                                     server_name=self.server_name,
+                                                                     firewall_rule_name=self.name)
             self.log("Response : {0}".format(response))
         except ResourceNotFoundError as e:
-            self.log('Could not get facts for Databases.')
-        except HttpResponseError as e:
-            self.log("Get MySQL Flexible Database instance error. code: {0}, message: {1}".format(e.status_code, str(e.error)))
+            self.log('Could not get facts for FirewallRules.')
 
         if response is not None:
             results.append(self.format_item(response))
@@ -167,11 +157,11 @@ class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
         response = None
         results = []
         try:
-            response = self.mysql_flexible_client.databases.list_by_server(resource_group_name=self.resource_group,
-                                                                           server_name=self.server_name)
+            response = self.mysql_flexible_client.firewall_rules.list_by_server(resource_group_name=self.resource_group,
+                                                                                server_name=self.server_name)
             self.log("Response : {0}".format(response))
         except Exception as e:
-            self.fail("Error listing for server {0} - {1}".format(self.server_name, str(e)))
+            self.log('Could not get facts for FirewallRules.')
 
         if response is not None:
             for item in response:
@@ -183,15 +173,17 @@ class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
         d = item.as_dict()
         d = {
             'resource_group': self.resource_group,
+            'id': d['id'],
             'server_name': self.server_name,
             'name': d['name'],
-            'charset': d['charset'],
-            'collation': d['collation']
+            'start_ip_address': d['start_ip_address'],
+            'end_ip_address': d['end_ip_address']
         }
         return d
 
+
 def main():
-    AzureRMMySqlFlexibleDatabaseInfo()
+    AzureRMMySqlFlexibleFirewallRuleInfo()
 
 
 if __name__ == '__main__':
