@@ -137,6 +137,11 @@ azure_managed_disk:
                 - Tags to assign to the managed disk.
             type: dict
             sample: { "tag": "value" }
+        time_created:
+            description:
+                - The time the disk was created.
+            type: str
+            sample: "2018-01-01T11:08:15.338648900:00"
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -255,7 +260,8 @@ class AzureRMManagedDiskInfo(AzureRMModuleBase):
             managed_by=managed_disk.managed_by,
             max_shares=managed_disk.max_shares,
             managed_by_extended=managed_disk.managed_by_extended,
-            zone=managed_disk.zones[0] if managed_disk.zones and len(managed_disk.zones) > 0 else ''
+            zone=managed_disk.zones[0] if managed_disk.zones and len(managed_disk.zones) > 0 else '',
+            time_created=managed_disk.time_created.isoformat() if managed_disk.time_created else None
         )
 
 
