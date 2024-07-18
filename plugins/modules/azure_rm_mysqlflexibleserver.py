@@ -287,7 +287,7 @@ servers:
                 - Backup related properties of a server.
             type: complex
             contains:
-                backup_retention_days
+                backup_retention_days:
                     description:
                         - Backup retention days for the server.
                     type: int
@@ -602,7 +602,6 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
             self.log("MySQL Flexible Server instance deleted")
             if not self.check_mode:
                 self.delete_mysqlserver()
- 
         if self.status is not None:
             if self.status == 'start':
                 self.start_mysqlserver()

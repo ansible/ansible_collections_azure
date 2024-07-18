@@ -37,7 +37,7 @@ options:
             - The value server configurations.
         type: str
     source:
-        descrition:
+        description:
             - Source of the configuration.
         type: str
         choices:
