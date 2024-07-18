@@ -34,22 +34,15 @@ options:
         type: str
     value:
         description:
-            - The list of server configurations.
-        type: list
-        elements: dict
-        suboptions:
-            name:
-                descrition:
-                    - Name of the configuration.
-                type: str
-            value:
-                descrition:
-                    - Value of the cnfiguration.
-                type: str
-            source:
-                descrition:
-                    - Source of the configuration.
-                type: str
+            - The value server configurations.
+        type: str
+    source:
+        descrition:
+            - Source of the configuration.
+        type: str
+        choices:
+            - system-default
+            - user-override
 extends_documentation_fragment:
     - azure.azcollection.azure
 
@@ -149,8 +142,8 @@ class AzureRMMySqlFlexibleConfiguration(AzureRMModuleBase):
         self.to_do = Actions.NoAction
 
         super(AzureRMMySqlFlexibleConfiguration, self).__init__(derived_arg_spec=self.module_arg_spec,
-                                                        supports_check_mode=True,
-                                                        supports_tags=False)
+                                                                supports_check_mode=True,
+                                                                supports_tags=False)
 
     def exec_module(self, **kwargs):
 

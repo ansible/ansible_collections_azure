@@ -147,7 +147,7 @@ servers:
             type: complex
             returned: always
             contains:
-                backup_retention_days
+                backup_retention_days:
                     description:
                         - Backup retention days for the server.
                     type: int

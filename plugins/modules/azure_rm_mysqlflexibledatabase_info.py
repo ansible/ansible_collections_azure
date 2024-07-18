@@ -191,6 +191,7 @@ class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
         }
         return d
 
+
 def main():
     AzureRMMySqlFlexibleDatabaseInfo()
 

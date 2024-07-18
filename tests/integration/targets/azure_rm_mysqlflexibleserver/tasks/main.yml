@@ -53,7 +53,7 @@
     availability_zone: 1
     tags:
       key2: value2
-  reigster: output
+  register: output
 
 - name: Assert the resource is created
   ansible.builtin.assert:
@@ -131,7 +131,7 @@
 - name: Assert the resource facts
   ansible.builtin.assert:
     - output.servers[0].backup.backup_retention_days == 7
-    - output.servers[0].backup.eo_redundant_backup == 'Disabled'
+    - output.servers[0].backup.geo_redundant_backup == 'Disabled'
     - output.servers[0].availability_zone == 1
     - output.servers[0].tags | length == 2
 

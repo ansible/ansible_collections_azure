@@ -40,6 +40,7 @@ options:
                 description:
                     - The name of the sku, e.g. Standard_D32s_v3.
                 type: str
+                required: true
             tier:
                 description:
                     - The tier of the particular SKU,
@@ -48,6 +49,7 @@ options:
                     - Burstable
                     - GeneralPurpose
                     - MemoryOptimized
+                required: true
     storage:
         description:
             - Storage Profile properties of a server.
@@ -75,12 +77,12 @@ options:
         choices:
             - '5.7'
             - '8.0.21'
-    admin_username:
+    administrator_login:
         description:
             - The administrator's login name of a server.
             - Can only be specified when the server is being created (and is required for creation).
         type: str
-    admin_password:
+    administrator_login_password:
         description:
             - The password of the administrator login.
         type: str
@@ -274,7 +276,7 @@ servers:
             returned: always
             type: str
             sample: 1
-        administrator_login:
+        administrator_login_password:
             description:
                 - The administrator's login name of a server.
             returned: always
@@ -284,7 +286,6 @@ servers:
             description:
                 - Backup related properties of a server.
             type: complex
-            returned: always
             contains:
                 backup_retention_days
                     description:
@@ -387,7 +388,6 @@ servers:
             sample: Microsoft.DBforMySQL/flexibleServers
 '''
 
-import time
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
@@ -518,8 +518,8 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
         self.to_do = Actions.NoAction
 
         super(AzureRMMySqlFlexibleServers, self).__init__(derived_arg_spec=self.module_arg_spec,
-                                                  supports_check_mode=True,
-                                                  supports_tags=True)
+                                                          supports_check_mode=True,
+                                                          supports_tags=True)
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -602,7 +602,7 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
             self.log("MySQL Flexible Server instance deleted")
             if not self.check_mode:
                 self.delete_mysqlserver()
-        
+ 
         if self.status is not None:
             if self.status == 'start':
                 self.start_mysqlserver()
@@ -643,8 +643,7 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
 
         try:
             response = self.mysql_flexible_client.servers.begin_stop(resource_group_name=self.resource_group,
-                                                                     server_name=self.name,
-                                                                    )
+                                                                     server_name=self.name)
         except Exception as exc:
             self.fail("Error stop mysql flexible server {0} - {1}".format(self.name, str(exc)))
         return True
@@ -657,8 +656,7 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
 
         try:
             response = self.mysql_flexible_client.servers.begin_start(resource_group_name=self.resource_group,
-                                                                      server_name=self.name,
-                                                                     )
+                                                                      server_name=self.name)
         except Exception as exc:
             self.fail("Error starting mysql flexible server {0} - {1}".format(self.name, str(exc)))
         return True
@@ -673,8 +671,7 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
             response = self.mysql_flexible_client.servers.begin_restart(resource_group_name=self.resource_group,
                                                                         server_name=self.name,
                                                                         parameters=dict(restart_with_failover='Enabled',
-                                                                                        max_failover_seconds=20)
-                                                                       )
+                                                                                        max_failover_seconds=20))
         except Exception as exc:
             self.fail("Error restarting mysql flexible server {0} - {1}".format(self.name, str(exc)))
         return True

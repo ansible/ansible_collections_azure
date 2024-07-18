@@ -65,14 +65,13 @@ settings:
                 - Setting resource ID.
             returned: always
             type: str
-            sample: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/flexibleservers/testmysqlser
-                     ver/configurations/deadlock_timeout"
+            sample: "/subscriptions/xx-xx/resourceGroups/testRG/providers/Microsoft.DBforMySQL/flexibleservers/tstserver/configurations/deadlock_timeout"
         server_name:
             description:
                 - The MySQL flexible server name.
             type: str
             returned: always
-            sample: testmysqlserver
+            sample: tstserver
         name:
             description:
                 - Setting name.
@@ -125,10 +124,6 @@ class AzureRMMySqlFlexibleConfigurationInfo(AzureRMModuleBase):
         super(AzureRMMySqlFlexibleConfigurationInfo, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=False)
 
     def exec_module(self, **kwargs):
-        is_old_facts = self.module._name == 'azure_rm_mysqlconfiguration_facts'
-        if is_old_facts:
-            self.module.deprecate("The 'azure_rm_mysqlconfiguration_facts' module has been renamed to 'azure_rm_mysqlflexibleconfiguration_info'", version=(2.9, ))
-
         for key in self.module_arg_spec:
             setattr(self, key, kwargs[key])
 
