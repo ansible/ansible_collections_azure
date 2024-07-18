@@ -27,6 +27,7 @@
     availability_zone: 1
     tags:
       key2: value2
+  check_mode: true
 
 - name: Create mysql flexible server
   azure_rm_mysqlflexibleserver:
