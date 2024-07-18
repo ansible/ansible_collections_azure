@@ -81,6 +81,7 @@ parameters:
       - "azure_rm_monitorlogprofile"
       - "azure_rm_multiplemanageddisks"
       - "azure_rm_mysqlserver"
+      - "azure_rm_mysqlflexibleserver"
       - "azure_rm_natgateway"
       - "azure_rm_networkinterface"
       - "azure_rm_notificationhub"

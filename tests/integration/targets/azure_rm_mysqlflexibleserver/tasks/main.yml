@@ -144,7 +144,8 @@
 
 - name: Assert the database is well created
   ansible.builtin.assert:
-    - output.changed
+    that:
+      - output.changed
 
 - name: Create a MySQL flexible database again(Idempotent Test)
   azure_rm_mysqlflexibledatabase:
@@ -157,7 +158,8 @@
 
 - name: Assert the database no change
   ansible.builtin.assert:
-    - not output.changed
+    that:
+      - not output.changed
 
 - name: Get the MySQL flexible database facts
   azure_rm_mysqlflexibledatabase_info:
@@ -168,8 +170,9 @@
 
 - name: Assert the database facts
   ansible.builtin.assert:
-    - output.databases[0].collation == 'utf8_general_ci'
-    - output.databases[0].charset == 'UTF8'
+    that:
+      - output.databases[0].collation == 'utf8_general_ci'
+      - output.databases[0].charset == 'UTF8'
 
 - name: Create a MySQL flexible firewall rule
   azure_rm_mysqlflexiblefirewallrule:
@@ -182,7 +185,8 @@
 
 - name: Assert the firewall rule is well created
   ansible.builtin.assert:
-    - output.changed
+    that:
+      - output.changed
 
 - name: Create a MySQL flexible firewall rule again(Idempotent Test)
   azure_rm_mysqlflexiblefirewallrule:
@@ -195,7 +199,8 @@
 
 - name: Assert the firewall rule no change
   ansible.builtin.assert:
-    - not output.changed
+    that:
+      - not output.changed
 
 - name: Create a MySQL flexible firewall rule again(Update Test)
   azure_rm_mysqlflexiblefirewallrule:
@@ -208,7 +213,8 @@
 
 - name: Assert the firewall rule is well updated
   ansible.builtin.assert:
-    - output.changed
+    that:
+      - output.changed
 
 - name: Get the MySQL flexible firewall rule facts
   azure_rm_mysqlflexiblefirewallrule_info:
@@ -219,8 +225,9 @@
 
 - name: Assert the firewall rule facts
   ansible.builtin.assert:
-    - output.start_ip_address == '10.0.0.15'
-    - output.end_ip_address == '10.0.0.25'
+    that:
+      - output.start_ip_address == '10.0.0.15'
+      - output.end_ip_address == '10.0.0.25'
 
 - name: Get the MySQL flexible configuration facts by name
   azure_rm_mysqlflexibleconfiguration_info:
@@ -231,8 +238,9 @@
 
 - name: Assert the configuration facts
   ansible.builtin.assert:
-    - output.settings[0].source == 'system-default'
-    - output.settings[0].name == 'wait_timeout'
+    that:
+      - output.settings[0].source == 'system-default'
+      - output.settings[0].name == 'wait_timeout'
 
 - name: Update the MySQL flexible configuration
   azure_rm_mysqlflexibleconfiguration:
@@ -245,7 +253,8 @@
 
 - name: Assert the MySQL configuration is updated
   ansible.builtin.assert:
-    - output.changed
+    that:
+      - output.changed
 
 - name: Get the MySQL flexible configuration by name
   azure_rm_mysqlflexibleconfiguration_info:
@@ -256,8 +265,9 @@
 
 - name: Assert the firewall rule facts
   ansible.builtin.assert:
-    - output.settings[0].source == 'user-override'
-    - output.settings[0].name == 'wait_timeout'
+    that:
+      - output.settings[0].source == 'user-override'
+      - output.settings[0].name == 'wait_timeout'
 
 - name: Delete the MySQL flexible database
   azure_rm_mysqlflexibledatabase:
@@ -268,7 +278,8 @@
 
 - name: Assert the database deleted
   ansible.builtin.assert:
-    - output.changed
+    that:
+      - output.changed
 
 - name: Delete the mysql flexible server
   azure_rm_mysqlflexibleserver:
@@ -278,4 +289,5 @@
 
 - name: Assert the flexible server deleted
   ansible.builtin.assert:
-    - output.changed
+    that:
+      - output.changed
