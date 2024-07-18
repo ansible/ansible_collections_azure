@@ -52,6 +52,7 @@
     availability_zone: 1
     tags:
       key2:  value2
+  reigster: output
 
 - name: Assert the resource is created
   ansible.builtin.assert:
