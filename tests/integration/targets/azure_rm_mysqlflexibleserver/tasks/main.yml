@@ -133,7 +133,7 @@
     that:
       - output.servers[0].backup.backup_retention_days == 7
       - output.servers[0].backup.geo_redundant_backup == 'Disabled'
-      - output.servers[0].availability_zone == 1
+      - output.servers[0].availability_zone == "1"
       - output.servers[0].tags | length == 2
 
 - name: Create a MySQL flexible database
@@ -175,7 +175,7 @@
   ansible.builtin.assert:
     that:
       - output.databases[0].collation == 'utf8_general_ci'
-      - output.databases[0].charset == 'UTF8'
+      - output.databases[0].charset == 'utf8'
 
 - name: Create a MySQL flexible firewall rule
   azure_rm_mysqlflexiblefirewallrule:
@@ -229,8 +229,8 @@
 - name: Assert the firewall rule facts
   ansible.builtin.assert:
     that:
-      - output.start_ip_address == '10.0.0.15'
-      - output.end_ip_address == '10.0.0.25'
+      - output.rules[0].start_ip_address == '10.0.0.15'
+      - output.rules[0].end_ip_address == '10.0.0.25'
 
 - name: Get the MySQL flexible configuration facts by name
   azure_rm_mysqlflexibleconfiguration_info:
@@ -276,7 +276,7 @@
   azure_rm_mysqlflexibledatabase:
     resource_group: "{{ resource_group }}"
     server_name: mysqlflexible{{ rpfx }}
-    name: newdatabase01
+    name: database{{ rpfx }}
     state: absent
 
 - name: Assert the database deleted
