@@ -50,16 +50,6 @@ options:
                 descrition:
                     - Source of the configuration.
                 type: str
-    state:
-        description:
-            - Assert the state of the MySQL Flexible configuration.
-            - Use C(present) to update setting, or C(absent) to reset to default value.
-        default: present
-        type: str
-        choices:
-            - absent
-            - present
-
 extends_documentation_fragment:
     - azure.azcollection.azure
 
@@ -88,19 +78,45 @@ id:
     returned: always
     type: str
     sample: "/subscriptions/xx-xx/resourceGroups/myRG/providers/Microsoft.DBforMySQL/flexibleservers/myServer/configurations/event_scheduler"
+server_name:
+    description:
+        - The MySQL flexible server name.
+    type: str
+    returned: always
+    sample: testmysqlserver
+name:
+    description:
+        - Setting name.
+    returned: always
+    type: str
+    sample: deadlock_timeout
+value:
+    description:
+        - Setting value.
+    returned: always
+    type: raw
+    sample: 1000
+source:
+    description:
+        - Source of the configuration.
+    returned: always
+    type: str
+    sample: system-default
 '''
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
+    import logging
+    logging.basicConfig(filename='log.log', level=logging.INFO)
 except ImportError:
     # This is handled in azure_rm_common
     pass
 
 
 class Actions:
-    NoAction, Update, Delete = range(3)
+    NoAction, Update = range(2)
 
 
 class AzureRMMySqlFlexibleConfiguration(AzureRMModuleBase):
@@ -119,29 +135,17 @@ class AzureRMMySqlFlexibleConfiguration(AzureRMModuleBase):
                 type='str',
                 required=True
             ),
-            value=dict(
-                type='list',
-                elements='dict',
-                options=dict(
-                    name=dict(type='str'),
-                    value=dict(type='str'),
-                    source=dict(type='str')
-                )
-            ),
-            state=dict(
-                type='str',
-                default='present',
-                choices=['present', 'absent']
-            )
+            value=dict(type='str'),
+            source=dict(type='str', choices=['system-default', 'user-override']),
         )
 
         self.resource_group = None
         self.server_name = None
         self.name = None
         self.value = None
+        self.source = None
 
         self.results = dict(changed=False)
-        self.state = None
         self.to_do = Actions.NoAction
 
         super(AzureRMMySqlFlexibleConfiguration, self).__init__(derived_arg_spec=self.module_arg_spec,
@@ -160,46 +164,27 @@ class AzureRMMySqlFlexibleConfiguration(AzureRMModuleBase):
         old_response = self.get_configuration()
 
         if not old_response:
-            self.log("Configuration instance doesn't exist")
-            if self.state == 'absent':
-                self.log("Old instance didn't exist")
-            else:
-                self.to_do = Actions.Create
+            self.fail("The MySQL configuration not exist, We can't make any changes")
         else:
-            self.log("Configuration instance already exists")
-            if self.state == 'absent':
-                self.to_do = Actions.Delete
-            elif self.state == 'present':
-                self.log("Need to check if Configuration instance has to be deleted or may be updated")
-                if self.value is not None and not all(self.value[key] == old_response['value'].get(key) for key in self.value.keys()):
-                    self.to_do = Actions.Update
+            self.log("Need to check if Configuration instance has to be deleted or may be updated")
+            if self.value is not None and self.value != old_response['value'] or self.source is not None and self.source != old_response['source']:
+                self.to_do = Actions.Update
 
         if self.to_do == Actions.Update:
             self.log("Need to Update the Configuration instance")
-
-            if self.check_mode:
+            if not self.check_mode:
+                response = self.update_configuration()
                 self.results['changed'] = True
-                return self.results
-
-            response = self.update_configuration()
-
-            self.results['changed'] = True
-            self.log("Update done")
-        elif self.to_do == Actions.Delete:
-            self.log("Configuration instance deleted")
-            self.results['changed'] = True
-
-            if self.check_mode:
-                return self.results
-
-            self.delete_configuration()
-        else:
-            self.log("Configuration instance unchanged")
-            self.results['changed'] = False
-            response = old_response
+                self.log("Update done")
+        response = self.get_configuration()
 
         if response:
             self.results["id"] = response["id"]
+            self.results['resource_group'] = self.resource_group
+            self.results['server_name'] = self.server_name
+            self.results['name'] = self.name
+            self.results['source'] = response['source']
+            self.results['value'] = response['value']
 
         return self.results
 
@@ -207,10 +192,10 @@ class AzureRMMySqlFlexibleConfiguration(AzureRMModuleBase):
         self.log("Updating the Configuration instance {0}".format(self.name))
 
         try:
-            response = self.mysql_flexible_client.configurations.begin_create_or_update(resource_group_name=self.resource_group,
-                                                                                        server_name=self.server_name,
-                                                                                        configuration_name=self.name,
-                                                                                        parameters={'value': self.value.get('value'), 'source': self.value.get('source')})
+            response = self.mysql_flexible_client.configurations.begin_update(resource_group_name=self.resource_group,
+                                                                              server_name=self.server_name,
+                                                                              configuration_name=self.name,
+                                                                              parameters={'value': self.value, 'source': self.source})
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
 
@@ -218,19 +203,6 @@ class AzureRMMySqlFlexibleConfiguration(AzureRMModuleBase):
             self.log('Error attempting to create the Configuration instance.')
             self.fail("Error creating the Configuration instance: {0}".format(str(exc)))
         return response.as_dict()
-
-    def delete_configuration(self):
-        self.log("Deleting the Configuration instance {0}".format(self.name))
-        try:
-            response = self.mysql_flexible_client.configurations.begin_create_or_update(resource_group_name=self.resource_group,
-                                                                                        server_name=self.server_name,
-                                                                                        configuration_name=self.name,
-                                                                                        parameters={'source': None, 'value': None})
-        except Exception as e:
-            self.log('Error attempting to delete the Configuration instance.')
-            self.fail("Error deleting the Configuration instance: {0}".format(str(e)))
-
-        return True
 
     def get_configuration(self):
         self.log("Checking if the Configuration instance {0} is present".format(self.name))

@@ -74,12 +74,36 @@ id:
     returned: always
     type: str
     sample: /subscriptions/xxx----xxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/flexibleServer/testserver/databases/db1
+resource_group:
+    description:
+        - Resource group name.
+    returned: always
+    type: str
+    sample: testrg
+server_name:
+    description:
+        - Server name.
+    returned: always
+    type: str
+    sample: testserver
 name:
     description:
         - Resource name.
     returned: always
     type: str
     sample: db1
+charset:
+    description:
+        - The charset of the database.
+    returned: always
+    type: str
+    sample: utf8
+collation:
+    description:
+        - The collation of the database.
+    returned: always
+    type: str
+    sample: English_United States.1252
 '''
 
 import time
@@ -169,9 +193,9 @@ class AzureRMMySqlFlexibleDatabase(AzureRMModuleBase):
                 self.to_do = Actions.Delete
             elif self.state == 'present':
                 self.log("Need to check if MySQL Flexible Database instance has to be deleted or may be updated")
-                if ('collation' in self.parameters) and (self.parameters['collation'] != old_response['collation']):
+                if ('collation' in self.parameters) and (self.parameters['collation'].lower() != old_response['collation'].lower()):
                     self.fail("The MySQL Flexible Database not support update")
-                if ('charset' in self.parameters) and (self.parameters['charset'] != old_response['charset']):
+                if ('charset' in self.parameters) and (self.parameters['charset'].lower() != old_response['charset'].lower()):
                     self.fail("The MySQL Flexible Database not support update")
 
         if self.to_do == Actions.Create:
@@ -204,6 +228,10 @@ class AzureRMMySqlFlexibleDatabase(AzureRMModuleBase):
         if response:
             self.results["id"] = response["id"]
             self.results["name"] = response["name"]
+            self.results['resource_group'] = self.resource_group
+            self.results['server_name'] = self.server_name
+            self.results['collation'] = response['collation']
+            self.results['charset'] = response['charset']
 
         return self.results
 

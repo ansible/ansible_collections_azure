@@ -186,7 +186,8 @@ class AzureRMMySqlFlexibleDatabaseInfo(AzureRMModuleBase):
             'server_name': self.server_name,
             'name': d['name'],
             'charset': d['charset'],
-            'collation': d['collation']
+            'collation': d['collation'],
+            'id': d['id']
         }
         return d
 

@@ -84,6 +84,30 @@ id:
     returned: always
     type: str
     sample: "/subscriptions/xxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/flexibleservers/testserver/firewallRules/rule1"
+server_name:
+    description:
+        - The name of the server.
+    returned: always
+    type: str
+    sample: testserver
+name:
+    description:
+        - Resource name.
+    returned: always
+    type: str
+    sample: rule1
+start_ip_address:
+    description:
+        - The start IP address of the MySQL flexible firewall rule.
+    returned: always
+    type: str
+    sample: 10.0.0.16
+end_ip_address:
+    description:
+        - The end IP address of the MySQL flexible firewall rule.
+    returned: always
+    type: str
+    sample: 10.0.0.18
 '''
 
 import time
@@ -212,6 +236,11 @@ class AzureRMMySqlFlexibleFirewallRule(AzureRMModuleBase):
 
         if response:
             self.results["id"] = response["id"]
+            self.results['name'] = self.name
+            self.results['resource_group'] = self.resource_group
+            self.results['server_name'] = self.server_name
+            self.results['start_ip_address'] = response['start_ip_address']
+            self.results['end_ip_address'] = response['end_ip_address']
 
         return self.results
 
@@ -224,7 +253,7 @@ class AzureRMMySqlFlexibleFirewallRule(AzureRMModuleBase):
         self.log("Creating / Updating the MySQL flexible firewall rule instance {0}".format(self.name))
 
         try:
-            response = self.mysql_flexbile_client.firewall_rules.begin_create_or_update(resource_group_name=self.resource_group,
+            response = self.mysql_flexible_client.firewall_rules.begin_create_or_update(resource_group_name=self.resource_group,
                                                                                         server_name=self.server_name,
                                                                                         firewall_rule_name=self.name,
                                                                                         parameters=self.parameters)
@@ -244,7 +273,7 @@ class AzureRMMySqlFlexibleFirewallRule(AzureRMModuleBase):
         '''
         self.log("Deleting the MySQL flexible firewall rule instance {0}".format(self.name))
         try:
-            response = self.mysql_flexbile_client.firewall_rules.begin_delete(resource_group_name=self.resource_group,
+            response = self.mysql_flexible_client.firewall_rules.begin_delete(resource_group_name=self.resource_group,
                                                                               server_name=self.server_name,
                                                                               firewall_rule_name=self.name)
         except Exception as e:
@@ -262,7 +291,7 @@ class AzureRMMySqlFlexibleFirewallRule(AzureRMModuleBase):
         self.log("Checking if the MySQL flexible firewall rule instance {0} is present".format(self.name))
         found = False
         try:
-            response = self.mysql_flexbile_client.firewall_rules.get(resource_group_name=self.resource_group,
+            response = self.mysql_flexible_client.firewall_rules.get(resource_group_name=self.resource_group,
                                                                      server_name=self.server_name,
                                                                      firewall_rule_name=self.name)
             found = True

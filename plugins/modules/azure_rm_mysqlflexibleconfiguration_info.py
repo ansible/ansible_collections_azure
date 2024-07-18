@@ -67,6 +67,12 @@ settings:
             type: str
             sample: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.DBforMySQL/flexibleservers/testmysqlser
                      ver/configurations/deadlock_timeout"
+        server_name:
+            description:
+                - The MySQL flexible server name.
+            type: str
+            returned: always
+            sample: testmysqlserver
         name:
             description:
                 - Setting name.

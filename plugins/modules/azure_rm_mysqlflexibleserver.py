@@ -96,14 +96,6 @@ options:
         description:
             - The source MySQL server id.
         type: str
-    replication_role:
-        description:
-            - The replication role.
-        type: str
-        choices:
-            - None
-            - Source
-            - Replica
     backup:
         description:
             - Backup related properties of a server.
@@ -133,30 +125,6 @@ options:
                 description:
                     - Private DNS zone resource id.
                 type: str
-    maintenance_window:
-        description:
-            - Maintenance window of a server..
-        type: dict
-        suboptions:
-            custom_window:
-                description:
-                    - Indicates whether custom window is enabled or disabled.
-                type: str
-                choices:
-                    - Enabled
-                    - Disabled
-            start_hour:
-                description:
-                    - Start hour for maintenance window.
-                type: int
-            start_minuts:
-                description:
-                    - Start minute for maintenance window.
-                type: int
-            day_of_week:
-                descrition:
-                   - Day of week for maintenance window.
-            type: int
     high_availability:
         description:
             - High availability related properties of a server.
@@ -224,11 +192,6 @@ EXAMPLES = '''
     backup:
       backup_retention_days: 7
       geo_redundant_backup: Disabled
-    maintenance_window:
-      custom_window: 0
-      start_hour: 8
-      start_minute: 4
-      day_of_week: 3
     availability_zone: 1
 '''
 
@@ -341,12 +304,6 @@ servers:
             returned: always
             type: str
             sample: "5.7"
-        restore_point_in_time:
-        source_server_resource_id:
-        replication_role:
-        network:
-        maintenance_window:
-        high_availability:
         status:
             description:
                 - Set server state.
@@ -410,12 +367,6 @@ servers:
             type: str
             returned: always
             sample: null
-        replication_role:
-            descrition:
-                - The replication role.
-            type: dict
-            returned: always
-            sample: {}
         source_server_resource_id:
             description:
                 - The source MySQL server id.
@@ -484,14 +435,6 @@ network_spec = dict(
 )
 
 
-maintenance_window_spec = dict(
-    custom_window=dict(type='int'),
-    start_hour=dict(type='int'),
-    start_minute=dict(type='int'),
-    day_of_week=dict(type='int')
-)
-
-
 class Actions:
     NoAction, Create, Update, Delete = range(4)
 
@@ -536,10 +479,6 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
             source_server_resource_id=dict(
                 type='str'
             ),
-            replication_role=dict(
-                type='str',
-                choices=["None", "Source", "Replica"]
-            ),
             backup=dict(
                 type='dict',
                 options=backup_spec
@@ -547,10 +486,6 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
             network=dict(
                 type='dict',
                 options=network_spec
-            ),
-            maintenance_window=dict(
-                type='dict',
-                options=maintenance_window_spec
             ),
             storage=dict(
                 type='dict',
@@ -613,9 +548,6 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
                     self.parameters['source_server_resource_id'] = kwargs[key]
                 elif key == 'restore_point_in_time':
                     self.parameters['restore_point_in_time'] = kwargs[key]
-                elif key == 'replication_role':
-                    self.parameters['replication_role'] = kwargs[key]
-                    self.update_parameters['replication_role'] = kwargs[key]
                 elif key == 'backup':
                     self.parameters['backup'] = kwargs[key]
                     self.update_parameters['backup'] = kwargs[key]
@@ -624,11 +556,6 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
                     self.update_parameters['high_availability'] = kwargs[key]
                 elif key == 'network':
                     self.parameters['network'] = kwargs[key]
-                elif key == 'maintenance_window':
-                    self.parameters['maintenance_window'] = kwargs[key]
-                    self.update_parameters['maintenance_window'] = kwargs[key]
-
-        self.parameter['create_mode'] = 'Default'
 
         self.parameters['tags'] = self.tags
 
@@ -660,7 +587,7 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
                     changed = True
                     self.to_do = Actions.Update
 
-                for item in ['sku', 'network', 'storage', 'replication_role', 'backup', 'high_availability', 'maintenance_window']:
+                for item in ['sku', 'network', 'storage', 'backup', 'high_availability']:
                     if not self.default_compare({}, self.update_parameters.get(item), old_response[item], '', dict(compare=[])):
                         changed = True
                         self.to_do = Actions.Update
@@ -830,14 +757,12 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
             availability_zone=item.availability_zone,
             source_server_resource_id=item.source_server_resource_id,
             restore_point_in_time=item.restore_point_in_time,
-            replication_role=dict(),
             state=item.state,
             fully_qualified_domain_name=item.fully_qualified_domain_name,
             storage=dict(),
             backup=dict(),
             high_availability=dict(),
             network=dict(),
-            maintenance_window=dict()
         )
         if item.sku not in [None, 'None']:
             results['sku']['name'] = item.sku.name
@@ -855,13 +780,6 @@ class AzureRMMySqlFlexibleServers(AzureRMModuleBaseExt):
             results['high_availability']['mode'] = item.high_availability.mode
         else:
             results['high_availability'] = None
-        if item.maintenance_window not in [None, 'None']:
-            results['maintenance_window']['custom_window'] = item.maintenance_window.custom_window
-            results['maintenance_window']['start_hour'] = item.maintenance_window.start_hour
-            results['maintenance_window']['start_minute'] = item.maintenance_window.start_minute
-            results['maintenance_window']['day_of_week'] = item.maintenance_window.day_of_week
-        else:
-            results['maintenance_window'] = None
         if item.backup not in [None, 'None']:
             results['backup']['backup_retention_days'] = item.backup.backup_retention_days
             results['backup']['geo_redundant_backup'] = item.backup.geo_redundant_backup

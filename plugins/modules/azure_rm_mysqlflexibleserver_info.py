@@ -342,14 +342,12 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
             availability_zone=item.availability_zone,
             source_server_resource_id=item.source_server_resource_id,
             restore_point_in_time=item.restore_point_in_time,
-            replication_role=item.replication_role,
             state=item.state,
             fully_qualified_domain_name=item.fully_qualified_domain_name,
             storage=dict(),
             backup=dict(),
             high_availability=dict(),
             network=dict(),
-            maintenance_window=dict()
         )
         if item.sku not in [None, 'None']:
             results['sku']['name'] = item.sku.name
@@ -361,11 +359,6 @@ class AzureRMMySqlFlexibleServerInfo(AzureRMModuleBase):
         if item.high_availability not in [None, 'None']:
             results['high_availability']['standby_availability_zone'] = item.high_availability.standby_availability_zone
             results['high_availability']['mode'] = item.high_availability.mode
-        if item.maintenance_window not in [None, 'None']:
-            results['maintenance_window']['custom_window'] = item.maintenance_window.custom_window
-            results['maintenance_window']['start_hour'] = item.maintenance_window.start_hour
-            results['maintenance_window']['start_minute'] = item.maintenance_window.start_minute
-            results['maintenance_window']['day_of_week'] = item.maintenance_window.day_of_week
         if item.backup not in [None, 'None']:
             results['backup']['backup_retention_days'] = item.backup.backup_retention_days
             results['backup']['geo_redundant_backup'] = item.backup.geo_redundant_backup
