@@ -26,7 +26,7 @@
       geo_redundant_backup: Disabled
     availability_zone: 1
     tags:
-      key2:  value2
+      key2: value2
 
 - name: Create mysql flexible server
   azure_rm_mysqlflexibleserver:
@@ -51,7 +51,7 @@
       geo_redundant_backup: Disabled
     availability_zone: 1
     tags:
-      key2:  value2
+      key2: value2
   reigster: output
 
 - name: Assert the resource is created
@@ -82,7 +82,7 @@
       geo_redundant_backup: Disabled
     availability_zone: 1
     tags:
-      key2:  value2
+      key2: value2
   register: output
 
 - name: Assert the resource is no changed
@@ -113,7 +113,7 @@
       geo_redundant_backup: Disabled
     availability_zone: 1
     tags:
-      key1:  value1
+      key1: value1
   register: output
 
 - name: Assert the resource is updated
