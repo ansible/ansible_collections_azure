@@ -130,10 +130,11 @@
 
 - name: Assert the resource facts
   ansible.builtin.assert:
-    - output.servers[0].backup.backup_retention_days == 7
-    - output.servers[0].backup.geo_redundant_backup == 'Disabled'
-    - output.servers[0].availability_zone == 1
-    - output.servers[0].tags | length == 2
+    that:
+      - output.servers[0].backup.backup_retention_days == 7
+      - output.servers[0].backup.geo_redundant_backup == 'Disabled'
+      - output.servers[0].availability_zone == 1
+      - output.servers[0].tags | length == 2
 
 - name: Create a MySQL flexible database
   azure_rm_mysqlflexibledatabase:
