@@ -31,8 +31,8 @@
     assignee_object_id: "{{ spn_facts.ansible_facts.object_id }}"
     role_definition_id: "/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe"
 
-- name: Pause for 30 seconds
-  ansible.builtin.command: sleep 30
+- name: Pause for 300 seconds
+  ansible.builtin.command: sleep 300
   changed_when: true
 
 - name: Force upload blob
