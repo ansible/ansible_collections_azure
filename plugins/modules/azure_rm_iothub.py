@@ -548,7 +548,7 @@ import re
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
-    from azure.mgmt.iothub import models as IotHubModels
+    from azure.mgmt.iothub.v2023_06_30_preview import models as IotHubModels
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -966,7 +966,8 @@ class AzureRMIoTHub(AzureRMModuleBaseExt):
             result['fallback_route'] = self.route_to_dict(properties.routing.fallback_route)
         result['status'] = properties.state
         result['storage_endpoints'] = self.instance_dict_to_dict(properties.storage_endpoints)
-        result['identity'] = hub.identity.as_dict() if hub.identity else None
+        if hasattr(hub, 'identity'):
+            result['identity'] = hub.identity.as_dict() if hub.identity else None
         return result
 
 
