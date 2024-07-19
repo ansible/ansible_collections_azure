@@ -278,6 +278,7 @@
     server_name: mysqlflexible{{ rpfx }}
     name: database{{ rpfx }}
     state: absent
+  register: output
 
 - name: Assert the database deleted
   ansible.builtin.assert:
@@ -289,6 +290,7 @@
     resource_group: "{{ resource_group }}"
     name: mysqlflexible{{ rpfx }}
     state: absent
+  register: output
 
 - name: Assert the flexible server deleted
   ansible.builtin.assert:
