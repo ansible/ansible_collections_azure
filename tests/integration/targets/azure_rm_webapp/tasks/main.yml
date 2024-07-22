@@ -800,6 +800,7 @@
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
+    location: westus2
     configuration_source: "{{ win_app_name }}13"
     app_settings:
       testkey: testvalue
@@ -816,6 +817,7 @@
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
+    location: westus2
     configuration_source: "{{ win_app_name }}13"
     app_settings:
       testkey: testvalueslot
@@ -830,6 +832,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
+    location: westus2
     name: "{{ slot1_name }}"
     app_settings:
       testkey: testvalueslot
@@ -844,6 +847,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
+    location: westus2
     name: "{{ slot1_name }}"
     frameworks:
       - name: "node"
@@ -861,6 +865,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
+    location: westus2
     name: "{{ slot1_name }}"
     swap:
       action: swap
@@ -874,6 +879,7 @@
 - name: Stop webapp slot
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
+    location: westus2
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
     app_state: stopped
