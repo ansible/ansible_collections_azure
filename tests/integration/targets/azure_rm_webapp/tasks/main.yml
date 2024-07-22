@@ -1,18 +1,12 @@
 - name: Prepare facts
   ansible.builtin.set_fact:
     resource_prefix: "{{ resource_group_secondary | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
-    resource_group_third: "{{ resource_group_secondary | hash('md5') | truncate(9, True, '') }}{{ 1000 | random }}"
   run_once: true
 
 - name: Gather Resource Group info
   azure.azcollection.azure_rm_resourcegroup_info:
     name: "{{ resource_group }}"
   register: __rg_info
-
-- name: Create the third resource group for test
-  azure_rm_resourcegroup:
-    name: "{{ resource_group_third }}"
-    location: westus2
 
 - name: Fix resource prefix
   ansible.builtin.set_fact:
@@ -887,9 +881,3 @@
   loop:
     - "ansible-test-webapp-identity"
     - "ansible-test-webapp-identity-2"
-
-- name: Delete the the third resource group
-  azure_rm_resourcegroup:
-    name: "{{ resource_group_third }}"
-    state: absent
-    force_delete_nonempty: true
