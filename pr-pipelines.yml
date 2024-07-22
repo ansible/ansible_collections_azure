@@ -175,9 +175,9 @@ jobs:
           scriptType: 'bash'
           scriptLocation: 'inlineScript'
           inlineScript: |
-              az group create -l westus -n $(setvar.resource_group)
-              az group create -l westus -n $(setvar.resource_group_secondary)
-              az group create -l westus2 -n $(setvar.resource_group_datalake)
+              az group create -l eastus -n $(setvar.resource_group)
+              az group create -l eastus -n $(setvar.resource_group_secondary)
+              az group create -l eastus2 -n $(setvar.resource_group_datalake)
 
   - job: RunTests
     dependsOn: CreateResourceGroups
