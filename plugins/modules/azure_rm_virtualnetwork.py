@@ -182,6 +182,7 @@ state:
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
+    import ipaddress
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -274,8 +275,14 @@ class AzureRMVirtualNetwork(AzureRMModuleBase):
 
         if self.state == 'present' and self.purge_address_prefixes:
             for prefix in self.address_prefixes_cidr:
-                if not CIDR_PATTERN.match(prefix):
+                if ':' in prefix:
+                    new_prefix = prefix.split('/')
+                    if int(new_prefix[1]) not in range(0,128) or ipaddress.ip_address(new_prefix[0]).version != 6:
+                        self.fail("Parameter error: invalid address prefix value {0}".format(prefix))
+                elif not CIDR_PATTERN.match(prefix):
                     self.fail("Parameter error: invalid address prefix value {0}".format(prefix))
+                else:
+                    pass
 
         changed = False
         results = dict()
