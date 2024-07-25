@@ -197,8 +197,6 @@ EXAMPLES = '''
     name: restoreddb
     location: eastus
     create_mode: restore
-    restorable_dropped_database_id: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.Sql/s
-                                     ervers/testsvr/restorableDroppedDatabases/testdb2,131444841315030000"
 
 - name: Create SQL Database in Copy Mode
   azure_rm_sqldatabase:
