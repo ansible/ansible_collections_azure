@@ -77,6 +77,9 @@ options:
             - '11'
             - '12'
             - '13'
+            - '14'
+            - '15'
+            - '16'
     fully_qualified_domain_name:
         description:
             - The fully qualified domain name of a server.
@@ -612,7 +615,7 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBaseExt):
             ),
             version=dict(
                 type='str',
-                choices=['11', '12', '13']
+                choices=['11', '12', '13', '14', '15', '16']
             ),
             fully_qualified_domain_name=dict(
                 type='str',
