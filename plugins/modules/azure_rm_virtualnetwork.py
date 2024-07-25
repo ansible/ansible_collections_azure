@@ -277,7 +277,7 @@ class AzureRMVirtualNetwork(AzureRMModuleBase):
             for prefix in self.address_prefixes_cidr:
                 if ':' in prefix:
                     new_prefix = prefix.split('/')
-                    if int(new_prefix[1]) not in range(0,128) or ipaddress.ip_address(new_prefix[0]).version != 6:
+                    if int(new_prefix[1]) not in range(0, 128) or ipaddress.ip_address(new_prefix[0]).version != 6:
                         self.fail("Parameter error: invalid address prefix value {0}".format(prefix))
                 elif not CIDR_PATTERN.match(prefix):
                     self.fail("Parameter error: invalid address prefix value {0}".format(prefix))
