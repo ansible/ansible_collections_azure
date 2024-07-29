@@ -197,6 +197,7 @@ EXAMPLES = '''
     name: restoreddb
     location: eastus
     create_mode: restore
+    source_database_deletion_date: '2024-07-26T17:50:01Z'
 
 - name: Create SQL Database in Copy Mode
   azure_rm_sqldatabase:
@@ -206,7 +207,6 @@ EXAMPLES = '''
     location: eastus
     create_mode: copy
     source_database_id: "/subscriptions/xxxx-xxxx/resourceGroups/myResourceGroup/providers/Microsoft.Sql/servers/testsvr/databases/testdb"
-    source_database_deletion_date: '2024-07-26T17:50:01Z'
 
 - name: Create (or update) SQL Database with SKU
   azure_rm_sqldatabase:
