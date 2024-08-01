@@ -30,10 +30,8 @@ options:
             - Limit results by providing a list of tags. Format tags as 'key' or 'key:value'.
         type: list
         elements: str
-        
 extends_documentation_fragment:
     - azure.azcollection.azure
-    - azure.azcollection.azure_tags
 author:
     - xuzhang3 (@xuzhang3)
     - Fred-sun (@Fred-sun)
@@ -82,7 +80,7 @@ state:
                 - The properties of the snapshot instance.
             type: dict
             returned: always
-            sample: properties: {
+            sample: {
                     "creationData": {
                         "createOption": "Import",
                         "sourceUri": "https://vmforimagerpfx01.blob.core.windows.net/vhds/vmforimagerpfx01.vhd"
@@ -168,9 +166,9 @@ class AzureRMSnapshotsInfo(AzureRMModuleBaseExt):
         self.header_parameters['Content-Type'] = 'application/json; charset=utf-8'
 
         super(AzureRMSnapshotsInfo, self).__init__(derived_arg_spec=self.module_arg_spec,
-                                               supports_check_mode=True,
-                                               facts_module=True,
-                                               supports_tags=False)
+                                                   supports_check_mode=True,
+                                                   facts_module=True,
+                                                   supports_tags=False)
 
     def exec_module(self, **kwargs):
         for key in list(self.module_arg_spec.keys()):
@@ -214,7 +212,7 @@ class AzureRMSnapshotsInfo(AzureRMModuleBaseExt):
             self.log("Response : {0}".format(response))
         except Exception as e:
             self.log('Did not find the Snapshot instance.')
-        if response and self.has_tags(response['tags'], self.tags):
+        if response and self.has_tags(response.get('tags'), self.tags):
             return [response]
         else:
             return []
@@ -247,7 +245,7 @@ class AzureRMSnapshotsInfo(AzureRMModuleBaseExt):
         except Exception as e:
             self.log('Did not find the Snapshot instance.')
         for item in response['value']:
-            if self.has_tags(item['tags'], self.tags):
+            if self.has_tags(item.get('tags'), self.tags):
                 results.append(item)
 
         return results

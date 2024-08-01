@@ -146,6 +146,7 @@ parameters:
       - "azure_rm_sqlmidbshorttermretentionpolicy"
       - "azure_rm_vmssnetworkinterface_info"
       - "azure_rm_sshpublickey"
+      - "azure_rm_snapshot"
       - "azure_rm_networkwatcher"
       - "inventory_azure"
       - "setup_azure"

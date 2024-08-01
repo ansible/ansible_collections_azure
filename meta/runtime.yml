@@ -238,6 +238,7 @@ action_groups:
     - azure.azcollection.azure_rm_servicebustopic
     - azure.azcollection.azure_rm_servicebustopicsubscription
     - azure.azcollection.azure_rm_snapshot
+    - azure.azcollection.azure_rm_snapshot_info
     - azure.azcollection.azure_rm_sqldatabase
     - azure.azcollection.azure_rm_sqldatabase_info
     - azure.azcollection.azure_rm_sqlelasticpool
