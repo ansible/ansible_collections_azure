@@ -124,6 +124,7 @@ import json
 import re
 import uuid
 import os
+import time
 
 try:
     from queue import Queue, Empty
@@ -475,16 +476,30 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
 
         request_new = self.new_client.post(url, query_parameters, header_parameters, body_content)
         response = self.new_client.send_request(request_new)
-        if response.status_code == 202:
-            try:
-                poller = ARMPolling(timeout=3)
-                poller.initialize(client=self.new_client,
-                                  initial_response=PipelineResponse(None, response, None),
-                                  deserialization_callback=lambda r: r)
-                poller.run()
-                return poller.resource().context['deserialized_data']
-            except Exception as ec:
-                raise
+
+        # if response.status_code != 200:
+        #    try:
+        #        poller = ARMPolling(timeout=3)
+        #        poller.initialize(client=self.new_client,
+        #                          initial_response=PipelineResponse(None, response, None),
+        #                          deserialization_callback=lambda r: r)
+        #        poller.run()
+        #        return poller.resource().context['deserialized_data']
+        #    except Exception as ec:
+        #        raise
+
+        retry_count = 0
+        if response.status_code != 200:
+            while retry_count < 10:
+                retry_count = retry_count + 1
+                time.sleep(180)
+                response = self.new_client.send_request(request_new)
+                if response.status_code == 200:
+                    break
+            if response.status_code == 200:
+                return json.loads(response.body())
+            elif retry_count == 10:
+                raise AnsibleError("The server did not successfully process our reques")
         else:
             return json.loads(response.body())
 
