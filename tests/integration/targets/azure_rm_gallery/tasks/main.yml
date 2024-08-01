@@ -126,6 +126,16 @@
     that:
       - output.changed
 
+- name: List the snapshot instance by resource group
+  azure_rm_snapshot_info:
+    resource_group: "{{ resource_group }}"
+  register: output
+
+- name: Assert there are two snapshots
+  ansible.builtin.assert:
+    that:
+      - output.state |length == 2
+
 - name: Create a managed disk
   azure_rm_manageddisk:
     resource_group: "{{ resource_group }}"
