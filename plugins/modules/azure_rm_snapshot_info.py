@@ -26,7 +26,7 @@ options:
             - Resource name.
         type: str
     tags:
-        descrition:
+        description:
             - Limit results by providing a list of tags. Format tags as 'key' or 'key:value'.
         type: list
         elements: str
@@ -52,7 +52,7 @@ EXAMPLES = '''
 
 RETURN = '''
 state:
-    descrition:
+    description:
         - The description of the snapshot instance facts.
     type: complex
     returned: always
