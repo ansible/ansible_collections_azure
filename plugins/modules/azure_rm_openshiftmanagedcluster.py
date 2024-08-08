@@ -60,6 +60,7 @@ options:
                 choices:
                     - Disabled
                     - Enabled
+                default: Enabled
     service_principal_profile:
         description:
             - service principal.
@@ -103,6 +104,7 @@ options:
                 choices:
                     - Disabled
                     - Enabled
+                default: Disabled
     master_profile:
         description:
             - Configuration for OpenShift master VMs.
@@ -128,6 +130,7 @@ options:
                 choices:
                     - Disabled
                     - Enabled
+                default: Disabled
             disk_encryption_set_id:
                 description:
                     - The resource ID of an associated DiskEncryptionSet, if applicable.
@@ -171,6 +174,7 @@ options:
                 choices:
                     - Disabled
                     - Enabled
+                default: Disabled
             disk_encryption_set_id:
                 description:
                     - The resource ID of an associated DiskEncryptionSet, if applicable.
