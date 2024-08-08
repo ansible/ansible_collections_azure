@@ -257,7 +257,8 @@ EXAMPLES = '''
       pod_cidr: "10.128.0.0/14"
       service_cidr: "172.30.0.0/16"
     worker_profiles:
-      - vm_size: "Standard_D4s_v3"
+      - name: worker
+        vm_size: "Standard_D4s_v3"
         subnet_id: "/subscriptions/xx-xx-xx-xx-xx/resourceGroups/myResourceGroup/Microsoft.Network/virtualNetworks/myVnet/subnets/worker"
         disk_size: 128
         count: 3
@@ -282,7 +283,8 @@ EXAMPLES = '''
       outbound_type: Loadbalancer
       preconfigured_nsg: Disabled
     worker_profiles:
-      - vm_size: "Standard_D4s_v3"
+      - name: worker
+        vm_size: "Standard_D4s_v3"
         subnet_id: "/subscriptions/xx-xx-xx-xx-xx/resourceGroups/myResourceGroup/Microsoft.Network/virtualNetworks/myVnet/subnets/worker"
         disk_size: 128
         count: 3
@@ -547,7 +549,8 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                     ),
                     fips_validated_modules=dict(
                         type='str',
-                        choices=['Enabled', 'Disabled']
+                        choices=['Enabled', 'Disabled'],
+                        default='Enabled'
                     ),
                 ),
             ),
@@ -580,7 +583,8 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                     ),
                     preconfigured_nsg=dict(
                         type='str',
-                        choices=['Disabled', 'Enabled']
+                        choices=['Disabled', 'Enabled'],
+                        default='Disabled'
                     )
                 ),
                 default=dict(
@@ -603,7 +607,8 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                     ),
                     encryption_at_host=dict(
                         type='str',
-                        choices=['Disabled', 'Enabled']
+                        choices=['Disabled', 'Enabled'],
+                        default='Disabled'
                     ),
                     disk_encryption_set_id=dict(
                         type='str'
@@ -636,7 +641,8 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                     ),
                     encryption_at_host=dict(
                         type='str',
-                        choices=['Disabled', 'Enabled']
+                        choices=['Disabled', 'Enabled'],
+                        default='Disabled'
                     ),
                     disk_encryption_set_id=dict(
                         type='str'
