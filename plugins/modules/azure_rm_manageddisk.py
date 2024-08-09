@@ -436,6 +436,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
 
         result = None
         changed = False
+        update_flag = False
 
         resource_group = self.get_resource_group(self.resource_group)
         if not self.location:
@@ -443,6 +444,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
 
         disk_instance = self.get_managed_disk()
         if disk_instance is not None:
+            update_flag = True
             if self.create_option is None:
                 self.create_option = disk_instance.get('create_option')
             if self.source_uri is None:
@@ -461,7 +463,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             if not disk_instance or self.is_different(disk_instance, parameter):
                 changed = True
                 if not self.check_mode:
-                    result = self.create_or_update_managed_disk(parameter)
+                    result = self.create_or_update_managed_disk(parameter, update_flag)
                 else:
                     result = True
 
@@ -593,11 +595,16 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         disk_params['creation_data'] = creation_data
         return disk_params
 
-    def create_or_update_managed_disk(self, parameter):
+    def create_or_update_managed_disk(self, parameter, update_flag):
         try:
-            poller = self.compute_client.disks.begin_create_or_update(self.resource_group,
-                                                                      self.name,
-                                                                      parameter)
+            if update_flag:
+                poller = self.compute_client.disks.begin_update(self.resource_group,
+                                                                self.name,
+                                                                parameter)
+            else:
+                poller = self.compute_client.disks.begin_create_or_update(self.resource_group,
+                                                                          self.name,
+                                                                          parameter)
             aux = self.get_poller_result(poller)
             return managed_disk_to_dict(aux)
         except Exception as e:
