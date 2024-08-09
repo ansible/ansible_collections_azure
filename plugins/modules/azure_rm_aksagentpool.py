@@ -735,7 +735,7 @@ aks_agent_pools:
                 - The Azure Public IP prefix's ID.
             type: str
             returned: always
-            sample: "/subscriptions/xxx-xxx/resourceGroups/myRG/providers/Microsoft.Network/publicIPPrefixes/pip01"
+            sample: null
         proximity_placement_group_id:
             description:
                 - The ID for Proximity Placement Group.
@@ -1043,6 +1043,8 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
                         for item in self.body[key].keys():
                             if self.body[key][item] is not None and self.body[key][item] != agent_pool[key].get(item):
                                 changed = True
+                    elif key == 'node_public_ip_prefix_id':
+                        pass
                     elif self.body[key] is not None and self.body[key] != agent_pool[key] and key not in ['scale_set_priority', 'spot_max_price']:
                         changed = True
                     else:
