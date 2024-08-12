@@ -2793,8 +2793,22 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
         if versions and len(versions) > 0:
             if self.image['version'] == 'latest':
                 version = versions[len(versions) - 1]
+                if len(version.name.split('.')[-1]) == 8:
+                    t_format = "%Y%m%d"
+                elif len(version.name.split('.')[-1]) in [9,10]:
+                    t_format = "%Y%m%d%H"
+                elif len(version.name.split('.')[-1]) in [11,12]:
+                    t_format = "%Y%m%d%H%M"
+                elif len(version.name.split('.')[-1]) in [14,13]:
+                    t_format = "%Y%m%d%H%M%S"
+                else:
+                    for item in versions:
+                        if item.name.split('.')[-1] > version.name.split('.')[-1]:
+                            version = item
+                    return version
+
                 for item in versions:
-                    if datetime.strptime(item.name.split('.')[-1], "%Y%m%d%H") > datetime.strptime(version.name.split('.')[-1], "%Y%m%d%H"):
+                    if datetime.strptime(item.name.split('.')[-1], t_format) > datetime.strptime(version.name.split('.')[-1], t_format):
                         version = item
                 return version
             for version in versions:
