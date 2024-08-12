@@ -2797,11 +2797,11 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                 def image_timestamp_to_datetime(version_string):
                     if len(version_string.split('.')[-1]) == 8:
                         t_format = "%Y%m%d"
-                    elif len(version_string.split('.')[-1]) in [9,10]:
+                    elif len(version_string.split('.')[-1]) in [9, 10]:
                         t_format = "%Y%m%d%H"
-                    elif len(version_string.split('.')[-1]) in [11,12]:
+                    elif len(version_string.split('.')[-1]) in [11, 12]:
                         t_format = "%Y%m%d%H%M"
-                    elif len(version_string.split('.')[-1]) in [14,13]:
+                    elif len(version_string.split('.')[-1]) in [14, 13]:
                         t_format = "%Y%m%d%H%M%S"
                     return datetime.strptime(version_string.split('.')[-1], t_format)
 
