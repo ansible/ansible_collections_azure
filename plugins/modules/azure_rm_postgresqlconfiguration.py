@@ -74,6 +74,7 @@ id:
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+    from azure.mgmt.rdbms.postgresql.models import Configuration
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
 except ImportError:
@@ -186,8 +187,10 @@ class AzureRMPostgreSqlConfigurations(AzureRMModuleBase):
             response = self.postgresql_client.configurations.begin_create_or_update(resource_group_name=self.resource_group,
                                                                                     server_name=self.server_name,
                                                                                     configuration_name=self.name,
-                                                                                    parameters=self.value,
-                                                                                    source='user-override')
+                                                                                    parameters=Configuration(
+                                                                                        value=self.value,
+                                                                                        source='user-override'
+                                                                                    ))
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
 
@@ -202,7 +205,7 @@ class AzureRMPostgreSqlConfigurations(AzureRMModuleBase):
             response = self.postgresql_client.configurations.begin_create_or_update(resource_group_name=self.resource_group,
                                                                                     server_name=self.server_name,
                                                                                     configuration_name=self.name,
-                                                                                    source='system-default')
+                                                                                    parameters=Configuration(source='system-default'))
         except Exception as e:
             self.log('Error attempting to delete the Configuration instance.')
             self.fail("Error deleting the Configuration instance: {0}".format(str(e)))
