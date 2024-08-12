@@ -2794,6 +2794,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
         if versions and len(versions) > 0:
             if self.image['version'] == 'latest':
                 version = versions[len(versions) - 1]
+
                 def image_timestamp_to_datetime(version_string):
                     if len(version_string.split('.')[-1]) == 8:
                         t_format = "%Y%m%d"
