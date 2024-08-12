@@ -2790,9 +2790,30 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                                                                       self.image['offer'],
                                                                       self.image['sku'],
                                                                       str(exc)))
+
         if versions and len(versions) > 0:
             if self.image['version'] == 'latest':
-                return self.filter_lasted(versions)
+                version = versions[len(versions) - 1]
+                def image_timestamp_to_datetime(version_string):
+                    if len(version_string.split('.')[-1]) == 8:
+                        t_format = "%Y%m%d"
+                    elif len(version_string.split('.')[-1]) in [9,10]:
+                        t_format = "%Y%m%d%H"
+                    elif len(version_string.split('.')[-1]) in [11,12]:
+                        t_format = "%Y%m%d%H%M"
+                    elif len(version_string.split('.')[-1]) in [14,13]:
+                        t_format = "%Y%m%d%H%M%S"
+                    return datetime.strptime(version_string.split('.')[-1], t_format)
+
+                if len(version.name.split('.')[-1]) in [8, 9, 10, 11, 12, 13, 14]:
+                    for item in versions:
+                        if image_timestamp_to_datetime(item.name) > image_timestamp_to_datetime(version.name):
+                            version = item
+                else:
+                    for item in versions:
+                        if item.name.split('.')[-1] > version.name.split('.')[-1]:
+                            version = item
+                return version
             for version in versions:
                 if version.name == self.image['version']:
                     return version
@@ -2802,27 +2823,6 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                                                                       self.image['sku'],
                                                                       self.image['version']))
         return None
-
-    def filter_lasted(self, versions):
-        version = versions[len(versions) - 1]
-        if len(version.name.split('.')[-1]) == 8:
-            t_format = "%Y%m%d"
-        elif len(version.name.split('.')[-1]) in [9,10]:
-            t_format = "%Y%m%d%H"
-        elif len(version.name.split('.')[-1]) in [11,12]:
-            t_format = "%Y%m%d%H%M"
-        elif len(version.name.split('.')[-1]) in [14,13]:
-            t_format = "%Y%m%d%H%M%S"
-        else:
-            for item in versions:
-                if item.name.split('.')[-1] > version.name.split('.')[-1]:
-                    version = item
-            return version
-
-        for item in versions:
-            if datetime.strptime(item.name.split('.')[-1], t_format) > datetime.strptime(version.name.split('.')[-1], t_format):
-                version = item
-        return version
 
     def get_custom_image_reference(self, name, resource_group=None):
         try:
