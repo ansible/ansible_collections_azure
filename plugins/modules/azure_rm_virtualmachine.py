@@ -1090,6 +1090,7 @@ try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
     from azure.mgmt.core.tools import parse_resource_id
+    from datetime import datetime
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -2791,7 +2792,11 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                                                                       str(exc)))
         if versions and len(versions) > 0:
             if self.image['version'] == 'latest':
-                return versions[len(versions) - 1]
+                version = versions[len(versions) - 1]
+                for item in versions:
+                    if datetime.strptime(item.name.split('.')[-1], "%Y%m%d%H") > datetime.strptime(version.name.split('.')[-1], "%Y%m%d%H"):
+                        version = item
+                return version
             for version in versions:
                 if version.name == self.image['version']:
                     return version
