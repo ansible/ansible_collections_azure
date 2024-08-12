@@ -2792,25 +2792,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                                                                       str(exc)))
         if versions and len(versions) > 0:
             if self.image['version'] == 'latest':
-                version = versions[len(versions) - 1]
-                if len(version.name.split('.')[-1]) == 8:
-                    t_format = "%Y%m%d"
-                elif len(version.name.split('.')[-1]) in [9,10]:
-                    t_format = "%Y%m%d%H"
-                elif len(version.name.split('.')[-1]) in [11,12]:
-                    t_format = "%Y%m%d%H%M"
-                elif len(version.name.split('.')[-1]) in [14,13]:
-                    t_format = "%Y%m%d%H%M%S"
-                else:
-                    for item in versions:
-                        if item.name.split('.')[-1] > version.name.split('.')[-1]:
-                            version = item
-                    return version
-
-                for item in versions:
-                    if datetime.strptime(item.name.split('.')[-1], t_format) > datetime.strptime(version.name.split('.')[-1], t_format):
-                        version = item
-                return version
+                return self.filter_lasted(versions)
             for version in versions:
                 if version.name == self.image['version']:
                     return version
@@ -2820,6 +2802,27 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                                                                       self.image['sku'],
                                                                       self.image['version']))
         return None
+
+    def filter_lasted(self, versions):
+        version = versions[len(versions) - 1]
+        if len(version.name.split('.')[-1]) == 8:
+            t_format = "%Y%m%d"
+        elif len(version.name.split('.')[-1]) in [9,10]:
+            t_format = "%Y%m%d%H"
+        elif len(version.name.split('.')[-1]) in [11,12]:
+            t_format = "%Y%m%d%H%M"
+        elif len(version.name.split('.')[-1]) in [14,13]:
+            t_format = "%Y%m%d%H%M%S"
+        else:
+            for item in versions:
+                if item.name.split('.')[-1] > version.name.split('.')[-1]:
+                    version = item
+            return version
+
+        for item in versions:
+            if datetime.strptime(item.name.split('.')[-1], t_format) > datetime.strptime(version.name.split('.')[-1], t_format):
+                version = item
+        return version
 
     def get_custom_image_reference(self, name, resource_group=None):
         try:
