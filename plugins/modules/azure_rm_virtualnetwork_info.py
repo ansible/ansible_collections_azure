@@ -212,7 +212,7 @@ virtualnetworks:
                         sample: [
                         {
                             "current_value": 0.0,
-                            "id": "/subscriptions/e393adb3-b5be-4789-bdc9-848367f0d152/resourceGroups/v-xisuRG02/providers/Microsoft.Network/virtualNetworks/fredvnet01/subnets/default",
+                            "id": "/subscriptions/xxx/resourceGroups/testRG/providers/Microsoft.Network/virtualNetworks/vnet/subnets/default",
                             "limit": 251.0,
                             "name": {
                                 "localized_value": "Subnet size and usage",
