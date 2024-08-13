@@ -223,7 +223,7 @@ virtualnetworks:
 '''
 
 try:
-    from azure.core.exceptions import ResourceNotFoundError
+    from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
     from azure.mgmt.core.tools import parse_resource_id
 except Exception:
     # This is handled in azure_rm_common
