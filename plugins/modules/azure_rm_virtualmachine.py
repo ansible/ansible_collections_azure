@@ -2796,24 +2796,31 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                 version = versions[len(versions) - 1]
 
                 def image_timestamp_to_datetime(version_string):
-                    if len(version_string.split('.')[-1]) == 8:
+                    version_len = len(version_string)
+                    if version_len == 8:
                         t_format = "%Y%m%d"
-                    elif len(version_string.split('.')[-1]) in [9, 10]:
+                    elif version_len <= 10:
                         t_format = "%Y%m%d%H"
-                    elif len(version_string.split('.')[-1]) in [11, 12]:
+                    elif version_len <= 12:
                         t_format = "%Y%m%d%H%M"
-                    elif len(version_string.split('.')[-1]) in [14, 13]:
+                    elif version_len <= 14:
                         t_format = "%Y%m%d%H%M%S"
-                    return datetime.strptime(version_string.split('.')[-1], t_format)
+                    return datetime.strptime(version_string, t_format)
 
                 if 8 <= len(version.name.split('.')[-1]) and len(version.name.split('.')[-1]) <= 14:
+                    version_date = image_timestamp_to_datetime(version.name.split('.')[-1])
                     for item in versions:
-                        if image_timestamp_to_datetime(item.name) > image_timestamp_to_datetime(version.name):
+                        item_date = image_timestamp_to_datetime(item.name.split('.')[-1])
+                        if item_date > version_date:
                             version = item
+                            version_date = item_date
                 else:
+                    version_name = version.name.split('.')[-1]
                     for item in versions:
-                        if item.name.split('.')[-1] > version.name.split('.')[-1]:
+                        item_name = item.name.split('.')[-1]
+                        if item_name > version_name:
                             version = item
+                            version_name = item_name
                 return version
             for version in versions:
                 if version.name == self.image['version']:
