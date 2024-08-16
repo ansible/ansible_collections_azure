@@ -77,6 +77,7 @@
         - "203.0.113.0"
       enable_private_cluster: false
     network_profile:
+      network_plugin_mode: Overlay
       load_balancer_sku: standard
       outbound_type: loadBalancer
   register: output
@@ -111,6 +112,7 @@
         - "203.0.113.0"
       enable_private_cluster: false
     network_profile:
+      network_plugin_mode: Overlay
       load_balancer_sku: standard
       outbound_type: loadBalancer
   register: output

@@ -225,6 +225,12 @@ options:
                 choices:
                     - azure
                     - kubenet
+            network_plugin_mode:
+                description:
+                    - Network plugin mode used for building the Kubernetes network.
+                type: str
+                choices:
+                    - Overlay
             network_policy:
                 description: Network policy used for building Kubernetes network.
                 type: str
@@ -689,6 +695,7 @@ def create_pod_identity_profile(pod_profile):
 def create_network_profiles_dict(network):
     return dict(
         network_plugin=network.network_plugin,
+        network_plugin_mode=network.network_plugin_mode,
         network_policy=network.network_policy,
         pod_cidr=network.pod_cidr,
         service_cidr=network.service_cidr,
@@ -831,6 +838,7 @@ agent_pool_profile_spec = dict(
 
 network_profile_spec = dict(
     network_plugin=dict(type='str', choices=['azure', 'kubenet']),
+    network_plugin_mode=dict(type='str', choices=['Overlay']),
     network_policy=dict(type='str', choices=['azure', 'calico']),
     pod_cidr=dict(type='str'),
     service_cidr=dict(type='str'),
