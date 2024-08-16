@@ -2806,7 +2806,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                         t_format = "%Y%m%d%H%M%S"
                     return datetime.strptime(version_string.split('.')[-1], t_format)
 
-                if len(version.name.split('.')[-1]) in [8, 9, 10, 11, 12, 13, 14]:
+                if 8 <= len(version.name.split('.')[-1]) <= 14:
                     for item in versions:
                         if image_timestamp_to_datetime(item.name) > image_timestamp_to_datetime(version.name):
                             version = item
