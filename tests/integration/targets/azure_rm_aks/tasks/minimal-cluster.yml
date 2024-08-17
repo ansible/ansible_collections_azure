@@ -18,6 +18,7 @@
     enable_rbac: true
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
@@ -54,6 +55,7 @@
       - "fact.aks | length == 1"
       - fact.aks[0].id == output.id
       - fact.aks[0].aad_profile.managed == true
+      - fact.aks[0].aad_profile.enable_azure_rbac == true
 
 - name: Use minimal parameters and system-assigned identity (idempotent)
   azure_rm_aks:
@@ -67,6 +69,7 @@
       type: "SystemAssigned"
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
@@ -103,6 +106,7 @@
       user_assigned_identities: "{{ user_identity }}"
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
@@ -155,6 +159,7 @@
       user_assigned_identities: "{{ user_identity }}"
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
@@ -191,6 +196,7 @@
       user_assigned_identities: "{{ user_identity_2 }}"
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1

@@ -316,6 +316,11 @@ options:
                     - Whether to enable managed AAD.
                 type: bool
                 default: false
+            enable_azure_rbac:
+                description:
+                    - Whether to enable Azure RBAC for Kubernetes authorization.
+                type: bool
+                default: false
             admin_group_object_ids:
                 description:
                     - AAD group object IDs that will have admin role of the cluster.
@@ -855,6 +860,7 @@ aad_profile_spec = dict(
     server_app_secret=dict(type='str', no_log=True),
     tenant_id=dict(type='str'),
     managed=dict(type='bool', default='false'),
+    enable_azure_rbac=dict(type='bool', default='false'),
     admin_group_object_ids=dict(type='list', elements='str')
 )
 
