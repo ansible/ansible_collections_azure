@@ -135,6 +135,7 @@
       - "fact.aks | length == 1"
       - fact.aks[0].id == output.id
       - fact.aks[0].aad_profile.managed == true
+      - fact.aks[0].network_profile.network_plugin_mode == "overlay"
       - user_identity in fact.aks[0].identity.user_assigned_identities
 
 - name: Use minimal parameters and user-assigned identity (idempotent)
