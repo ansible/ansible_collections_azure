@@ -483,8 +483,8 @@
     create_with_security_group: true
     ip_configurations:
       - name: ipconfig1
-        private_ip_address: "{{ output.ip_configurations[0].private_ip_address }}"
-        private_ip_allocation_method: "{{ output.ip_configurations[0].private_ip_allocation_method }}"
+        private_ip_address: "{{ output.state.ip_configurations[0].private_ip_address }}"
+        private_ip_allocation_method: "{{ output.state.ip_configurations[0].private_ip_allocation_method }}"
         application_security_groups:
           - "{{ asg.id }}"
           - "{{ applicationsecuritygroup_name1 }}"
@@ -619,8 +619,8 @@
     ip_configurations:
       - name: "default"
         primary: true
-        private_ip_address: "{{ output.ip_configurations[0].private_ip_address }}"
-        private_ip_allocation_method: "{{ output.ip_configurations[0].private_ip_allocation_method }}"
+        private_ip_address: "{{ output.state.ip_configurations[0].private_ip_address }}"
+        private_ip_allocation_method: "{{ output.state.ip_configurations[0].private_ip_allocation_method }}"
         application_gateway_backend_address_pools:
           - name: "test_backend_address_pool"
             application_gateway: "appgateway{{ rpfx }}"
