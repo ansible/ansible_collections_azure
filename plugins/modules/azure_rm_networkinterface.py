@@ -479,8 +479,8 @@ except ImportError:
     # This is handled in azure_rm_common
     pass
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import (AzureRMModuleBase,
-                                                                                         azure_id_to_dict,
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import (azure_id_to_dict,
                                                                                          normalize_location_name,
                                                                                          format_resource_id
                                                                                          )
@@ -560,7 +560,7 @@ ip_configuration_spec = dict(
 )
 
 
-class AzureRMNetworkInterface(AzureRMModuleBase):
+class AzureRMNetworkInterface(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -634,7 +634,10 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
 
         # if application security groups set, convert to resource id format
         if self.ip_configurations:
+            primary_flag = False
             for config in self.ip_configurations:
+                if config.get('primary'):
+                    primary_flag = True
                 if config.get('application_security_groups'):
                     asgs = []
                     for asg in config['application_security_groups']:
@@ -650,6 +653,9 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
                         asgs.append(asg_resource_id)
                     if len(asgs) > 0:
                         config['application_security_groups'] = asgs
+            if not primary_flag:
+                self.ip_configurations[0]['primary'] = True
+
 
         # If ip_confiurations is not specified then provide the default
         # private interface
@@ -728,19 +734,8 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
                 # name, private_ip_address, public_ip_address_name, private_ip_allocation_method, subnet_name
                 ip_configuration_result = self.construct_ip_configuration_set(results['ip_configurations'])
                 ip_configuration_request = self.construct_ip_configuration_set(self.ip_configurations)
-                ip_configuration_result_name = [item['name'] for item in ip_configuration_result]
-                for item_request in ip_configuration_request:
-                    if item_request['name'] not in ip_configuration_result_name:
-                        changed = True
-                        break
-                    else:
-                        for item_result in ip_configuration_result:
-                            if len(ip_configuration_request) == 1 and len(ip_configuration_result) == 1:
-                                item_request['primary'] = True
-                            if item_request['name'] == item_result['name'] and item_request != item_result:
-                                changed = True
-                                break
-
+                if not self.default_compare({}, ip_configuration_request, ip_configuration_result, '', dict(compare=[])):
+                    changed = True
             elif self.state == 'absent':
                 self.log("CHANGED: network interface {0} exists but requested state is 'absent'".format(self.name))
                 changed = True
@@ -894,11 +889,11 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
         return val
 
     def construct_ip_configuration_set(self, raw):
+        # primary=item.get('primary'),
         configurations = [dict(
             private_ip_allocation_method=to_native(item.get('private_ip_allocation_method')),
             public_ip_address_name=(to_native(item.get('public_ip_address').get('name'))
                                     if item.get('public_ip_address') else to_native(item.get('public_ip_address_name'))),
-            primary=item.get('primary'),
             load_balancer_backend_address_pools=(set([to_native(self.backend_addr_pool_id(id))
                                                       for id in item.get('load_balancer_backend_address_pools')])
                                                  if item.get('load_balancer_backend_address_pools') else None),
@@ -907,7 +902,10 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
                                                        if item.get('application_gateway_backend_address_pools') else None),
             application_security_groups=(set([to_native(asg_id) for asg_id in item.get('application_security_groups')])
                                          if item.get('application_security_groups') else None),
-            name=to_native(item.get('name'))
+            name=to_native(item.get('name')),
+            private_ip_address=to_native(item.get('private_ip_address')),
+            private_ip_address_version=to_native(item.get('private_ip_address_version')),
+            public_ip_allocation_method=to_native(item.get('public_ip_allocation_method', 'Dynamic'))
         ) for item in raw]
         return configurations
 
