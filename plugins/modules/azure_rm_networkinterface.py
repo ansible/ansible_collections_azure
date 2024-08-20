@@ -656,10 +656,11 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
             if not primary_flag:
                 self.ip_configurations[0]['primary'] = True
 
-
         # If ip_confiurations is not specified then provide the default
         # private interface
+        skip_compare = False
         if self.state == 'present' and not self.ip_configurations:
+            skip_compare = True
             self.ip_configurations = [
                 dict(
                     name='default',
@@ -734,7 +735,7 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
                 # name, private_ip_address, public_ip_address_name, private_ip_allocation_method, subnet_name
                 ip_configuration_result = self.construct_ip_configuration_set(results['ip_configurations'])
                 ip_configuration_request = self.construct_ip_configuration_set(self.ip_configurations)
-                if not self.default_compare({}, ip_configuration_request, ip_configuration_result, '', dict(compare=[])):
+                if not skip_compare and not self.default_compare({}, ip_configuration_request, ip_configuration_result, '', dict(compare=[])):
                     changed = True
             elif self.state == 'absent':
                 self.log("CHANGED: network interface {0} exists but requested state is 'absent'".format(self.name))
