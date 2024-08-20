@@ -307,13 +307,6 @@
         private_ip_address: "{{ facts.networkinterfaces[0].ip_configurations[0].private_ip_address }}"
         private_ip_allocation_method: "{{ facts.networkinterfaces[0].ip_configurations[0].private_ip_allocation_method }}"
         primary: "{{ facts.networkinterfaces[0].ip_configurations[0].primary }}"
-      - name: ipconfig1
-        public_ip_name: "tn{{ rpfx }}"
-        private_ip_address: "{{ output.state.ip_configurations[2].private_ip_address }}"
-        load_balancer_backend_address_pools:
-          - "{{ lb.state.backend_address_pools[0].id }}"
-          - name: backendaddrpool1
-            load_balancer: "lb{{ rpfx }}"
       - name: ipconfig2
         private_ip_address: "{{ output.state.ip_configurations[1].private_ip_address }}"
         public_ip_name: "tn{{ rpfx }}v6"
@@ -321,6 +314,13 @@
         load_balancer_backend_address_pools:
           - "{{ lb.state.backend_address_pools[2].id }}"
           - name: backendaddrpool2
+            load_balancer: "lb{{ rpfx }}"
+      - name: ipconfig1
+        public_ip_name: "tn{{ rpfx }}"
+        private_ip_address: "{{ output.state.ip_configurations[2].private_ip_address }}"
+        load_balancer_backend_address_pools:
+          - "{{ lb.state.backend_address_pools[0].id }}"
+          - name: backendaddrpool1
             load_balancer: "lb{{ rpfx }}"
   register: output
 
