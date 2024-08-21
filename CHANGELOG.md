@@ -1,5 +1,60 @@
 # Change Log
 
+## v2.7.0 (2024-08-21)
+
+### NEW MODULES
+  - azure_rm_afdendpoint: Add support for managed Azure Front Door Endpoint to used with Standard and Premium Frontdorr ([1589](https://github.com/ansible-collections/azure/pull/1589))
+  - azure_rm_afdendpoint_info: Add support for get Azure Front Door Endpoint facts ([1589](https://github.com/ansible-collections/azure/pull/1589))
+  - azure_rm_openshiftmanagedclusterversion_info: Add support to fetch Azure Red Hat OpenShift managed cluster info ([1602](https://github.com/ansible-collections/azure/pull/1602))
+
+### FEATURE ENHANCEMENT
+  - azure_rm_snapshot_info: Add support for list snapshot instance ([#1659](https://github.com/ansible-collections/azure/pull/1659))
+  - azure_rm_cdnprofile: Add support for 'Standard' and 'Premium' Frontdoor options ([#1588](https://github.com/ansible-collections/azure/pull/1588))
+  - azure_rm_aduer: Add support for 'password_force_change and password_force_chanage_mfa ([#1376](https://github.com/ansible-collections/azure/pull/1376))
+  - azure_rm_appgateway: Add support for 'identity' ([#1598](https://github.com/ansible-collections/azure/pull/1598))
+  - azure_rm_batchaccount: Add support for 'identity' ([1611](https://github.com/ansible-collections/azure/pull/1611))
+  - azure_rm_batchaccount_info: Add fetch the 'identity' ([1611](https://github.com/ansible-collections/azure/pull/1611))
+  - azure_rm_iothub:
+    - Add support for 'identity' ([1615](https://github.com/ansible-collections/azure/pull/1615))
+    - Upgrade azure-mgmt-iothub to v3.0.0 ([1641](https://github.com/ansible-collections/azure/pull/1641))
+  - azure_rm_iothub_info: Add fetch the 'identity' ([1615](https://github.com/ansible-collections/azure/pull/1615))
+  - azure_rm_adapplication: Add support for 'app_diff' ([1560](https://github.com/ansible-collections/azure/pull/1560))
+  - azure_rm_aduser: Add support for 'mobile_phone' ([1623](https://github.com/ansible-collections/azure/pull/1623))
+  - azure_rm_aduser_info: Add fetch the 'mobile_phone' ([1623](https://github.com/ansible-collections/azure/pull/1623))
+  - azure_rm_manageddisk_info: Add fetch the 'time_created' ([1638](https://github.com/ansible-collections/azure/pull/1638))
+  - azure_rm_storageaccount: Add support for 'identity' ([1639](https://github.com/ansible-collections/azure/pull/1639))
+  - azure_rm_storageaccount_info: Add fetch the 'identity' ([1639](https://github.com/ansible-collections/azure/pull/1639))
+  - pr-pipeline.yml:
+    - Add a resource group locate in westus2 ([#1642](https://github.com/ansible-collections/azure/pull/1642))
+    - Upgrade azure-mgmt-containerservice to v31.0.0 ([#1677](https://github.com/ansible-collections/azure/pull/1677))
+  - azure_rm_postgresqlflexibleserver: Add new choices for azure_rm_postgresqlflexibleserver.py's version ([#1650](https://github.com/ansible-collections/azure/pull/1650))
+  - azure_rm_servicebus: Add support for 'identity' ([1643](https://github.com/ansible-collections/azure/pull/1643))
+  - azure_rm_servicebus_info: Add fetch the 'identity' ([1643](https://github.com/ansible-collections/azure/pull/1643))
+  - azure_rm_virtualnetwork_info: List usage of the subnets within a virtual network ([#1673](https://github.com/ansible-collections/azure/pull/1673))
+  - azure_rm_rediscache: Add support for 'identity' ([1651](https://github.com/ansible-collections/azure/pull/1651))
+  - azure_rm_rediscache_info: Add fetch the 'identity' ([1651](https://github.com/ansible-collections/azure/pull/1651))
+
+### BUG FIXING
+  - azure_rm_snapshot: Upgrade azure_rm_snapshot's api-version to 2022-03-02 ([#1597](https://github.com/ansible-collections/azure/pull/1597))
+  - azure_rm_storageblob: Fix auth mode login for azure_rm_storageblob ([#1605](https://github.com/ansible-collections/azure/pull/1605))
+  - azure_rm_postgresqlserver: Modify the 'password' descriptions ([1634](https://github.com/ansible-collections/azure/pull/1634))
+  - azure_rm_*: Update the test case ([1619](https://github.com/ansible-collections/azure/pull/1619))
+  - azure_rm_galleryimageversion: Wait 10 minutes to get the imageversion state ([#1625](https://github.com/ansible-collections/azure/pull/1625))
+  - azure_rm_openshiftcluster_info: Fixed errors caused by returning an empty dictionary ([#1632](https://github.com/ansible-collections/azure/pull/1632))
+  - azure_rm_galleryimageversion_info: Fix error in adjust ([#1637 ](https://github.com/ansible-collections/azure/pull/1637))
+  - azure_rm_openshiftmanagedcluster: Update azure_rm_openshiftmanaged ([1629](https://github.com/ansible-collections/azure/pull/1629))
+  - azure_rm_openshiftmanagedclusterkubeconfig_info: Update azure_rm_openshiftmanagedclusterkubeconfig_info.py ([#1631](https://github.com/ansible-collections/azure/pull/1631))
+  - azure_rm: Implement long running polling ([#1649](https://github.com/ansible-collections/azure/pull/1649))
+  - azure_rm_manageddisk: Updated azure_rm_manageddisk.py's method to update resources ([#1666](https://github.com/ansible-collections/azure/pull/1666))
+  - azure_rm_postgresqlconfiguration: Fix SDK call to use Configuration class ([#1670](https://github.com/ansible-collections/azure/pull/1670))
+  - azure_rm_virtualmachineextension: Refs #1661 enable automatic update for vm extensions ([#1662](https://github.com/ansible-collections/azure/pull/1662))
+  - azure_rm_virtualnetwork: Fixed the bug that failed to detect IPV6 ([#1652](https://github.com/ansible-collections/azure/pull/1652))
+  - azure_rm_virtualmachinescaleset: Fixed an issue where vmss tags could not be updated ([#1654](https://github.com/ansible-collections/azure/pull/1654))
+  - azure_rm_aksagentpool: Ignore the 'node_public_ip_prefix_id' compare when updating aks pool ([#1668](https://github.com/ansible-collections/azure/pull/1668))
+  - azure_rm_aksagentpool_info: Ignore the 'node_public_ip_prefix_id' compare when updating aks pool ([#1668](https://github.com/ansible-collections/azure/pull/1668))
+  - azure_rm_virtualmachine: Re-filter the latest image version to avoid problems the version '8.10' confuse high or low with '8.9' ([#1669](https://github.com/ansible-collections/azure/pull/1669))
+
+
 ## v2.6.0 (2024-07-01)
 
 ### FEATURE ENHANCEMENT
