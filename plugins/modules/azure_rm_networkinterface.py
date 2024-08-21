@@ -890,7 +890,6 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
         return val
 
     def construct_ip_configuration_set(self, raw):
-        # primary=item.get('primary'),
         configurations = [dict(
             private_ip_allocation_method=to_native(item.get('private_ip_allocation_method')),
             public_ip_address_name=(to_native(item.get('public_ip_address').get('name'))
