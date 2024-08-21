@@ -35,6 +35,9 @@
       network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert the AKS instance is well created
@@ -86,6 +89,9 @@
       network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert idempotent
@@ -123,6 +129,9 @@
       load_balancer_sku: standard
       outbound_type: loadBalancer
       network_plugin: azure
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert the AKS instance is well created
@@ -176,6 +185,9 @@
       network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert idempotent
@@ -213,6 +225,9 @@
       network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert the AKS instance is well created
@@ -235,7 +250,7 @@
       - fact.aks[0].aad_profile.managed == true
       - user_identity_2 in fact.aks[0].identity.user_assigned_identities
 
-- name: Update api_server_access_profile config
+- name: Update api_server_access_profile and auto_upgrade_channel config
   azure_rm_aks:
     name: "minimal{{ rpfx }}"
     location: "{{ location }}"
@@ -260,6 +275,9 @@
       network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: stable
   register: output
 
 - name: Assert idempotent
