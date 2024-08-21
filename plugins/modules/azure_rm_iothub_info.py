@@ -131,6 +131,30 @@ azure_iothubs:
             type: str
             returned: always
             sample: f1
+        identity:
+            description:
+                - Identity for the Server.
+            type: complex
+            returned: when available
+            contains:
+                type:
+                    description:
+                        - Type of the managed identity
+                    returned: always
+                    sample: UserAssigned
+                    type: str
+                user_assigned_identities:
+                    description:
+                        - User Assigned Managed Identities and its options
+                    returned: always
+                    type: complex
+                    contains:
+                        id:
+                            description:
+                                - Dict of the user assigned identities IDs associated to the Resource
+                            returned: always
+                            type: dict
+                            elements: dict
         cloud_to_device:
             description:
                 - Cloud to device message properties.
@@ -574,6 +598,7 @@ class AzureRMIoTHubFacts(AzureRMModuleBase):
         result['tags'] = hub.tags
         result['unit'] = hub.sku.capacity
         result['sku'] = hub.sku.name.lower()
+        result['identity'] = hub.identity.as_dict() if hub.identity else None
         result['cloud_to_device'] = dict(
             max_delivery_count=properties.cloud_to_device.feedback.max_delivery_count,
             ttl_as_iso8601=str(properties.cloud_to_device.feedback.ttl_as_iso8601)

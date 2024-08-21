@@ -1,35 +1,52 @@
 - name: Prepare facts
   ansible.builtin.set_fact:
-    user_id: "user{{ 999999999999999999994 | random | to_uuid }}@contoso.com"
-    object_id: "{{ 999999999999999999994 | random | to_uuid }}"
-    user_principal_name: "{{ 999999999999999999994 | random | to_uuid }}"
+    user_name: "test_user_{{ 999999999999999999994 | random | to_uuid }}"
+    on_premises_immutable_id: "{{ 999999999999999999994 | random | to_uuid }}"
+    password_profile: "{{ lookup('community.general.random_string', length=12, min_lower=1, min_upper=1, min_special=1, min_numeric=1) }}"
+    domain: change_me.com
   run_once: true
 
 - name: Create test user
   azure_rm_aduser:
-    user_principal_name: "{{ user_id }}"
+    user_principal_name: "{{ user_name }}@{{ domain }}"
     state: "present"
     account_enabled: true
-    display_name: "Test_{{ user_principal_name }}_Display_Name"
-    password_profile: "password"
-    mail_nickname: "Test_{{ user_principal_name }}_mail_nickname"
-    immutable_id: "{{ object_id }}"
+    display_name: "{{ user_name }}_display_name"
+    password_profile: "{{ password_profile }}"
+    mail_nickname: "{{ user_name }}_mail_nickname"
+    on_premises_immutable_id: "{{ on_premises_immutable_id }}"
     given_name: "First"
     surname: "Last"
     user_type: "Member"
     usage_location: "US"
-    mail: "{{ user_principal_name }}@contoso.com"
+    mail: "{{ user_name }}@{{ domain }}"
+    mobile_phone: "+12345678912"
+    company_name: "Test Company"
+    on_premises_extension_attributes:
+      extension_attribute1: "test_extension_attribute1"
+      extension_attribute2: "test_extension_attribute2"
+      extension_attribute11: "test_extension_attribute11"
   register: create_user_should_pass
 
 - name: Try to update existing user - idempotent check
   azure_rm_aduser:
-    user_principal_name: "{{ user_id }}"
+    user_principal_name: "{{ user_name }}@{{ domain }}"
     state: "present"
-    display_name: "Test_{{ user_principal_name }}_Display_Name"
-    mail_nickname: "Test_{{ user_principal_name }}_mail_nickname"
+    account_enabled: true
+    display_name: "{{ user_name }}_display_name"
+    mail_nickname: "{{ user_name }}_mail_nickname"
+    on_premises_immutable_id: "{{ on_premises_immutable_id }}"
     given_name: "First"
     surname: "Last"
-    mail: "{{ user_principal_name }}@contoso.com"
+    user_type: "Member"
+    usage_location: "US"
+    mail: "{{ user_name }}@{{ domain }}"
+    mobile_phone: "+12345678912"
+    company_name: "Test Company"
+    on_premises_extension_attributes:
+      extension_attribute1: "test_extension_attribute1"
+      extension_attribute2: "test_extension_attribute2"
+      extension_attribute11: "test_extension_attribute11"
   register: attempted_update_with_no_changes_should_pass
 
 - name: Assert Nothing Changed
@@ -39,42 +56,49 @@
 
 - name: User_principal_name Should Pass
   azure_rm_aduser_info:
-    user_principal_name: "{{ user_id }}"
-  register: get_user_should_pass
+    user_principal_name: "{{ user_name }}@{{ domain }}"
+  register: get_user_by_upn_should_pass
+
+- name: Attribute_name mail Should Pass
+  azure_rm_aduser_info:
+    attribute_name: "mail"
+    attribute_value: "{{ user_name }}@{{ domain }}"
+  register: get_user_by_mail_should_pass
 
 - name: Assert user was created and account is enabled
   ansible.builtin.assert:
     that:
-      - "create_user_should_pass['ad_users'][0]['account_enabled'] == True"
-      - "get_user_should_pass['ad_users'][0]['account_enabled'] == True"
+      - "create_user_should_pass['ad_user']['account_enabled'] == True"
+      - "get_user_by_upn_should_pass['ad_users'][0]['account_enabled'] == True"
+      - "get_user_by_mail_should_pass['ad_users'][0]['account_enabled'] == True"
 
 - name: Update test user
   azure_rm_aduser:
-    user_principal_name: "{{ user_id }}"
+    user_principal_name: "{{ user_name }}@{{ domain }}"
     state: "present"
     account_enabled: false
   register: update_user_should_pass
 
 - name: User_principal_name on updated user Should Pass
   azure_rm_aduser_info:
-    user_principal_name: "{{ user_id }}"
+    user_principal_name: "{{ user_name }}@{{ domain }}"
   register: get_updated_user_should_pass
 
 - name: Assert user was updated and account is disabled
   ansible.builtin.assert:
     that:
-      - "update_user_should_pass['ad_users'][0]['account_enabled'] == False"
+      - "update_user_should_pass['ad_user']['account_enabled'] == False"
       - "get_updated_user_should_pass['ad_users'][0]['account_enabled'] == False"
 
 - name: Delete test user
   azure_rm_aduser:
-    user_principal_name: "{{ user_id }}"
+    user_principal_name: "{{ user_name }}@{{ domain }}"
     state: "absent"
   register: delete_user_should_pass
 
 - name: User_principal_name Should Fail
   azure_rm_aduser_info:
-    user_principal_name: "{{ user_id }}"
+    user_principal_name: "{{ user_name }}@{{ domain }}"
   register: get_user_should_fail
   ignore_errors: true
 
@@ -91,19 +115,19 @@
 - name: Assert task failed
   ansible.builtin.assert:
     that:
-      - "missing_any_identifiers is undefined"
+      - "missing_any_identifiers is defined"
 
 - name: Too many identifiers Should Fail
   azure_rm_aduser_info:
-    user_principal_name: "{{ user_id }}"
-    object_id: "{{ object_id }}"
+    user_principal_name: "{{ user_name }}@{{ domain }}"
+    object_id: "{{ on_premises_immutable_id }}"
   register: too_many_identifiers
   ignore_errors: true
 
 - name: Assert task failed
   ansible.builtin.assert:
     that:
-      - "too_many_identifiers is undefined"
+      - "too_many_identifiers is defined"
 
 - name: Missing attribute_value Should Fail
   azure_rm_aduser_info:
@@ -114,27 +138,27 @@
 - name: Assert task failed
   ansible.builtin.assert:
     that:
-      - "missing_attribute_value is undefined"
+      - "missing_attribute_value is defined"
 
 - name: Missing attribute_name Should Fail
   azure_rm_aduser_info:
-    attribute_value: SMTP:user@contoso.com
+    attribute_value: SMTP:user@stadtluzern.ch
   register: missing_attribute_name
   ignore_errors: true
 
 - name: Assert task failed
   ansible.builtin.assert:
     that:
-      - "missing_attribute_name is undefined"
+      - "missing_attribute_name is defined"
 
 - name: Using all with principal name should fail
   azure_rm_aduser_info:
     all: true
-    user_principal_name: "{{ user_id }}"
+    user_principal_name: "{{ user_name }}@{{ domain }}"
   register: using_all_with_principal_name
   ignore_errors: true
 
 - name: Assert task failed
   ansible.builtin.assert:
     that:
-      - "using_all_with_principal_name is undefined"
+      - "using_all_with_principal_name is defined"

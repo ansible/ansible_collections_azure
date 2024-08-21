@@ -65,6 +65,11 @@ options:
             - The primary email address of the user.
             - Used when either creating or updating a user account.
         type: str
+    mobile_phone:
+        description:
+            - Mobile phone number of the user.
+            - Used when either creating or updating a user account.
+        type: str
     mail_nickname:
         description:
             - The mail alias for the user.
@@ -75,6 +80,17 @@ options:
             - The password for the user.
             - Used when either creating or updating a user account.
         type: str
+    password_force_change:
+        description:
+            - Whether or not the user will be forced to change their password at next logon.
+            - If unspecified, Azure defaults this to true for new users.
+            - Used when either creating or updating a user account.
+        type: bool
+    password_force_change_mfa:
+        description:
+            - Identical behavior to password_force_change except multi-factor authentication (MFA) must be performed prior to changing the password.
+            - Used when either creating or updating a user account.
+        type: bool
     usage_location:
         description:
             - A two letter country code, ISO standard 3166.
@@ -112,6 +128,25 @@ options:
             - Filter that can be used to specify a user to update or delete.
             - Mutually exclusive with I(object_id), I(attribute_name), and I(user_principal_name).
         type: str
+    company_name:
+        description:
+            - The name of the company that the user is associated with.
+            - This property can be useful for describing the company that an external user comes from.
+            - The maximum length is 64 characters.Returned only on $select.
+            - Supports $filter (eq, ne, not, ge, le, in, startsWith, and eq on null values).
+        type: str
+    on_premises_extension_attributes:
+        description:
+            - Contains extensionAttributes1-15 for the user.
+            - These extension attributes are also known as Exchange custom attributes 1-15.
+            - For an onPremisesSyncEnabled user, the source of authority for this set of properties is the on-premises and is read-only.
+            - For a cloud-only user (where onPremisesSyncEnabled is false), these properties can be set during the creation or update of a user object.
+            - For a cloud-only user previously synced from on-premises Active Directory, these properties are read-only in Microsoft Graph\
+              but can be fully managed through the Exchange Admin Center or the Exchange Online V2 module in PowerShell.
+        type: dict
+        aliases:
+            - extension_attributes
+
 extends_documentation_fragment:
     - azure.azcollection.azure
 
@@ -135,6 +170,12 @@ EXAMPLES = '''
     user_type: "Member"
     usage_location: "US"
     mail: "{{ user_principal_name }}@contoso.com"
+    mobile_phone: "+1234567890123"
+    company_name: 'Test Company'
+    on_premises_extension_attributes:
+      extension_attribute1: "test_extension_attribute1"
+      extension_attribute2: "test_extension_attribute2"
+      extension_attribute11: "test_extension_attribute11"
 
 - name: Update user with new value for account_enabled
   azure_rm_aduser:
@@ -191,6 +232,29 @@ user_type:
     returned: always
     type: str
     sample: Member
+mobile_phone:
+    description:
+        - The mobile phone number of the user.
+    type: str
+    returned: always
+    sample: '+1234567890123'
+company_name:
+    description:
+        - The name of the company that the user is associated with.
+    type: str
+    returned: always
+    sample: 'Test Company'
+on_premises_extension_attributes:
+    description:
+        - Contains extensionAttributes1-15 for the user.
+        - These extension attributes are also known as Exchange custom attributes 1-15.
+        - For an onPremisesSyncEnabled user, the source of authority for this set of properties is the on-premises and is read-only.
+        - For a cloud-only user (where onPremisesSyncEnabled is false), these properties can be set during the creation or update of a user object.
+        - For a cloud-only user previously synced from on-premises Active Directory, these properties are read-only in Microsoft Graph\
+          but can be fully managed through the Exchange Admin Center or the Exchange Online V2 module in PowerShell.
+    type: dict
+    returned: always
+    sample: {}
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBase
@@ -198,6 +262,7 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 try:
     import asyncio
     from msgraph.generated.models.password_profile import PasswordProfile
+    from msgraph.generated.models.on_premises_extension_attributes import OnPremisesExtensionAttributes
     from msgraph.generated.models.user import User
     from msgraph.generated.users.users_request_builder import UsersRequestBuilder
 except ImportError:
@@ -218,6 +283,8 @@ class AzureRMADUser(AzureRMModuleBase):
             account_enabled=dict(type='bool'),
             display_name=dict(type='str'),
             password_profile=dict(type='str', no_log=True),
+            password_force_change=dict(type='bool', no_log=False),
+            password_force_change_mfa=dict(type='bool', no_log=False),
             mail_nickname=dict(type='str'),
             on_premises_immutable_id=dict(type='str', aliases=['immutable_id']),
             usage_location=dict(type='str'),
@@ -225,6 +292,9 @@ class AzureRMADUser(AzureRMModuleBase):
             surname=dict(type='str'),
             user_type=dict(type='str'),
             mail=dict(type='str'),
+            company_name=dict(type='str'),
+            mobile_phone=dict(type='str'),
+            on_premises_extension_attributes=dict(type='dict', aliases=['extension_attributes'])
         )
 
         self.user_principal_name = None
@@ -236,6 +306,8 @@ class AzureRMADUser(AzureRMModuleBase):
         self.account_enabled = None
         self.display_name = None
         self.password_profile = None
+        self.password_force_change = None
+        self.password_force_change_mfa = None
         self.mail_nickname = None
         self.on_premises_immutable_id = None
         self.usage_location = None
@@ -243,6 +315,9 @@ class AzureRMADUser(AzureRMModuleBase):
         self.surname = None
         self.user_type = None
         self.mail = None
+        self.company_name = None
+        self.mobile_phone = None
+        self.on_premises_extension_attributes = None
         self.log_path = None
         self.log_mode = None
 
@@ -272,17 +347,22 @@ class AzureRMADUser(AzureRMModuleBase):
 
             if self.state == 'present':
 
+                extension_attributes = None
+
+                if self.on_premises_extension_attributes:
+                    extension_attributes = OnPremisesExtensionAttributes(
+                        **self.on_premises_extension_attributes
+                    )
+
                 if ad_user:  # Update, changed
 
-                    password = None
-
-                    if self.password_profile:
-                        password = PasswordProfile(
-                            password=self.password_profile,
-                        )
+                    password_profile = PasswordProfile(
+                        password=self.password_profile,
+                        force_change_password_next_sign_in=self.password_force_change,
+                        force_change_password_next_sign_in_with_mfa=self.password_force_change_mfa
+                    )
 
                     should_update = False
-
                     if self.on_premises_immutable_id and ad_user.on_premises_immutable_id != self.on_premises_immutable_id:
                         should_update = True
                     if should_update or self.usage_location and ad_user.usage_location != self.usage_location:
@@ -297,15 +377,26 @@ class AzureRMADUser(AzureRMModuleBase):
                         should_update = True
                     if should_update or self.display_name and ad_user.display_name != self.display_name:
                         should_update = True
-                    if should_update or password:
+                    if should_update or self.password_profile is not None:
+                        should_update = True
+                    if should_update or self.password_force_change is not None:
+                        should_update = True
+                    if should_update or self.password_force_change_mfa is not None:
                         should_update = True
                     if should_update or self.user_principal_name and ad_user.user_principal_name != self.user_principal_name:
                         should_update = True
                     if should_update or self.mail_nickname and ad_user.mail_nickname != self.mail_nickname:
                         should_update = True
-
+                    if should_update or self.mobile_phone and ad_user.mobile_phone != self.mobile_phone:
+                        should_update = True
+                    if should_update or self.company_name and ad_user.company_name != self.company_name:
+                        should_update = True
+                    if should_update or (
+                            self.on_premises_extension_attributes and
+                            self.on_premises_extension_attributes_to_dict(ad_user.on_premises_extension_attributes) != self.on_premises_extension_attributes):
+                        should_update = True
                     if should_update:
-                        asyncio.get_event_loop().run_until_complete(self.update_user(ad_user, password))
+                        asyncio.get_event_loop().run_until_complete(self.update_user(ad_user, password_profile, extension_attributes))
 
                         self.results['changed'] = True
 
@@ -317,7 +408,7 @@ class AzureRMADUser(AzureRMModuleBase):
                         self.results['changed'] = False
 
                 else:  # Create, changed
-                    asyncio.get_event_loop().run_until_complete(self.create_user())
+                    asyncio.get_event_loop().run_until_complete(self.create_user(extension_attributes))
                     self.results['changed'] = True
                     ad_user = self.get_exisiting_user()
 
@@ -373,6 +464,16 @@ class AzureRMADUser(AzureRMModuleBase):
                 raise
         return ad_user
 
+    def on_premises_extension_attributes_to_dict(self, on_premises_extension_attributes):
+        extension_attributes = {}
+        for index in range(1, 16 + 1):
+            attribute_name = f'extension_attribute{index}'
+            if hasattr(on_premises_extension_attributes, attribute_name):
+                attr_value = getattr(on_premises_extension_attributes, attribute_name)
+                if attr_value is not None:
+                    extension_attributes[attribute_name] = attr_value
+        return extension_attributes
+
     def to_dict(self, object):
         return dict(
             object_id=object.id,
@@ -381,10 +482,13 @@ class AzureRMADUser(AzureRMModuleBase):
             mail_nickname=object.mail_nickname,
             mail=object.mail,
             account_enabled=object.account_enabled,
-            user_type=object.user_type
+            user_type=object.user_type,
+            company_name=object.company_name,
+            mobile_phone=object.mobile_phone,
+            on_premises_extension_attributes=self.on_premises_extension_attributes_to_dict(object.on_premises_extension_attributes)
         )
 
-    async def update_user(self, ad_user, password):
+    async def update_user(self, ad_user, password_profile, extension_attributes):
         request_body = User(
             on_premises_immutable_id=self.on_premises_immutable_id,
             usage_location=self.usage_location,
@@ -393,20 +497,25 @@ class AzureRMADUser(AzureRMModuleBase):
             user_type=self.user_type,
             account_enabled=self.account_enabled,
             display_name=self.display_name,
-            password_profile=password,
+            password_profile=password_profile,
             user_principal_name=self.user_principal_name,
-            mail_nickname=self.mail_nickname
+            mail_nickname=self.mail_nickname,
+            company_name=self.company_name,
+            mobile_phone=self.mobile_phone,
+            on_premises_extension_attributes=extension_attributes
         )
         return await self._client.users.by_user_id(ad_user.id).patch(body=request_body)
 
-    async def create_user(self):
-        password = PasswordProfile(
-            password=self.password_profile
+    async def create_user(self, extension_attributes):
+        password_profile = PasswordProfile(
+            password=self.password_profile,
+            force_change_password_next_sign_in=self.password_force_change,
+            force_change_password_next_sign_in_with_mfa=self.password_force_change_mfa
         )
         request_body = User(
             account_enabled=self.account_enabled,
             display_name=self.display_name,
-            password_profile=password,
+            password_profile=password_profile,
             user_principal_name=self.user_principal_name,
             mail_nickname=self.mail_nickname,
             on_premises_immutable_id=self.on_premises_immutable_id,
@@ -414,7 +523,10 @@ class AzureRMADUser(AzureRMModuleBase):
             given_name=self.given_name,
             surname=self.surname,
             user_type=self.user_type,
-            mail=self.mail
+            mail=self.mail,
+            company_name=self.company_name,
+            mobile_phone=self.mobile_phone,
+            on_premises_extension_attributes=extension_attributes
         )
         return await self._client.users.post(body=request_body)
 
@@ -425,7 +537,8 @@ class AzureRMADUser(AzureRMModuleBase):
         request_configuration = UsersRequestBuilder.UsersRequestBuilderGetRequestConfiguration(
             query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
                 select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName", "userType",
-                        "onPremisesImmutableId", "usageLocation", "givenName", "surname"]
+                        "onPremisesImmutableId", "usageLocation", "givenName", "surname", "companyName", "mobilePhone",
+                        "OnPremisesExtensionAttributes"]
             ),
         )
         return await self._client.users.by_user_id(object).get(request_configuration=request_configuration)
@@ -436,7 +549,8 @@ class AzureRMADUser(AzureRMModuleBase):
                 query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
                     filter=filter,
                     select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName",
-                            "userType", "onPremisesImmutableId", "usageLocation", "givenName", "surname"],
+                            "userType", "onPremisesImmutableId", "usageLocation", "givenName", "surname", "companyName", "mobilePhone",
+                            "OnPremisesExtensionAttributes"],
                     count=True
                 ),
                 headers={'ConsistencyLevel': "eventual", }

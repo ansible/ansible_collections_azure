@@ -49,6 +49,7 @@ AZURE_COMMON_ARGS = dict(
     log_path=dict(type='str', no_log=True),
     x509_certificate_path=dict(type='path', no_log=True),
     thumbprint=dict(type='str', no_log=True),
+    disable_instance_discovery=dict(type='bool', default=False),
 )
 
 AZURE_CREDENTIAL_ENV_MAPPING = dict(
@@ -63,7 +64,8 @@ AZURE_CREDENTIAL_ENV_MAPPING = dict(
     cert_validation_mode='AZURE_CERT_VALIDATION_MODE',
     adfs_authority_url='AZURE_ADFS_AUTHORITY_URL',
     x509_certificate_path='AZURE_X509_CERTIFICATE_PATH',
-    thumbprint='AZURE_THUMBPRINT'
+    thumbprint='AZURE_THUMBPRINT',
+    disable_instance_discovery='AZURE_DISABLE_INSTANCE_DISCOVERY'
 )
 
 
@@ -258,6 +260,7 @@ try:
     from azure.mgmt.sql import SqlManagementClient
     from azure.mgmt.servicebus import ServiceBusManagementClient
     from azure.mgmt.rdbms.postgresql import PostgreSQLManagementClient
+    from azure.mgmt.rdbms.postgresql_flexibleservers import PostgreSQLManagementClient as PostgreSQLFlexibleManagementClient
     from azure.mgmt.rdbms.mysql import MySQLManagementClient
     from azure.mgmt.rdbms.mariadb import MariaDBManagementClient
     from azure.mgmt.containerregistry import ContainerRegistryManagementClient
@@ -270,10 +273,12 @@ try:
     from azure.mgmt.iothub import models as IoTHubModels
     from azure.mgmt.resource.locks import ManagementLockClient
     from azure.mgmt.recoveryservicesbackup import RecoveryServicesBackupClient
-    import azure.mgmt.recoveryservicesbackup.models as RecoveryServicesBackupModels
+    try:
+        #  Older versions of the library exposed the modules at the root of the package
+        import azure.mgmt.recoveryservicesbackup.models as RecoveryServicesBackupModels
+    except ImportError:
+        import azure.mgmt.recoveryservicesbackup.activestamp.models as RecoveryServicesBackupModels
     from azure.mgmt.search import SearchManagementClient
-    from azure.mgmt.datalake.store import DataLakeStoreAccountManagementClient
-    import azure.mgmt.datalake.store.models as DataLakeStoreAccountModel
     from azure.mgmt.notificationhubs import NotificationHubsManagementClient
     from azure.mgmt.eventhub import EventHubManagementClient
     from azure.mgmt.datafactory import DataFactoryManagementClient
@@ -430,6 +435,7 @@ class AzureRMModuleBase(object):
         self._mysql_client = None
         self._mariadb_client = None
         self._postgresql_client = None
+        self._postgresql_flexible_client = None
         self._containerregistry_client = None
         self._containerinstance_client = None
         self._containerservice_client = None
@@ -694,8 +700,14 @@ class AzureRMModuleBase(object):
         try:
             self.log("Getting storage account detail")
             account = self.storage_client.storage_accounts.get_properties(resource_group_name=resource_group_name, account_name=storage_account_name)
-            if auth_mode == 'login' and self.azure_auth.credentials.get('credential'):
-                credential = self.azure_auth.credentials['credential']
+            if auth_mode == 'login' and self.azure_auth.credentials.get('credentials'):
+                credential = self.azure_auth.credentials['credentials']
+            elif (auth_mode == 'login' and self.azure_auth.credentials.get('tenant')
+                  and self.azure_auth.credentials.get('client_id')
+                  and self.azure_auth.credentials.get('secret')):
+                credential = client_secret.ClientSecretCredential(tenant_id=self.azure_auth.credentials.get('tenant'),
+                                                                  client_id=self.azure_auth.credentials.get('client_id'),
+                                                                  client_secret=self.azure_auth.credentials.get('secret'))
             else:
                 account_keys = self.storage_client.storage_accounts.list_keys(resource_group_name=resource_group_name, account_name=storage_account_name)
                 credential = account_keys.keys[0].value
@@ -939,11 +951,17 @@ class AzureRMModuleBase(object):
             def _ansible_get_models(self, *arg, **kwarg):
                 return self._ansible_models
 
-            setattr(client, '_ansible_models', importlib.import_module(client_type.__module__).models)
+            try:
+                setattr(client, '_ansible_models', importlib.import_module(client_type.__module__).models)
+            except AttributeError:
+                setattr(client, '_ansible_models', importlib.import_module(client_type.__module__)._models)
             client.models = types.MethodType(_ansible_get_models, client)
 
         if self.azure_auth._cert_validation_mode == 'ignore':
-            client._config.session_configuration_callback = self._validation_ignore_callback
+            if hasattr(client, '_config'):
+                client._config.session_configuration_callback = self._validation_ignore_callback
+            else:
+                client.config.session_configuration_callback = self._validation_ignore_callback
 
         return client
 
@@ -1146,13 +1164,13 @@ class AzureRMModuleBase(object):
         if not self._containerservice_client:
             self._containerservice_client = self.get_mgmt_svc_client(ContainerServiceClient,
                                                                      base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                     api_version='2017-07-01')
+                                                                     api_version='2019-04-01')
         return self._containerservice_client
 
     @property
     def managedcluster_models(self):
         self.log("Getting container service models")
-        return ContainerServiceClient.models('2022-02-01')
+        return ContainerServiceClient.models('2023-03-01')
 
     @property
     def managedcluster_client(self):
@@ -1160,7 +1178,7 @@ class AzureRMModuleBase(object):
         if not self._managedcluster_client:
             self._managedcluster_client = self.get_mgmt_svc_client(ContainerServiceClient,
                                                                    base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                   api_version='2022-02-01')
+                                                                   api_version='2023-03-01')
         return self._managedcluster_client
 
     @property
@@ -1170,6 +1188,14 @@ class AzureRMModuleBase(object):
             self._sql_client = self.get_mgmt_svc_client(SqlManagementClient,
                                                         base_url=self._cloud_environment.endpoints.resource_manager)
         return self._sql_client
+
+    @property
+    def postgresql_flexible_client(self):
+        self.log('Getting PostgreSQL client')
+        if not self._postgresql_flexible_client:
+            self._postgresql_flexible_client = self.get_mgmt_svc_client(PostgreSQLFlexibleManagementClient,
+                                                                        base_url=self._cloud_environment.endpoints.resource_manager)
+        return self._postgresql_flexible_client
 
     @property
     def postgresql_client(self):
@@ -1301,7 +1327,7 @@ class AzureRMModuleBase(object):
         self.log('Getting iothub client')
         if not self._IoThub_client:
             self._IoThub_client = self.get_mgmt_svc_client(IotHubClient,
-                                                           api_version='2018-04-01',
+                                                           api_version='2023-06-30-preview',
                                                            base_url=self._cloud_environment.endpoints.resource_manager)
         return self._IoThub_client
 
@@ -1343,19 +1369,6 @@ class AzureRMModuleBase(object):
                                                            base_url=self._cloud_environment.endpoints.resource_manager,
                                                            api_version='2020-08-01')
         return self._search_client
-
-    @property
-    def datalake_store_client(self):
-        self.log('Getting datalake store client...')
-        if not self._datalake_store_client:
-            self._datalake_store_client = self.get_mgmt_svc_client(DataLakeStoreAccountManagementClient,
-                                                                   base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                   api_version='2016-11-01')
-        return self._datalake_store_client
-
-    @property
-    def datalake_store_models(self):
-        return DataLakeStoreAccountModel
 
     @property
     def notification_hub_client(self):
@@ -1401,7 +1414,8 @@ class AzureRMAuth(object):
     def __init__(self, auth_source=None, profile=None, subscription_id=None, client_id=None, secret=None,
                  tenant=None, ad_user=None, password=None, cloud_environment='AzureCloud', cert_validation_mode='validate',
                  api_profile='latest', adfs_authority_url=None, fail_impl=None, is_ad_resource=False,
-                 x509_certificate_path=None, thumbprint=None, track1_cred=False, **kwargs):
+                 x509_certificate_path=None, thumbprint=None, track1_cred=False,
+                 disable_instance_discovery=False, **kwargs):
 
         if fail_impl:
             self._fail_impl = fail_impl
@@ -1424,7 +1438,8 @@ class AzureRMAuth(object):
             api_profile=api_profile,
             adfs_authority_url=adfs_authority_url,
             x509_certificate_path=x509_certificate_path,
-            thumbprint=thumbprint)
+            thumbprint=thumbprint,
+            disable_instance_discovery=disable_instance_discovery)
 
         if not self.credentials:
             if HAS_AZURE_CLI_CORE:
@@ -1442,6 +1457,12 @@ class AzureRMAuth(object):
 
         if self._cert_validation_mode not in ['validate', 'ignore']:
             self.fail('invalid cert_validation_mode: {0}'.format(self._cert_validation_mode))
+
+        # Disable instance discovery: module-arg, credential profile, env, "False"
+        self._disable_instance_discovery = disable_instance_discovery or \
+            self.credentials.get('disable_instance_discovery') or \
+            self._get_env('disable_instance_discovery') or \
+            False
 
         # if cloud_environment specified, look up/build Cloud object
         raw_cloud_env = self.credentials.get('cloud_environment')
@@ -1490,7 +1511,8 @@ class AzureRMAuth(object):
             self.azure_credential_track2 = client_secret.ClientSecretCredential(client_id=self.credentials['client_id'],
                                                                                 client_secret=self.credentials['secret'],
                                                                                 tenant_id=self.credentials['tenant'],
-                                                                                authority=self._adfs_authority_url)
+                                                                                authority=self._adfs_authority_url,
+                                                                                disable_instance_discovery=self._disable_instance_discovery)
 
         elif self.credentials.get('client_id') is not None and \
                 self.credentials.get('tenant') is not None and \
@@ -1499,7 +1521,8 @@ class AzureRMAuth(object):
             self.azure_credential_track2 = certificate.CertificateCredential(tenant_id=self.credentials['tenant'],
                                                                              client_id=self.credentials['client_id'],
                                                                              certificate_path=self.credentials['x509_certificate_path'],
-                                                                             authority=self._adfs_authority_url)
+                                                                             authority=self._adfs_authority_url,
+                                                                             disable_instance_discovery=self._disable_instance_discovery)
 
         elif self.credentials.get('ad_user') is not None and \
                 self.credentials.get('password') is not None and \
@@ -1509,17 +1532,19 @@ class AzureRMAuth(object):
                                                                                     password=self.credentials['password'],
                                                                                     tenant_id=self.credentials.get('tenant'),
                                                                                     client_id=self.credentials.get('client_id'),
-                                                                                    authority=self._adfs_authority_url)
+                                                                                    authority=self._adfs_authority_url,
+                                                                                    disable_instance_discovery=self._disable_instance_discovery)
 
         elif self.credentials.get('ad_user') is not None and self.credentials.get('password') is not None:
-            client_id = self.credentialss.get('client_id')
+            client_id = self.credentials.get('client_id')
             if client_id is None:
                 client_id = '04b07795-8ddb-461a-bbee-02f9e1bf7b46'
             self.azure_credential_track2 = user_password.UsernamePasswordCredential(username=self.credentials['ad_user'],
                                                                                     password=self.credentials['password'],
                                                                                     tenant_id=self.credentials.get('tenant', 'organizations'),
                                                                                     client_id=client_id,
-                                                                                    authority=self._adfs_authority_url)
+                                                                                    authority=self._adfs_authority_url,
+                                                                                    disable_instance_discovery=self._disable_instance_discovery)
 
         else:
             self.fail("Failed to authenticate with provided credentials. Some attributes were missing. "
@@ -1578,6 +1603,7 @@ class AzureRMAuth(object):
                 except Exception as exc:
                     self.fail("cloud_environment {0} could not be resolved: {1}".format(_cloud_environment, str(exc)), exception=traceback.format_exc())
 
+        client_id = client_id or self._get_env('client_id')
         credential = managed_identity.ManagedIdentityCredential(client_id=client_id, cloud_environment=cloud_environment)
         subscription_id = subscription_id or self._get_env('subscription_id')
         if not subscription_id:

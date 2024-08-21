@@ -146,40 +146,127 @@ options:
     optional_claims:
         description:
             - Declare the optional claims for the application.
-        type: list
-        elements: dict
+        type: dict
         suboptions:
-            name:
+            access_token_claims :
                 description:
-                    - The name of the optional claim.
-                type: str
-                required: True
-            source:
+                    - The optional claims returned in the JWT access token
+                type: list
+                elements: dict
+                suboptions:
+                    name:
+                        description:
+                            - The name of the optional claim.
+                        type: str
+                        required: True
+                    source:
+                        description:
+                            - The source (directory object) of the claim.
+                            - There are predefined claims and user-defined claims from extension properties.
+                            - If the source value is null, the claim is a predefined optional claim.
+                            - If the source value is user, the value in the name property is the extension property from the user object.
+                        type: str
+                    essential:
+                        description:
+                            - If the value is true, the claim specified by the client is necessary to ensure a smooth authorization experience\
+                               for the specific task requested by the end user.
+                            - The default value is false.
+                        default: false
+                        type: bool
+                    additional_properties:
+                        description:
+                            - Additional properties of the claim.
+                            - If a property exists in this collection, it modifies the behavior of the optional claim specified in the name property.
+                        type: list
+                        elements: str
+            id_token_claims:
                 description:
-                    - The source (directory object) of the claim.
-                    - There are predefined claims and user-defined claims from extension properties.
-                    - If the source value is null, the claim is a predefined optional claim.
-                    - If the source value is user, the value in the name property is the extension property from the user object.
-                type: str
-            essential:
+                    - The optional claims returned in the JWT ID token
+                type: list
+                elements: dict
+                suboptions:
+                    name:
+                        description:
+                            - The name of the optional claim.
+                        type: str
+                        required: True
+                    source:
+                        description:
+                            - The source (directory object) of the claim.
+                            - There are predefined claims and user-defined claims from extension properties.
+                            - If the source value is null, the claim is a predefined optional claim.
+                            - If the source value is user, the value in the name property is the extension property from the user object.
+                        type: str
+                    essential:
+                        description:
+                            - If the value is true, the claim specified by the client is necessary to ensure a smooth authorization experience\
+                               for the specific task requested by the end user.
+                            - The default value is false.
+                        default: false
+                        type: bool
+                    additional_properties:
+                        description:
+                            - Additional properties of the claim.
+                            - If a property exists in this collection, it modifies the behavior of the optional claim specified in the name property.
+                        type: list
+                        elements: str
+            saml2_token_claims:
                 description:
-                    - If the value is true, the claim specified by the client is necessary to ensure a smooth authorization experience
-                      for the specific task requested by the end user.
-                    - The default value is false.
-                default: false
-                type: bool
-            additional_properties:
-                description:
-                    - Additional properties of the claim.
-                    - If a property exists in this collection, it modifies the behavior of the optional claim specified in the name property.
-                type: str
+                    - The optional claims returned in the SAML token
+                type: list
+                elements: dict
+                suboptions:
+                    name:
+                        description:
+                            - The name of the optional claim.
+                        type: str
+                        required: True
+                    source:
+                        description:
+                            - The source (directory object) of the claim.
+                            - There are predefined claims and user-defined claims from extension properties.
+                            - If the source value is null, the claim is a predefined optional claim.
+                            - If the source value is user, the value in the name property is the extension property rom the user object.
+                        type: str
+                    essential:
+                        description:
+                            - If the value is true, the claim specified by the client is necessary to ensure a smooth authorization experience\
+                               for the specific task requested by the end user.
+                            - The default value is false.
+                        default: false
+                        type: bool
+                    additional_properties:
+                        description:
+                            - Additional properties of the claim.
+                            - If a property exists in this collection, it modifies the behavior of the optional claim specified in the name property.
+                        type: list
+                        elements: str
     password:
         description:
             - App password, aka 'client secret'.
         type: str
 
-    reply_urls:
+    web_reply_urls:
         description:
+            - The web redirect urls.
+            - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
+            - The value does not need to be a physical endpoint, but must be a valid URI.
+        type: list
+        elements: str
+        aliases:
+            - reply_urls
+
+    spa_reply_urls:
+        description:
+            - The spa redirect urls.
+            - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
+            - The value does not need to be a physical endpoint, but must be a valid URI.
+        type: list
+        elements: str
+
+    public_client_reply_urls:
+        description:
+            - The public client redirect urls.
             - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
             - The value does not need to be a physical endpoint, but must be a valid URI.
         type: list
@@ -246,6 +333,18 @@ EXAMPLES = '''
   azure_rm_adapplication:
     display_name: "{{ display_name }}"
 
+- name: Create ad application with multi redirect urls
+  azure_rm_adapplication:
+    display_name: "{{ display_name }}"
+    web_reply_urls:
+      - https://web01.com
+    spa_reply_urls:
+      - https://spa01.com
+      - https://spa02.com
+    public_client_reply_urls:
+      - https://public01.com
+      - https://public02.com
+
 - name: Create application with more parameter
   azure_rm_adapplication:
     display_name: "{{ display_name }}"
@@ -262,72 +361,99 @@ EXAMPLES = '''
 '''
 
 RETURN = '''
-output:
+display_name:
     description:
-        - Current state of the adapplication.
+        - Object's display name or its prefix.
+    type: str
+    returned: always
+    sample: fredAKSCluster
+app_id:
+    description:
+        - The application ID.
+    returned: always
+    type: str
+    sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+object_id:
+    description:
+        - Object ID of the application
+    returned: always
+    type: str
+    sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+sign_in_audience:
+    description:
+        - The application can be used from any Azure AD tenants.
+    returned: always
+    type: str
+    sample: AzureADandPersonalMicrosoftAccount
+available_to_other_tenants:
+    description:
+        - The application can be used from any Azure AD tenants.
+    returned: always
+    type: str
+    sample: AzureADandPersonalMicrosoftAccount
+homepage:
+    description:
+        - The url where users can sign in and use your app.
+    returned: always
+    type: str
+    sample: null
+identifier_uris:
+    description:
+        - Space-separated unique URIs that Azure AD can use for this app.
+    returned: always
+    type: list
+    sample: []
+oauth2_allow_implicit_flow:
+    description:
+        - Whether to allow implicit grant flow for OAuth2.
+    returned: always
+    type: bool
+    sample: false
+public_client_reply_urls:
+    description:
+        - The public client redirect urls.
+        - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
+    returned: always
+    type: list
+    sample: []
+web_reply_urls:
+    description:
+        - The web redirect urls.
+        - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
+    returned: always
+    type: list
+    sample: []
+spa_reply_urls:
+    description:
+        - The spa redirect urls.
+        - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
+    returned: always
+    type: list
+    sample: []
+optional_claims:
+    description:
+        - Declare the optional claims for the application.
     type: complex
-    returned: awalys
+    returned: always
     contains:
-        display_name:
+        access_token_claims :
             description:
-                - Object's display name or its prefix.
-            type: str
-            returned: always
-            sample: fredAKSCluster
-        app_id:
-            description:
-                - The application ID.
-            returned: always
-            type: str
-            sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        object_id:
-            description:
-                - Object ID of the application
-            returned: always
-            type: str
-            sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        sign_in_audience:
-            description:
-                - The application can be used from any Azure AD tenants.
-            returned: always
-            type: str
-            sample: AzureADandPersonalMicrosoftAccount
-        available_to_other_tenants:
-            description:
-                - The application can be used from any Azure AD tenants.
-            returned: always
-            type: str
-            sample: AzureADandPersonalMicrosoftAccount
-        homepage:
-            description:
-                - The url where users can sign in and use your app.
-            returned: always
-            type: str
-            sample: null
-        identifier_uris:
-            description:
-                - Space-separated unique URIs that Azure AD can use for this app.
-            returned: always
+                - The optional claims returned in the JWT access token
             type: list
-            sample: []
-        oauth2_allow_implicit_flow:
-            description:
-                - Whether to allow implicit grant flow for OAuth2.
             returned: always
-            type: bool
-            sample: false
-        optional_claims:
+            sample: ['name': 'aud', 'source': null, 'essential': false, 'additional_properties': []]
+        id_token_claims:
             description:
-                - The optional claims for the application.
-            returned: always
+                - The optional claims returned in the JWT ID token
             type: list
-            sample: []
-        reply_urls:
-            description:
-                - Space-separated URIs to which Azure AD will redirect in response to an OAuth 2.0 request.
             returned: always
+            sample: ['name': 'acct', 'source': null, 'essential': false, 'additional_properties': []]
+        saml2_token_claims:
+            description:
+                - The optional claims returned in the SAML token
             type: list
-            sample: []
+            returned: always
+            sample: ['name': 'acct', 'source': null, 'essential': false, 'additional_properties': []]
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
@@ -346,7 +472,11 @@ try:
     from msgraph.generated.models.resource_access import ResourceAccess
     from msgraph.generated.models.app_role import AppRole
     from msgraph.generated.models.web_application import WebApplication
+    from msgraph.generated.models.spa_application import SpaApplication
+    from msgraph.generated.models.public_client_application import PublicClientApplication
     from msgraph.generated.models.implicit_grant_settings import ImplicitGrantSettings
+    from msgraph.generated.models.optional_claim import OptionalClaim
+    from msgraph.generated.models.optional_claims import OptionalClaims
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -371,7 +501,7 @@ app_role_spec = dict(
     )
 )
 
-optional_claims_spec = dict(
+claims_spec = dict(
     name=dict(
         type='str',
         required=True
@@ -384,9 +514,11 @@ optional_claims_spec = dict(
         default=False
     ),
     additional_properties=dict(
-        type='str'
+        type='list',
+        elements='str'
     )
 )
+
 required_resource_accesses_spec = dict(
     resource_app_id=dict(
         type='str'
@@ -433,9 +565,18 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
             key_value=dict(type='str', no_log=True),
             native_app=dict(type='bool'),
             oauth2_allow_implicit_flow=dict(type='bool'),
-            optional_claims=dict(type='list', elements='dict', options=optional_claims_spec),
+            optional_claims=dict(
+                type='dict',
+                options=dict(
+                    access_token_claims=dict(type='list', elements='dict', no_log=True, options=claims_spec),
+                    id_token_claims=dict(type='list', elements='dict', no_log=True, options=claims_spec),
+                    saml2_token_claims=dict(type='list', elements='dict', no_log=True, options=claims_spec),
+                )
+            ),
             password=dict(type='str', no_log=True),
-            reply_urls=dict(type='list', elements='str'),
+            public_client_reply_urls=dict(type='list', elements='str'),
+            web_reply_urls=dict(type='list', elements='str', aliases=['reply_urls']),
+            spa_reply_urls=dict(type='list', elements='str'),
             start_date=dict(type='str'),
             required_resource_accesses=dict(type='list', elements='dict', options=required_resource_accesses_spec),
             state=dict(type='str', default='present', choices=['present', 'absent']),
@@ -457,7 +598,9 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
         self.oauth2_allow_implicit_flow = None
         self.optional_claims = None
         self.password = None
-        self.reply_urls = None
+        self.public_client_reply_urls = None
+        self.spa_reply_urls = None
+        self.web_reply_urls = None
         self.start_date = None
         self.required_resource_accesses = None
         self.allow_guests_sign_in = None
@@ -507,22 +650,27 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
             if self.app_roles:
                 app_roles = self.build_app_roles(self.app_roles)
 
+            if self.optional_claims:
+                optional_claims = self.build_optional_claims(self.optional_claims)
+
             create_app = Application(
                 sign_in_audience=self.sign_in_audience,
                 web=WebApplication(
                     home_page_url=self.homepage,
-                    redirect_uris=self.reply_urls,
+                    redirect_uris=self.web_reply_urls,
                     implicit_grant_settings=ImplicitGrantSettings(
                         enable_access_token_issuance=self.oauth2_allow_implicit_flow,
                     ),
                 ),
+                spa=SpaApplication(redirect_uris=self.spa_reply_urls),
+                public_client=PublicClientApplication(redirect_uris=self.public_client_reply_urls),
                 display_name=self.display_name,
                 identifier_uris=self.identifier_uris,
                 key_credentials=key_creds,
                 password_credentials=password_creds,
                 required_resource_access=required_accesses,
                 app_roles=app_roles,
-                optional_claims=self.optional_claims
+                optional_claims=optional_claims
                 # allow_guests_sign_in=self.allow_guests_sign_in,
             )
             response = asyncio.get_event_loop().run_until_complete(self.create_application(create_app))
@@ -549,15 +697,20 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
             if self.app_roles:
                 app_roles = self.build_app_roles(self.app_roles)
 
+            if self.optional_claims:
+                optional_claims = self.build_optional_claims(self.optional_claims)
+
             app_update_param = Application(
                 sign_in_audience=self.sign_in_audience,
                 web=WebApplication(
                     home_page_url=self.homepage,
-                    redirect_uris=self.reply_urls,
+                    redirect_uris=self.web_reply_urls,
                     implicit_grant_settings=ImplicitGrantSettings(
                         enable_access_token_issuance=self.oauth2_allow_implicit_flow,
                     ),
                 ),
+                spa=SpaApplication(redirect_uris=self.spa_reply_urls),
+                public_client=PublicClientApplication(redirect_uris=self.public_client_reply_urls),
                 display_name=self.display_name,
                 identifier_uris=self.identifier_uris,
                 key_credentials=key_creds,
@@ -565,7 +718,7 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
                 required_resource_access=required_accesses,
                 # allow_guests_sign_in=self.allow_guests_sign_in,
                 app_roles=app_roles,
-                optional_claims=self.optional_claims)
+                optional_claims=optional_claims)
             asyncio.get_event_loop().run_until_complete(self.update_application(
                 obj_id=old_response['object_id'], update_app=app_update_param))
 
@@ -609,6 +762,15 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
                     return True
         return False
 
+    def serialize_claims(self, claims):
+        if claims is None:
+            return None
+        return [{
+            "additional_properties": claim.additional_properties,
+            "essential": claim.essential,
+            "name": claim.name,
+            "source": claim.source} for claim in claims]
+
     def to_dict(self, object):
         app_roles = [{
             'id': app_role.id,
@@ -617,6 +779,11 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
             'value': app_role.value,
             "description": app_role.description
         } for app_role in object.app_roles]
+        optional_claims = {
+            "access_token": self.serialize_claims(object.optional_claims.access_token),
+            "id_token": self.serialize_claims(object.optional_claims.id_token),
+            "saml2_token": self.serialize_claims(object.optional_claims.saml2_token)
+        } if object.optional_claims is not None else object.optional_claims
         return dict(
             app_id=object.app_id,
             object_id=object.id,
@@ -627,9 +794,11 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
             homepage=object.web.home_page_url,
             identifier_uris=object.identifier_uris,
             oauth2_allow_implicit_flow=object.web.implicit_grant_settings.enable_access_token_issuance,
-            optional_claims=object.optional_claims,
+            optional_claims=optional_claims,
             # allow_guests_sign_in=object.allow_guests_sign_in,
-            reply_urls=object.web.redirect_uris
+            web_reply_urls=object.web.redirect_uris,
+            spa_reply_urls=object.spa.redirect_uris,
+            public_client_reply_urls=object.public_client.redirect_uris
         )
 
     def build_application_creds(self, password=None, key_value=None, key_type=None, key_usage=None,
@@ -703,6 +872,25 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
                            is_enabled=x.get('is_enabled', None), value=x.get('value', None))  # value ? additional_data
             result.append(role)
         return result
+
+    def build_optional_claims(self, optional_claims):
+
+        def build_claims(claims_dict):
+            if claims_dict is None:
+                return None
+            return [OptionalClaim(
+                essential=claim.get("essential"),
+                name=claim.get("name"),
+                source=claim.get("source"),
+                additional_properties=claim.get("additional_properties")
+            ) for claim in claims_dict]
+
+        claims = OptionalClaims(
+            access_token=build_claims(optional_claims.get("access_token_claims")),
+            id_token=build_claims(optional_claims.get("id_token_claims")),
+            saml2_token=build_claims(optional_claims.get("saml2_token_claims"))
+        )
+        return claims
 
     async def create_application(self, creat_app):
         return await self._client.applications.post(body=creat_app)

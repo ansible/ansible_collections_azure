@@ -138,6 +138,25 @@ storageaccounts:
             returned: always
             type: str
             sample: Standard_ZRS
+        allow_cross_tenant_replication:
+            description:
+                - Allow or disallow cross AAD tenant object replication.
+            type: bool
+            returned: always
+            sample: true
+        allow_shared_key_access:
+            description:
+                - Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
+            type: bool
+            returned: always
+            sample: true
+        default_to_o_auth_authentication:
+            description:
+                - A boolean flag which indicates whether the default authentication is OAuth or not.
+                - The default interpretation is false for this property.
+            type: bool
+            returned: always
+            sample: true
         custom_domain:
             description:
                 - User domain assigned to the storage account.
@@ -688,6 +707,9 @@ class AzureRMStorageAccountInfo(AzureRMModuleBase):
             is_hns_enabled=account_obj.is_hns_enabled if account_obj.is_hns_enabled else False,
             large_file_shares_state=account_obj.large_file_shares_state,
             enable_nfs_v3=account_obj.enable_nfs_v3 if hasattr(account_obj, 'enable_nfs_v3') else None,
+            allow_cross_tenant_replication=account_obj.allow_cross_tenant_replication,
+            allow_shared_key_access=account_obj.allow_shared_key_access,
+            default_to_o_auth_authentication=account_obj.default_to_o_auth_authentication,
             static_website=dict(
                 enabled=False,
                 index_document=None,
@@ -787,6 +809,11 @@ class AzureRMStorageAccountInfo(AzureRMModuleBase):
                     account_dict['encryption']['services']['queue'] = dict(enabled=True)
                 if account_obj.encryption.services.blob:
                     account_dict['encryption']['services']['blob'] = dict(enabled=True)
+
+        account_dict['identity'] = dict()
+        if account_obj.identity:
+            account_dict['identity'] = account_obj.identity.as_dict()
+
         return account_dict
 
     def format_endpoint_dict(self, name, key, endpoint, storagetype, protocol='https'):

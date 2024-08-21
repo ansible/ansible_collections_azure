@@ -1,7 +1,31 @@
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
 - name: Fix resource prefix
   ansible.builtin.set_fact:
     name_rpfx: "revault{{ resource_group | hash('md5') | truncate(22, True, '') }}"
-    location: "eastus"
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-recoveryvault-identity"
+    - "ansible-test-recoveryvault-identity-2"
+
+- name: Set identities IDs to test. Identities ansible-test-recoveryvault-identity and ansible-test-recoveryvault-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-recoveryvault-identity"
+    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-recoveryvault-identity-2"
 
 - name: Create Azure Recovery Service vault
   azure_rm_recoveryservicesvault:
@@ -9,6 +33,8 @@
     name: "{{ name_rpfx }}"
     location: "{{ location }}"
     state: "present"
+    identity:
+      type: SystemAssigned
   register: output
 
 - name: Assert that output has changed
@@ -22,6 +48,82 @@
     name: "{{ name_rpfx }}"
     location: "{{ location }}"
     state: "present"
+    identity:
+      type: SystemAssigned
+  register: output
+
+- name: Assert that output has no changed
+  ansible.builtin.assert:
+    that:
+      - not output.changed
+
+- name: Update Azure Recovery Service vault with UserAssigned
+  azure_rm_recoveryservicesvault:
+    resource_group: "{{ resource_group }}"
+    name: "{{ name_rpfx }}"
+    location: "{{ location }}"
+    state: "present"
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+  register: output
+
+- name: Assert that output has changed
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Update Azure Recovery Service vault with UserAssignd (idempotent)
+  azure_rm_recoveryservicesvault:
+    resource_group: "{{ resource_group }}"
+    name: "{{ name_rpfx }}"
+    location: "{{ location }}"
+    state: "present"
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+  register: output
+
+- name: Assert that output has no changed
+  ansible.builtin.assert:
+    that:
+      - not output.changed
+
+- name: Update Azure Recovery Service vault with UserAssigned X2
+  azure_rm_recoveryservicesvault:
+    resource_group: "{{ resource_group }}"
+    name: "{{ name_rpfx }}"
+    location: "{{ location }}"
+    state: "present"
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+          - "{{ user_identity_2 }}"
+  register: output
+
+- name: Assert that output has changed
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Update Azure Recovery Service vault with UserAssignd X2 (idempotent)
+  azure_rm_recoveryservicesvault:
+    resource_group: "{{ resource_group }}"
+    name: "{{ name_rpfx }}"
+    location: "{{ location }}"
+    state: "present"
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+          - "{{ user_identity_2 }}"
   register: output
 
 - name: Assert that output has no changed
@@ -53,3 +155,15 @@
   ansible.builtin.assert:
     that:
       - output.changed
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-recoveryvault-identity"
+    - "ansible-test-recoveryvault-identity-2"

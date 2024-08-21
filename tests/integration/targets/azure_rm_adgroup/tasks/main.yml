@@ -15,6 +15,7 @@
   azure_rm_adgroup:
     display_name: "{{ resource_prefix }}-Group-Root"
     mail_nickname: "{{ resource_prefix }}-Group-Root"
+    description: 'for test'
     state: 'present'
   register: group_create_changed_shouldpass
 
@@ -22,6 +23,7 @@
   azure_rm_adgroup:
     display_name: "{{ resource_prefix }}-Group-Root"
     mail_nickname: "{{ resource_prefix }}-Group-Root"
+    description: 'for test'
     state: 'present'
   register: group_create_unchanged_shouldpass
 
@@ -45,6 +47,7 @@
   ansible.builtin.assert:
     that:
       - get_created_object_id_shouldpass.ad_groups[0].object_id == group_create_unchanged_shouldpass.object_id
+      - get_created_object_id_shouldpass.ad_groups[0].description == 'for test'
 
 - name: Create Group Member 1
   azure_rm_adgroup:
@@ -66,8 +69,8 @@
     mail_nickname: "{{ resource_prefix }}-Group-Root"
     state: 'present'
     present_members:
-      - "https://graph.windows.net/{{ tenant_id }}/directoryObjects/{{ create_pass_first.object_id }}"
-      - "https://graph.windows.net/{{ tenant_id }}/directoryObjects/{{ create_pass_second.object_id }}"
+      - "{{ create_pass_first.object_id }}"
+      - "{{ create_pass_second.object_id }}"
   register: add_pass
 
 - name: Validate members are in the group
@@ -81,7 +84,7 @@
     object_id: "{{ group_create_changed_shouldpass.object_id }}"
     state: 'present'
     present_members:
-      - "https://graph.windows.net/{{ tenant_id }}/directoryObjects/{{ create_pass_first.object_id }}"
+      - "{{ create_pass_first.object_id }}"
   register: add_already_present_member_to_group_shouldpass
 
 - name: Validate nothing changed from already present member
@@ -186,7 +189,7 @@
     object_id: "{{ group_create_unchanged_shouldpass.object_id }}"
   register: get_deleted_object_group_root_shouldfail
   failed_when:
-    - '"failed to get ad group info Resource" not in get_deleted_object_group_root_shouldfail.msg'
+    - '"does not exist or one of its queried" not in get_deleted_object_group_root_shouldfail.msg'
 
 - name: Delete group Group Member 1 on object_id
   azure_rm_adgroup:
@@ -199,7 +202,7 @@
     object_id: "{{ create_pass_first.object_id }}"
   register: get_deleted_object_group_member_1_shouldfail
   failed_when:
-    - '"failed to get ad group info Resource" not in get_deleted_object_group_member_1_shouldfail.msg'
+    - '"does not exist or one of its queried" not in get_deleted_object_group_member_1_shouldfail.msg'
 
 - name: Delete group Group Member 2 on object_id
   azure_rm_adgroup:
@@ -212,4 +215,4 @@
     object_id: "{{ create_pass_second.object_id }}"
   register: get_deleted_object_group_member_2_shouldfail
   failed_when:
-    - '"failed to get ad group info Resource" not in get_deleted_object_group_member_2_shouldfail.msg'
+    - '"does not exist or one of its queried" not in get_deleted_object_group_member_2_shouldfail.msg'

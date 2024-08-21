@@ -13,7 +13,7 @@ It is recommended to run ansible in [Virtualenv](https://virtualenv.pypa.io/en/l
 
 ## Requirements
 
-- ansible version >= 2.14
+- ansible version >= 2.15
 
 To install Azure collection hosted in Galaxy:
 
@@ -24,7 +24,7 @@ ansible-galaxy collection install azure.azcollection
 Install dependencies required by the collection (adjust path to collection if necessary):
 
 ```bash
-pip3 install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
+pip3 install -r ~/.ansible/collections/ansible_collections/azure/azcollection/requirements.txt
 ```
 
 To upgrade to the latest version of Azure collection:

@@ -95,7 +95,7 @@ class AzureRMAccessToken(AzureRMModuleBase):
         super(AzureRMAccessToken, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                  supports_check_mode=True,
                                                  supports_tags=False,
-                                                 is_ad_resource=False)
+                                                 is_ad_resource=True)
 
     def exec_module(self, **kwargs):
         for key in list(self.module_arg_spec.keys()):

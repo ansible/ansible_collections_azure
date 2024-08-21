@@ -13,6 +13,10 @@ all:
       network: 10.42.2.0/24
       subnet: 10.42.2.0/28
 
+    azure_test_skus:
+      network: 10.42.3.0/24
+      subnet: 10.42.3.0/28
+
     azure_test_minimal:
       network: 10.42.3.0/24
       subnet: 10.42.3.0/28

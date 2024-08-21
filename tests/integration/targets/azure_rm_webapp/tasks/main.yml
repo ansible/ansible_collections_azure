@@ -3,14 +3,39 @@
     resource_prefix: "{{ resource_group_secondary | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
   run_once: true
 
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
 - name: Fix resource prefix
   ansible.builtin.set_fact:
-    linux_app_plan_resource_group: "{{ resource_group_secondary }}"
+    linux_app_plan_resource_group: "{{ resource_group_third }}"
     win_app_name: "{{ (resource_prefix | replace('-', 'x'))[-8:] }}{{ 1000 | random }}winapp"
     linux_app_name: "{{ (resource_prefix | replace('-', 'x'))[-8:] }}{{ 1000 | random }}linuxapp"
     win_plan_name: "{{ (resource_prefix | replace('-', 'x'))[-8:] }}winplan"
     linux_plan_name: "{{ (resource_group_secondary | replace('-', 'x'))[-8:] }}linplan"
     slot1_name: "stage1"
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-webapp-identity"
+    - "ansible-test-webapp-identity-2"
+
+- name: Set identities IDs to test. Identities ansible-test-webapp-identity and ansible-test-webapp-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-webapp-identity"
+    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-webapp-identity-2"
 
 - name: Create a windows web app with non-exist app service plan
   azure_rm_webapp:
@@ -83,7 +108,7 @@
     plan: "{{ win_plan_name }}"
     frameworks:
       - name: "java"
-        version: "1.8"
+        version: "17"
         settings:
           java_container: "Tomcat"
           java_container_version: "8.0"
@@ -115,7 +140,7 @@
     plan: "{{ win_plan_name }}"
     frameworks:
       - name: "java"
-        version: "1.7"
+        version: "17"
         settings:
           java_container: "Tomcat"
           java_container_version: "8.5"
@@ -189,6 +214,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}6"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -207,6 +233,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}7"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -225,24 +252,26 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
     frameworks:
       - name: node
-        version: "6.6"
+        version: "18"
   register: output
 
 - name: Should be idempotent with linux web app created
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
     frameworks:
       - name: node
-        version: "6.6"
+        version: "18"
   register: output
 
 - name: Assert idempotent
@@ -253,12 +282,13 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
     frameworks:
       - name: node
-        version: "6.9"
+        version: "20"
   register: output
 
 - name: Assert the web app was created
@@ -269,6 +299,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}10"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -300,9 +331,9 @@
     plan: "{{ win_plan_name }}"
     frameworks:
       - name: "python"
-        version: "2.7"
+        version: "3.11"
       - name: "java"
-        version: "1.8"
+        version: "17"
   register: fail_win_java_version_mutual_exclusive
   failed_when: 'fail_win_java_version_mutual_exclusive.msg != "Java is mutually exclusive with other frameworks."'
 
@@ -310,14 +341,15 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ linux_plan_name }}12"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
     frameworks:
       - name: "python"
-        version: "2.7"
+        version: "3.11"
       - name: "node"
-        version: "6.6"
+        version: "18"
   register: fail_linux_one_framework_only
   failed_when: fail_linux_one_framework_only.msg != "Can specify one framework only for Linux web app."
 
@@ -325,6 +357,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}13"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -356,6 +389,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -381,6 +415,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -419,6 +454,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -457,6 +493,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -483,6 +520,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -522,6 +560,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
+    location: westus2
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -557,11 +596,211 @@
       - facts.webapps[0].ftps_state == 'Disabled'
       - not facts.webapps[0].http20_enabled
 
+- name: Create a windows web app with site_auth_settings
+  azure_rm_webapp:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-auth"
+    plan:
+      resource_group: "{{ resource_group }}"
+      name: "{{ win_plan_name }}-auth"
+      is_linux: false
+      sku: S1
+    site_auth_settings:
+      client_id: "{{ azure_client_id }}"
+      default_provider: 'MicrosoftAccount'
+      runtime_version: '-2'
+      token_refresh_extension_hours: 90
+      unauthenticated_client_action: 'RedirectToLoginPage'
+      client_secret: "{{ azure_secret }}"
+      token_store_enabled: true
+      is_auth_from_file: false
+      enabled: false
+  register: output
+
+- name: Assert the web app is well created
+  ansible.builtin.assert:
+    that:
+      output.changed
+
+- name: Update the web app with site_auth_settings
+  azure_rm_webapp:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-auth"
+    plan:
+      resource_group: "{{ resource_group }}"
+      name: "{{ win_plan_name }}-auth"
+      is_linux: false
+      sku: S1
+    site_auth_settings:
+      client_id: "{{ azure_client_id }}"
+      default_provider: 'MicrosoftAccount'
+      runtime_version: '-3'
+      token_refresh_extension_hours: 100
+      unauthenticated_client_action: 'RedirectToLoginPage'
+      client_secret: "{{ azure_secret }}"
+      token_store_enabled: false
+      is_auth_from_file: false
+      enabled: true
+  register: output
+
+- name: Assert the web app is well updated
+  ansible.builtin.assert:
+    that:
+      output.changed
+
+- name: Get the web app facts
+  azure_rm_webapp_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-auth"
+  register: output
+
+- name: Assert the web app facts
+  ansible.builtin.assert:
+    that:
+      - output.webapps[0].site_auth_settings.enabled is true
+      - output.webapps[0].site_auth_settings.is_auth_from_file == 'false'
+      - output.webapps[0].site_auth_settings.runtime_version == '-3'
+      - output.webapps[0].site_auth_settings.token_refresh_extension_hours == 100.0
+      - output.webapps[0].site_auth_settings.token_store_enabled is false
+      - output.webapps[0].site_auth_settings.unauthenticated_client_action == 'RedirectToLoginPage'
+
+- name: Create a windows web app with UserAssigned Identity
+  azure_rm_webapp:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-identity"
+    plan:
+      resource_group: "{{ resource_group }}"
+      name: "{{ win_plan_name }}-identity"
+      is_linux: false
+      sku: S1
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+  register: output
+
+- name: Assert the web app is well updated
+  ansible.builtin.assert:
+    that:
+      output.changed
+
+- name: Get the web app facts
+  azure_rm_webapp_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-identity"
+  register: output
+
+- name: Assert the web app facts
+  ansible.builtin.assert:
+    that:
+      - output.webapps[0].identity.type == 'UserAssigned'
+      - user_identity_1 in output.webapps[0].identity.user_assigned_identities
+
+- name: Update web app with SystemAssigned and UserAssigned Identity
+  azure_rm_webapp:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-identity"
+    plan:
+      resource_group: "{{ resource_group }}"
+      name: "{{ win_plan_name }}-identity"
+      is_linux: false
+      sku: S1
+    identity:
+      type: "SystemAssigned, UserAssigned"
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_2 }}"
+  register: output
+
+- name: Assert the web app is well updated
+  ansible.builtin.assert:
+    that:
+      output.changed
+
+- name: Get the web app facts
+  azure_rm_webapp_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-identity"
+  register: output
+
+- name: Assert the web app facts
+  ansible.builtin.assert:
+    that:
+      - output.webapps[0].identity.type == 'SystemAssigned, UserAssigned'
+      - user_identity_1 in output.webapps[0].identity.user_assigned_identities
+      - user_identity_2 in output.webapps[0].identity.user_assigned_identities
+
+- name: Update web app with SystemAssigned and UserAssigned Identity - idempotent
+  azure_rm_webapp:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-identity"
+    plan:
+      resource_group: "{{ resource_group }}"
+      name: "{{ win_plan_name }}-identity"
+      is_linux: false
+      sku: S1
+    identity:
+      type: "SystemAssigned, UserAssigned"
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_2 }}"
+  register: output
+
+- name: Assert the web app is not updated
+  ansible.builtin.assert:
+    that:
+      not output.changed
+
+- name: Get the web app facts
+  azure_rm_webapp_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-identity"
+  register: output
+
+- name: Assert the web app facts
+  ansible.builtin.assert:
+    that:
+      - output.webapps[0].identity.type == 'SystemAssigned, UserAssigned'
+      - user_identity_1 in output.webapps[0].identity.user_assigned_identities
+      - user_identity_2 in output.webapps[0].identity.user_assigned_identities
+
+- name: Update web app with SystemAssigned
+  azure_rm_webapp:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-identity"
+    plan:
+      resource_group: "{{ resource_group }}"
+      name: "{{ win_plan_name }}-identity"
+      is_linux: false
+      sku: S1
+    identity:
+      type: "SystemAssigned"
+  register: output
+
+- name: Assert the web app is well updated
+  ansible.builtin.assert:
+    that:
+      output.changed
+
+- name: Get the web app facts
+  azure_rm_webapp_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ win_app_name }}-identity"
+  register: output
+
+- name: Assert the web app facts
+  ansible.builtin.assert:
+    that:
+      - output.webapps[0].identity.type == 'SystemAssigned'
+      - '"user_assigned_identities" not in output.webapps[0].identity'
+
 - name: Create a webapp slot (Check mode)
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
+    location: westus2
     configuration_source: "{{ win_app_name }}13"
     app_settings:
       testkey: testvalue
@@ -578,6 +817,7 @@
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
+    location: westus2
     configuration_source: "{{ win_app_name }}13"
     app_settings:
       testkey: testvalueslot
@@ -592,6 +832,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
+    location: westus2
     name: "{{ slot1_name }}"
     app_settings:
       testkey: testvalueslot
@@ -606,6 +847,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
+    location: westus2
     name: "{{ slot1_name }}"
     frameworks:
       - name: "node"
@@ -623,6 +865,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
+    location: westus2
     name: "{{ slot1_name }}"
     swap:
       action: swap
@@ -636,6 +879,7 @@
 - name: Stop webapp slot
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
+    location: westus2
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
     app_state: stopped
@@ -645,3 +889,15 @@
   ansible.builtin.assert:
     that:
       - output.changed
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-webapp-identity"
+    - "ansible-test-webapp-identity-2"

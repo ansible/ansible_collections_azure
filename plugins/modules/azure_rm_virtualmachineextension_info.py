@@ -116,7 +116,13 @@ extensions:
             sample: { 'commandToExecute':'hostname' }
         auto_upgrade_minor_version:
             description:
-                - Autoupgrade minor version flag.
+                - Auto upgrade minor version flag.
+            returned: always
+            type: bool
+            sample: true
+        enable_automatic_upgrade:
+            description:
+                - Enable automatic upgrade flag.
             returned: always
             type: bool
             sample: true
@@ -234,6 +240,7 @@ class AzureRMVirtualMachineExtensionInfo(AzureRMModuleBase):
             'type': d.get('type_properties_type'),
             'settings': d.get('settings'),
             'auto_upgrade_minor_version': d.get('auto_upgrade_minor_version'),
+            'enable_automatic_upgrade': d.get('enable_automatic_upgrade', None),
             'tags': d.get('tags', None),
             'provisioning_state': d.get('provisioning_state')
         }

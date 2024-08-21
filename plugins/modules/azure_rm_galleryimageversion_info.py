@@ -241,7 +241,7 @@ class AzureRMGalleryImageVersionsInfo(AzureRMModuleBase):
                 try:
                     response = json.loads(response.body())
                     if isinstance(response, dict):
-                        if response.get('value'):
+                        if 'value' in response:
                             results['response'] = results['response'] + response['value']
                             skiptoken = response.get('nextLink')
                         else:
@@ -257,6 +257,8 @@ class AzureRMGalleryImageVersionsInfo(AzureRMModuleBase):
         return [self.format_item(x) for x in results['response']] if results['response'] else []
 
     def format_item(self, item):
+        if not item:
+            return None
         d = {
             'id': item['id'],
             'name': item['name'],

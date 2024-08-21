@@ -244,11 +244,18 @@ webapps:
             returned: always
             type: dict
             sample: { tag1: abc }
+        site_auth_settings:
+            description:
+                - The Authentication / Authorization settings associated with web app.
+            type: dict
+            returned: always
+            sample: {}
 '''
 try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
     from azure.mgmt.web.models import CsmPublishingProfileOptions
+    from azure.core.exceptions import HttpResponseError
 except Exception:
     # This is handled in azure_rm_common
     pass
@@ -390,6 +397,14 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
             self.fail('Error getting web app {0} publishing credentials - {1}'.format(request_id, str(ex)))
         return response
 
+    def get_auth_settings(self, resource_group, name):
+        self.log('Get web app {0} auth settings'.format(name))
+        try:
+            response = self.web_client.web_apps.get_auth_settings(resource_group_name=resource_group, name=name)
+            return response.as_dict()
+        except HttpResponseError as ex:
+            self.log('Error getting web app {0} auth setting, exception as {1}'.format(name, str(ex)))
+
     def get_webapp_ftp_publish_url(self, resource_group, name):
 
         self.log('Get web app {0} app publish profile'.format(name))
@@ -430,6 +445,7 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
             app_settings = self.list_webapp_appsettings(resource_group, name)
             publish_cred = self.get_publish_credentials(resource_group, name)
             ftp_publish_url = self.get_webapp_ftp_publish_url(resource_group, name)
+            site_auth_settings = self.get_auth_settings(resource_group, name)
         except Exception:
             pass
         return self.construct_curated_webapp(webapp=pip,
@@ -437,7 +453,8 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
                                              app_settings=app_settings,
                                              deployment_slot=None,
                                              ftp_publish_url=ftp_publish_url,
-                                             publish_credentials=publish_cred)
+                                             publish_credentials=publish_cred,
+                                             site_auth_settings=site_auth_settings)
 
     def construct_curated_webapp(self,
                                  webapp,
@@ -445,7 +462,8 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
                                  app_settings=None,
                                  deployment_slot=None,
                                  ftp_publish_url=None,
-                                 publish_credentials=None):
+                                 publish_credentials=None,
+                                 site_auth_settings=None):
         curated_output = dict()
         curated_output['id'] = webapp['id']
         curated_output['name'] = webapp['name']
@@ -463,6 +481,7 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
         curated_output['enabled_host_names'] = webapp['enabled_host_names']
         curated_output['host_name_ssl_states'] = webapp['host_name_ssl_states']
         curated_output['outbound_ip_addresses'] = webapp['outbound_ip_addresses']
+        curated_output['identity'] = webapp.get('identity', None)
 
         # curated site_config
         if configuration:
@@ -514,6 +533,9 @@ class AzureRMWebAppInfo(AzureRMModuleBase):
         if publish_credentials and self.return_publish_profile:
             curated_output['publishing_username'] = publish_credentials.publishing_user_name
             curated_output['publishing_password'] = publish_credentials.publishing_password
+
+        # curated auth settings
+        curated_output['site_auth_settings'] = site_auth_settings if site_auth_settings is not None else {}
         return curated_output
 
 

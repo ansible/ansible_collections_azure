@@ -137,6 +137,29 @@ user_type:
     returned: always
     type: str
     sample: Member
+mobile_phone:
+    description:
+        - The mobile phone number of the user.
+    type: str
+    returned: always
+    sample: '+1234567890123'
+company_name:
+    description:
+        - The name of the company that the user is associated with.
+    type: str
+    returned: always
+    sample: "Test Company"
+on_premises_extension_attributes:
+    description:
+        - Contains extensionAttributes1-15 for the user.
+        - These extension attributes are also known as Exchange custom attributes 1-15.
+        - For an onPremisesSyncEnabled user, the source of authority for this set of properties is the on-premises and is read-only.
+        - For a cloud-only user (where onPremisesSyncEnabled is false), these properties can be set during the creation or update of a user object.
+        - For a cloud-only user previously synced from on-premises Active Directory, these properties are read-only in Microsoft Graph/
+          but can be fully managed through the Exchange Admin Center or the Exchange Online V2 module in PowerShell.
+    type: dict
+    returned: always
+    sample: {}
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBase
@@ -216,15 +239,24 @@ class AzureRMADUserInfo(AzureRMModuleBase):
                 users = asyncio.get_event_loop().run_until_complete(self.get_users_by_filter(self.odata_filter))
                 ad_users = list(users.value)
             elif self.all:
-                users = asyncio.get_event_loop().run_until_complete(self.get_users())
-                ad_users = list(users.value)
-
+                # this returns as a list, since we parse multiple pages
+                ad_users = asyncio.get_event_loop().run_until_complete(self.get_users())
             self.results['ad_users'] = [self.to_dict(user) for user in ad_users]
 
         except Exception as e:
             self.fail("failed to get ad user info {0}".format(str(e)))
 
         return self.results
+
+    def on_premises_extension_attributes_to_dict(self, on_premises_extension_attributes):
+        extension_attributes = {}
+        for index in range(1, 16 + 1):
+            attribute_name = f'extension_attribute{index}'
+            if hasattr(on_premises_extension_attributes, attribute_name):
+                attr_value = getattr(on_premises_extension_attributes, attribute_name)
+                if attr_value is not None:
+                    extension_attributes[attribute_name] = attr_value
+        return extension_attributes
 
     def to_dict(self, object):
         return dict(
@@ -234,13 +266,17 @@ class AzureRMADUserInfo(AzureRMModuleBase):
             mail_nickname=object.mail_nickname,
             mail=object.mail,
             account_enabled=object.account_enabled,
-            user_type=object.user_type
+            user_type=object.user_type,
+            company_name=object.company_name,
+            mobile_phone=object.mobile_phone,
+            on_premises_extension_attributes=self.on_premises_extension_attributes_to_dict(object.on_premises_extension_attributes)
         )
 
     async def get_user(self, object):
         request_configuration = UsersRequestBuilder.UsersRequestBuilderGetRequestConfiguration(
             query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
-                select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName", "userType"]
+                select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName",
+                        "userType", "companyName", "mobilePhone", "onPremisesExtensionAttributes"]
             ),
         )
         return await self._client.users.by_user_id(object).get(request_configuration=request_configuration)
@@ -248,10 +284,21 @@ class AzureRMADUserInfo(AzureRMModuleBase):
     async def get_users(self):
         request_configuration = UsersRequestBuilder.UsersRequestBuilderGetRequestConfiguration(
             query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
-                select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName", "userType"]
+                select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName",
+                        "userType", "companyName", "mobilePhone", "onPremisesExtensionAttributes"]
             ),
         )
-        return await self._client.users.get(request_configuration=request_configuration)
+        users = []
+        # paginated response can be quite large
+        response = await self._client.users.get(request_configuration=request_configuration)
+        if response:
+            users += response.value
+        while response is not None and response.odata_next_link is not None:
+            response = await self._client.users.with_url(response.odata_next_link).get(request_configuration=request_configuration)
+            if response:
+                users += response.value
+
+        return users
 
     async def get_users_by_filter(self, filter):
         return await self._client.users.get(
@@ -259,7 +306,7 @@ class AzureRMADUserInfo(AzureRMModuleBase):
                 query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
                     filter=filter,
                     select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName",
-                            "userType"],
+                            "userType", "companyName", "onPremisesExtensionAttributes"],
                     count=True
                 ),
             ))

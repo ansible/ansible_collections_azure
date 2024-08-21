@@ -71,6 +71,42 @@ options:
             - When set I(enable_non_ssl_port=true), the non-ssl Redis server port 6379 will be enabled.
         type: bool
         default: false
+    identity:
+        description:
+            - Identity for the WebApp.
+        type: dict
+        version_added: '2.7.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the WebApp
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
     maxfragmentationmemory_reserved:
         description:
             - Configures the amount of memory in MB that is reserved to accommodate for memory fragmentation.
@@ -265,12 +301,13 @@ host_name:
 import time
 
 try:
-    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
     from azure.mgmt.redis import RedisManagementClient
     from azure.mgmt.redis.models import (
-        RedisCreateParameters, RedisUpdateParameters, Sku, RedisRebootParameters, RedisRegenerateKeyParameters
+        RedisCreateParameters, RedisUpdateParameters, Sku, RedisRebootParameters,
+        RedisRegenerateKeyParameters, ManagedServiceIdentity, UserAssignedIdentity
     )
 except ImportError:
     # This is handled in azure_rm_common
@@ -328,10 +365,10 @@ def rediscache_to_dict(redis):
         static_ip=redis.static_ip,
         provisioning_state=redis.provisioning_state,
         tenant_settings=redis.tenant_settings,
-        tags=redis.tags if redis.tags else None
+        tags=redis.tags if redis.tags else None,
+        identity=redis.identity.as_dict() if redis.identity else None,
+        configuration=redis.redis_configuration.as_dict() if redis.redis_configuration else None
     )
-    for key in redis.redis_configuration:
-        result[hyphen_to_underline(key)] = hyphen_to_underline(redis.redis_configuration.get(key, None))
     return result
 
 
@@ -361,7 +398,7 @@ class Actions:
     NoAction, Create, Update, Delete = range(4)
 
 
-class AzureRMRedisCaches(AzureRMModuleBase):
+class AzureRMRedisCaches(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM Cache for Redis resource"""
 
     def __init__(self):
@@ -447,6 +484,10 @@ class AzureRMRedisCaches(AzureRMModuleBase):
                 no_log=True,
                 options=regenerate_key_spec
             ),
+            identity=dict(
+                type='dict',
+                options=self.managed_identity_multiple_spec
+            ),
             wait_for_provisioning=dict(
                 type='bool',
                 default='True'
@@ -472,6 +513,9 @@ class AzureRMRedisCaches(AzureRMModuleBase):
         self.tenant_settings = None
         self.reboot = None
         self.regenerate_key = None
+        self.identity = None
+        self._managed_identity = None
+        self.update_identity = False
 
         self.wait_for_provisioning = None
         self.wait_for_provisioning_polling_interval_in_seconds = 30
@@ -490,6 +534,14 @@ class AzureRMRedisCaches(AzureRMModuleBase):
         super(AzureRMRedisCaches, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                  supports_check_mode=True,
                                                  supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": ManagedServiceIdentity,
+                                      "user_assigned": UserAssignedIdentity
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -527,6 +579,13 @@ class AzureRMRedisCaches(AzureRMModuleBase):
         if old_response:
             self.results['id'] = old_response['id']
 
+        curr_identity = old_response.get('identity') if old_response else None
+
+        if self.identity:
+            self.update_identity, identity_result = self.update_managed_identity(curr_identity=curr_identity,
+                                                                                 new_identity=self.identity)
+            self.identity = identity_result.as_dict()
+
         if self.state == 'present':
             # if redis not exists
             if not old_response:
@@ -545,6 +604,10 @@ class AzureRMRedisCaches(AzureRMModuleBase):
                 update_tags, self.tags = self.update_tags(old_response.get('tags', None))
 
                 if update_tags:
+                    to_be_updated = True
+                    self.to_do = Actions.Update
+
+                if self.update_identity:
                     to_be_updated = True
                     self.to_do = Actions.Update
 
@@ -661,7 +724,8 @@ class AzureRMRedisCaches(AzureRMModuleBase):
                 redis_version=self.redis_version,
                 shard_count=self.shard_count,
                 subnet_id=self.subnet,
-                static_ip=self.static_ip
+                static_ip=self.static_ip,
+                identity=self.identity
             )
 
             response = self._client.redis.begin_create(resource_group_name=self.resource_group,
@@ -703,7 +767,8 @@ class AzureRMRedisCaches(AzureRMModuleBase):
                 redis_version=self.redis_version,
                 shard_count=self.shard_count,
                 sku=Sku(name=self.sku['name'].title(), family=self.sku['size'][0], capacity=self.sku['size'][1:]),
-                tags=self.tags
+                tags=self.tags,
+                identity=self.identity
             )
 
             response = self._client.redis.update(resource_group_name=self.resource_group,

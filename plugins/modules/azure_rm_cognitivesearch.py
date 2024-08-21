@@ -395,31 +395,45 @@ class AzureRMSearch(AzureRMModuleBase):
             self.results['changed'] = True
             search_update_model.identity = self.search_client.services.models.Identity(type=self.identity)
 
+        network_update = False
         if self.network_rule_set:
             for rule in self.network_rule_set:
                 if len(self.network_rule_set) != len(self.account_dict.get('network_rule_set')) or rule not in self.account_dict.get('network_rule_set'):
                     self.results['changed'] = True
+                    network_update = True
                 self.firewall_list.append(self.search_client.services.models.IpRule(value=rule))
                 search_update_model.network_rule_set = dict(ip_rules=self.firewall_list)
+        elif not network_update:
+            firewall_list = []
+            for rule in self.account_dict.get('network_rule_set', []):
+                firewall_list.append(self.search_client.services.models.IpRule(value=rule))
+            search_update_model.network_rule_set = dict(ip_rules=firewall_list)
 
         if self.partition_count and self.account_dict.get('partition_count') != self.partition_count:
             self.results['changed'] = True
             search_update_model.partition_count = self.partition_count
+        else:
+            search_update_model.partition_count = self.account_dict.get('partition_count')
 
         if self.public_network_access and self.account_dict.get('public_network_access').lower() != self.public_network_access.lower():
             self.results['changed'] = True
             search_update_model.public_network_access = self.public_network_access
+        else:
+            search_update_model.public_network_access = self.account_dict.get('public_network_access')
 
         if self.replica_count and self.account_dict.get('replica_count') != self.replica_count:
             self.results['changed'] = True
             search_update_model.replica_count = self.replica_count
+        else:
+            search_update_model.replica_count = self.account_dict.get('replica_count')
 
         if self.sku and self.account_dict.get('sku') != self.sku:
             self.fail("Updating sku of an existing search service is not allowed.")
 
-        if self.tags and self.account_dict.get('tags') != self.tags:
+        update_tags, new_tags = self.update_tags(self.account_dict.get('tags'))
+        if update_tags:
             self.results['changed'] = True
-            search_update_model.tags = self.tags
+        search_update_model.tags = new_tags
 
         self.log('Updating search {0}'.format(self.name))
 

@@ -251,6 +251,21 @@ options:
         choices:
             - Enabled
             - Disabled
+    allow_cross_tenant_replication:
+        description:
+            - Allow or disallow cross AAD tenant object replication.
+        type: bool
+    allow_shared_key_access:
+        description:
+            - Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
+            - If false, then all requests, including shared access signatures, must be authorized with Azure Active Directory (Azure AD).
+            - The default value is null, which is equivalent to true.
+        type: bool
+    default_to_o_auth_authentication:
+        description:
+            - A boolean flag which indicates whether the default authentication is OAuth or not.
+            - The default interpretation is false for this property.
+        type: bool
     encryption:
         description:
             - The encryption settings on the storage account.
@@ -309,6 +324,26 @@ options:
                 description:
                     - A boolean indicating whether or not the service applies a secondary layer of encryption with platform managed keys for data at rest.
                 type: bool
+    identity:
+        description:
+            - Identity for this resource.
+        type: dict
+        version_added: '2.7.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - 'None'
+                default: 'None'
+                type: str
+            user_assigned_identity:
+                description:
+                    - User Assigned Managed Identity associated to this resource
+                required: false
+                type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -405,6 +440,25 @@ state:
             returned: always
             type: str
             sample: Standard_RAGRS
+        allow_cross_tenant_replication:
+            description:
+                - Allow or disallow cross AAD tenant object replication.
+            type: bool
+            returned: always
+            sample: true
+        allow_shared_key_access:
+            description:
+                - Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
+            type: bool
+            returned: always
+            sample: true
+        default_to_o_auth_authentication:
+            description:
+                - A boolean flag which indicates whether the default authentication is OAuth or not.
+                - The default interpretation is false for this property.
+            type: bool
+            returned: always
+            sample: true
         custom_domain:
             description:
                 - User domain assigned to the storage account.
@@ -661,8 +715,16 @@ state:
 
 
 import copy
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AZURE_SUCCESS_STATE, AzureRMModuleBase
+import time
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AZURE_SUCCESS_STATE
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 from ansible.module_utils._text import to_native
+
+try:
+    from azure.mgmt.storage.models import (Identity, UserAssignedIdentity)
+except ImportError:
+    # This is handled in azure_rm_common
+    pass
 
 cors_rule_spec = dict(
     allowed_origins=dict(type='list', elements='str', required=True),
@@ -718,7 +780,7 @@ def compare_cors(cors1, cors2):
     return True
 
 
-class AzureRMStorageAccount(AzureRMModuleBase):
+class AzureRMStorageAccount(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -740,6 +802,9 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             minimum_tls_version=dict(type='str', choices=['TLS1_0', 'TLS1_1', 'TLS1_2']),
             public_network_access=dict(type='str', choices=['Enabled', 'Disabled']),
             allow_blob_public_access=dict(type='bool'),
+            allow_shared_key_access=dict(type='bool'),
+            allow_cross_tenant_replication=dict(type='bool'),
+            default_to_o_auth_authentication=dict(type='bool'),
             network_acls=dict(type='dict'),
             blob_cors=dict(type='list', options=cors_rule_spec, elements='dict'),
             static_website=dict(type='dict', options=static_website_spec),
@@ -773,7 +838,11 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                     require_infrastructure_encryption=dict(type='bool'),
                     key_source=dict(type='str', choices=["Microsoft.Storage", "Microsoft.Keyvault"], default='Microsoft.Storage')
                 )
-            )
+            ),
+            identity=dict(
+                type="dict",
+                options=self.managed_identity_single_spec
+            ),
         )
 
         self.results = dict(
@@ -803,9 +872,24 @@ class AzureRMStorageAccount(AzureRMModuleBase):
         self.is_hns_enabled = None
         self.large_file_shares_state = None
         self.enable_nfs_v3 = None
+        self.allow_shared_key_access = None
+        self.allow_cross_tenant_replication = None
+        self.default_to_o_auth_authentication = None
+        self._managed_identity = None
+        self.identity = None
+        self.update_identity = False
 
         super(AzureRMStorageAccount, self).__init__(self.module_arg_spec,
                                                     supports_check_mode=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {
+                "identity": Identity,
+                "user_assigned": UserAssignedIdentity,
+            }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
 
@@ -831,6 +915,14 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             self.fail("Parameter error: Storage account with {0} kind require account type is Premium_LRS or Premium_ZRS".format(self.kind))
         self.account_dict = self.get_account()
 
+        curr_identity = self.account_dict["identity"] if self.account_dict else None
+
+        if self.identity:
+            self.update_identity, identity_result = self.update_single_managed_identity(curr_identity=curr_identity,
+                                                                                        new_identity=self.identity,
+                                                                                        patch_support=True)
+            self.identity = identity_result.as_dict()
+
         if self.state == 'present' and self.account_dict and \
            self.account_dict['provisioning_state'] != AZURE_SUCCESS_STATE:
             self.fail("Error: storage account {0} has not completed provisioning. State is {1}. Expecting state "
@@ -845,7 +937,7 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             if not self.account_dict:
                 self.results['state'] = self.create_account()
             else:
-                self.update_account()
+                self.results['state'] = self.update_account()
         elif self.state == 'absent' and self.account_dict:
             self.delete_account()
             self.results['state'] = dict(Status='Deleted')
@@ -905,6 +997,9 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             minimum_tls_version=account_obj.minimum_tls_version,
             public_network_access=account_obj.public_network_access,
             allow_blob_public_access=account_obj.allow_blob_public_access,
+            default_to_o_auth_authentication=account_obj.default_to_o_auth_authentication,
+            allow_cross_tenant_replication=account_obj.allow_cross_tenant_replication,
+            allow_shared_key_access=account_obj.allow_shared_key_access,
             network_acls=account_obj.network_rule_set,
             is_hns_enabled=account_obj.is_hns_enabled if account_obj.is_hns_enabled else False,
             enable_nfs_v3=account_obj.enable_nfs_v3 if hasattr(account_obj, 'enable_nfs_v3') else None,
@@ -985,6 +1080,10 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                         account_dict['encryption']['services']['queue'] = dict(enabled=True)
                     if account_obj.encryption.services.blob:
                         account_dict['encryption']['services']['blob'] = dict(enabled=True)
+
+            account_dict['identity'] = dict()
+            if account_obj.identity:
+                account_dict['identity'] = account_obj.identity.as_dict()
 
         return account_dict
 
@@ -1118,6 +1217,43 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                 except Exception as exc:
                     self.fail("Failed to update allow public blob access: {0}".format(str(exc)))
 
+        if self.allow_shared_key_access is not None and self.allow_shared_key_access != self.account_dict.get('allow_shared_key_access'):
+            self.results['changed'] = True
+            self.account_dict['allow_shared_key_access'] = self.allow_shared_key_access
+            if not self.check_mode:
+                try:
+                    parameters = self.storage_models.StorageAccountUpdateParameters(allow_shared_key_access=self.allow_shared_key_access)
+                    self.storage_client.storage_accounts.update(self.resource_group,
+                                                                self.name,
+                                                                parameters)
+                except Exception as exc:
+                    self.fail("Failed to update allow shared key access: {0}".format(str(exc)))
+
+        if self.allow_cross_tenant_replication is not None and self.allow_cross_tenant_replication != self.account_dict.get('allow_cross_tenant_replication'):
+            self.results['changed'] = True
+            self.account_dict['allow_cross_tenant_replication'] = self.allow_cross_tenant_replication
+            if not self.check_mode:
+                try:
+                    parameters = self.storage_models.StorageAccountUpdateParameters(allow_cross_tenant_replication=self.allow_cross_tenant_replication)
+                    self.storage_client.storage_accounts.update(self.resource_group,
+                                                                self.name,
+                                                                parameters)
+                except Exception as exc:
+                    self.fail("Failed to update allow cross tenant replication: {0}".format(str(exc)))
+
+        if self.default_to_o_auth_authentication is not None and \
+           self.default_to_o_auth_authentication != self.account_dict.get('default_to_o_auth_authentication'):
+            self.results['changed'] = True
+            self.account_dict['default_to_o_auth_authentication'] = self.default_to_o_auth_authentication
+            if not self.check_mode:
+                try:
+                    parameters = self.storage_models.StorageAccountUpdateParameters(default_to_o_auth_authentication=self.default_to_o_auth_authentication)
+                    self.storage_client.storage_accounts.update(self.resource_group,
+                                                                self.name,
+                                                                parameters)
+                except Exception as exc:
+                    self.fail("Failed to update default_to_o_auth_authentication: {0}".format(str(exc)))
+
         if self.account_type:
             if self.account_type != self.account_dict['sku_name']:
                 # change the account type
@@ -1159,6 +1295,14 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                     self.storage_client.storage_accounts.update(self.resource_group, self.name, parameters)
                 except Exception as exc:
                     self.fail("Failed to update custom domain: {0}".format(str(exc)))
+
+        if self.update_identity:
+            self.results['changed'] = True
+            parameters = self.storage_models.StorageAccountUpdateParameters(identity=self.identity)
+            try:
+                self.storage_client.storage_accounts.update(self.resource_group, self.name, parameters)
+            except Exception as exc:
+                self.fail("Failed to update access tier: {0}".format(str(exc)))
 
         if self.access_tier:
             if not self.account_dict['access_tier'] or self.account_dict['access_tier'] != self.access_tier:
@@ -1228,6 +1372,8 @@ class AzureRMStorageAccount(AzureRMModuleBase):
 
             if encryption_changed and not self.check_mode:
                 self.fail("The encryption can't update encryption, encryption info as {0}".format(self.account_dict['encryption']))
+        time.sleep(1)
+        return self.get_account()
 
     def create_account(self):
         self.log("Creating account {0}".format(self.name))
@@ -1258,6 +1404,10 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                 is_hns_enabled=self.is_hns_enabled,
                 enable_nfs_v3=self.enable_nfs_v3,
                 large_file_shares_state=self.large_file_shares_state,
+                default_to_o_auth_authentication=self.default_to_o_auth_authentication,
+                allow_cross_tenant_replication=self.allow_cross_tenant_replication,
+                allow_shared_key_access=self.allow_shared_key_access,
+                identity=self.identity,
                 tags=dict()
             )
             if self.tags:
@@ -1277,6 +1427,7 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                                                                         kind=self.kind,
                                                                         location=self.location,
                                                                         tags=self.tags,
+                                                                        identity=self.identity,
                                                                         enable_https_traffic_only=self.https_only,
                                                                         minimum_tls_version=self.minimum_tls_version,
                                                                         public_network_access=self.public_network_access,
@@ -1285,6 +1436,9 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                                                                         is_hns_enabled=self.is_hns_enabled,
                                                                         enable_nfs_v3=self.enable_nfs_v3,
                                                                         access_tier=self.access_tier,
+                                                                        allow_shared_key_access=self.allow_shared_key_access,
+                                                                        default_to_o_auth_authentication=self.default_to_o_auth_authentication,
+                                                                        allow_cross_tenant_replication=self.allow_cross_tenant_replication,
                                                                         large_file_shares_state=self.large_file_shares_state)
         self.log(str(parameters))
         try:

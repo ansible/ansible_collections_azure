@@ -325,7 +325,7 @@ class AzureRMOpenShiftManagedClustersInfo(AzureRMModuleBaseExt):
         except Exception as e:
             self.log('Could not get info for @(Model.ModuleOperationNameUpper).')
 
-        return [self.format_item(x) for x in results['value']] if results['value'] else []
+        return [self.format_item(x) for x in results['value']] if results.get('value') else []
 
     def listall(self):
         response = None

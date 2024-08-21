@@ -34,6 +34,11 @@ options:
             - Limit results by providing a list of tags. Format tags as 'key' or 'key:value'.
         type: list
         elements: str
+    list_usage:
+        description:
+            - Whether lists usage stats. I(list_usage=true) to lists usage stats.
+        type: bool
+        default: False
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -199,10 +204,27 @@ virtualnetworks:
                             "service": "Microsoft.Storage"
                         }
                     ]
+                    usages:
+                        description:
+                            - Lists usage stats.
+                        type: list
+                        returned: always
+                        sample: [
+                        {
+                            "current_value": 0.0,
+                            "id": "/subscriptions/xxx/resourceGroups/testRG/providers/Microsoft.Network/virtualNetworks/vnet/subnets/default",
+                            "limit": 251.0,
+                            "name": {
+                                "localized_value": "Subnet size and usage",
+                                "value": "SubnetSpace"
+                            }
+                        }
+                    ]
 '''
 
 try:
-    from azure.core.exceptions import ResourceNotFoundError
+    from azure.core.exceptions import ResourceNotFoundError, HttpResponseError
+    from azure.mgmt.core.tools import parse_resource_id
 except Exception:
     # This is handled in azure_rm_common
     pass
@@ -221,6 +243,7 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
             name=dict(type='str'),
             resource_group=dict(type='str'),
             tags=dict(type='list', elements='str'),
+            list_usage=dict(type='bool', default=False),
         )
 
         self.results = dict(
@@ -233,6 +256,7 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         self.name = None
         self.resource_group = None
         self.tags = None
+        self.list_usage = None
 
         super(AzureRMNetworkInterfaceInfo, self).__init__(self.module_arg_spec,
                                                           supports_check_mode=True,
@@ -316,6 +340,7 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         results = dict(
             id=vnet.id,
             name=vnet.name,
+            resource_group=parse_resource_id(vnet.id).get('resource_group'),
             location=vnet.location,
             tags=vnet.tags,
             provisioning_state=vnet.provisioning_state,
@@ -331,6 +356,9 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
                 results['address_prefixes'].append(space)
         if vnet.subnets and len(vnet.subnets) > 0:
             results['subnets'] = [self.subnet_to_dict(x) for x in vnet.subnets]
+        if self.list_usage:
+            results['usages'] = self.list_usages(results['resource_group'], results['name'])
+
         return results
 
     def subnet_to_dict(self, subnet):
@@ -346,6 +374,17 @@ class AzureRMNetworkInterfaceInfo(AzureRMModuleBase):
         if subnet.service_endpoints:
             result['service_endpoints'] = [{'service': item.service, 'locations': item.locations} for item in subnet.service_endpoints]
         return result
+
+    def list_usages(self, resource_group, name):
+        results = []
+        try:
+            response = self.network_client.virtual_networks.list_usage(resource_group, name)
+        except HttpResponseError as ec:
+            self.fail("Faild to list usage status")
+
+        for item in response:
+            results.append(item.as_dict())
+        return results
 
 
 def main():

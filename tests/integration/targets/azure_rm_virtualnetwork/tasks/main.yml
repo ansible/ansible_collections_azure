@@ -57,6 +57,7 @@
   azure_rm_virtualnetwork_info:
     resource_group: "{{ resource_group }}"
     name: "{{ vnetname }}"
+    list_usage: true
     tags:
       - testing
   register: facts
@@ -69,6 +70,7 @@
       - "facts.virtualnetworks[0].address_prefixes | length == 3"
       - "facts.virtualnetworks[0].flow_timeout_in_minutes == 8"
       - "facts.virtualnetworks[0].subnets | length == 1"
+      - "facts.virtualnetworks[0].usages | length == 1"
 
 - name: Gather facts by resource group, tags
   azure_rm_virtualnetwork_info:

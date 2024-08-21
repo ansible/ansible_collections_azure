@@ -34,7 +34,8 @@ options:
         type: str
     client_id:
         description:
-            - Azure client ID. Use when authenticating with a Service Principal.
+            - Azure client ID. Use when authenticating with a Service Principal or Managed Identity (msi).
+            - Can also be set via the C(AZURE_CLIENT_ID) environment variable.
         type: str
     secret:
         description:
@@ -65,6 +66,19 @@ options:
         type: str
         choices: [ ignore, validate ]
         version_added: '0.0.1'
+    disable_instance_discovery:
+        description:
+            - Determines whether or not instance discovery is performed when attempting to authenticate.
+              Setting this to true will completely disable both instance discovery and authority validation.
+              This functionality is intended for use in scenarios where the metadata endpoint cannot be reached
+              such as in private clouds or Azure Stack. The process of instance discovery entails retrieving
+              authority metadata from https://login.microsoft.com/ to validate the authority. By setting this
+              to **True**, the validation of the authority is disabled. As a result, it is crucial to ensure
+              that the configured authority host is valid and trustworthy.
+            - Set via credential file profile or the C(AZURE_DISABLE_INSTANCE_DISCOVERY) environment variable.
+        type: bool
+        default: False
+        version_added: '2.3.0'
     auth_source:
         description:
             - Controls the source of the credentials to use for authentication.
@@ -120,7 +134,7 @@ options:
 requirements:
     - python >= 2.7
     - The host that executes this module must have the azure.azcollection collection installed via galaxy
-    - All python packages listed in collection's requirements-azure.txt must be installed via pip on the host that executes modules from azure.azcollection
+    - All python packages listed in collection's requirements.txt must be installed via pip on the host that executes modules from azure.azcollection
     - Full installation instructions may be found https://galaxy.ansible.com/azure/azcollection
 
 notes:

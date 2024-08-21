@@ -20,6 +20,7 @@
   azure_rm_functionapp:
     resource_group: "{{ resource_group }}"
     name: "{{ funcapp_name_basic }}"
+    location: westus2
     storage_account: "{{ storage_account_name }}"
   register: output
 
@@ -55,6 +56,7 @@
     resource_group: '{{ resource_group }}'
     name: "{{ funcapp_name_params }}"
     storage_account: "{{ storage_account_name }}"
+    location: westus2
     app_settings:
       hello: world
       things: more stuff
@@ -70,6 +72,7 @@
     resource_group: '{{ resource_group }}'
     name: "{{ funcapp_name_params }}"
     storage_account: "{{ storage_account_name }}"
+    location: westus2
     app_settings:
       hello: world
       things: more stuff
@@ -96,6 +99,7 @@
   azure_rm_appserviceplan:
     resource_group: "{{ resource_group }}"
     name: "{{ plan_name }}"
+    location: westus2
     sku: S1
     is_linux: true
     number_of_workers: 1
@@ -105,6 +109,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ funcapp_name_container }}"
     storage_account: "{{ storage_account_name }}"
+    location: westus2
     plan:
       resource_group: "{{ resource_group }}"
       name: "{{ plan_name }}"

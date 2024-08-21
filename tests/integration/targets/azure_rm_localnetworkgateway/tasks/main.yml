@@ -1,0 +1,114 @@
+- name: Set Storage Account Names
+  ansible.builtin.set_fact:
+    rpfx: "{{ resource_group | hash('md5') | truncate(21, True, '') }}"
+
+- name: Create a new local network gateway (Check mode)
+  azure_rm_localnetworkgateway:
+    resource_group: "{{ resource_group }}"
+    name: "{{ rpfx }}"
+    local_network_address_space:
+      address_prefixes:
+        - 10.0.0.0/24
+        - 20.0.0.0/24
+    fqdn: testfqdn.com
+    bgp_settings:
+      asn: 8
+      bgp_peering_address: 10.3.0.1
+      peer_weight: 3
+    tags:
+      key1: value1
+  check_mode: true
+
+- name: Create a new local network gateway
+  azure_rm_localnetworkgateway:
+    resource_group: "{{ resource_group }}"
+    name: "{{ rpfx }}"
+    local_network_address_space:
+      address_prefixes:
+        - 10.0.0.0/24
+        - 20.0.0.0/24
+    fqdn: testfqdn.com
+    bgp_settings:
+      asn: 8
+      bgp_peering_address: 10.3.0.1
+      peer_weight: 3
+    tags:
+      key1: value1
+  register: output
+
+- name: Assert the local network gateway is well created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+      - output.state.provisioning_state == 'Succeeded'
+
+- name: Create a new local network gateway(Idempotent test)
+  azure_rm_localnetworkgateway:
+    resource_group: "{{ resource_group }}"
+    name: "{{ rpfx }}"
+    local_network_address_space:
+      address_prefixes:
+        - 10.0.0.0/24
+        - 20.0.0.0/24
+    fqdn: testfqdn.com
+    bgp_settings:
+      asn: 8
+      bgp_peering_address: 10.3.0.1
+      peer_weight: 3
+    tags:
+      key1: value1
+  register: output
+
+- name: Assert the local network gateway no change
+  ansible.builtin.assert:
+    that:
+      - not output.changed
+
+- name: Create a new local network gateway(Update test)
+  azure_rm_localnetworkgateway:
+    resource_group: "{{ resource_group }}"
+    name: "{{ rpfx }}"
+    local_network_address_space:
+      address_prefixes:
+        - 10.0.0.0/24
+        - 30.0.0.0/24
+    fqdn: testfqdn1.com
+    bgp_settings:
+      asn: 10
+      bgp_peering_address: 20.3.0.1
+      peer_weight: 5
+    tags:
+      key1: value1
+  register: output
+
+- name: Assert the local network gateway updated
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Get a new local network gateway
+  azure_rm_localnetworkgateway_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ rpfx }}"
+  register: output
+
+- name: Assert the local network gateway facts
+  ansible.builtin.assert:
+    that:
+      - not output.changed
+      - output.state[0].bgp_settings.asn == 10
+      - output.state[0].bgp_settings.peer_weight == 5
+      - "output.state[0].tags | length == 1"
+      - "output.state[0].local_network_address_space.address_prefixes | length == 3"
+
+- name: Delete the local network gateway
+  azure_rm_localnetworkgateway:
+    resource_group: "{{ resource_group }}"
+    name: "{{ rpfx }}"
+    state: absent
+  register: output
+
+- name: Assert the local network gateway is deleted
+  ansible.builtin.assert:
+    that:
+      - output.changed

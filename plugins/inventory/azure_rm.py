@@ -101,8 +101,8 @@ keyed_groups:
 exclude_host_filters:
     # excludes hosts in the eastus region
     - location in ['eastus']
-    - tags['tagkey'] is defined and tags['tagkey'] == 'tagkey'
-    - tags['tagkey2'] is defined and tags['tagkey2'] == 'tagkey2'
+    - tags['tagkey'] is defined and tags['tagkey'] == 'tagvalue'
+    - tags['tagkey2'] is defined and tags['tagkey2'] == 'tagvalue2'
     # excludes hosts that are powered off
     - powerstate != 'running'
 
@@ -110,9 +110,9 @@ exclude_host_filters:
 include_host_filters:
     # includes hosts that in the eastus region and power on
     - location in ['eastus'] and powerstate == 'running'
-    # includes hosts in the eastus region and power on OR includes hosts in the eastus2 region and tagkey is tagkey
+    # includes hosts in the eastus region and power on OR includes hosts in the eastus2 region and tagkey value is tagvalue
     - location in ['eastus'] and powerstate == 'running'
-    - location in ['eastus2'] and tags['tagkey'] is defined and tags['tagkey'] == 'tagkey'
+    - location in ['eastus2'] and tags['tagkey'] is defined and tags['tagkey'] == 'tagvalue'
 '''
 
 # FUTURE: do we need a set of sane default filters, separate from the user-defineable ones?
@@ -124,6 +124,7 @@ import json
 import re
 import uuid
 import os
+import time
 
 try:
     from queue import Queue, Empty
@@ -138,6 +139,7 @@ from ansible.errors import AnsibleParserError, AnsibleError
 from ansible.module_utils.parsing.convert_bool import boolean
 from ansible.module_utils._text import to_native, to_bytes, to_text
 from itertools import chain
+from os import environ
 
 try:
     from azure.core._pipeline_client import PipelineClient
@@ -146,6 +148,7 @@ try:
     from azure.mgmt.core.tools import parse_resource_id
     from azure.core.pipeline import PipelineResponse
     from azure.mgmt.core.polling.arm_polling import ARMPolling
+    from azure.core.polling import LROPoller
 except ImportError:
     Configuration = object
     parse_resource_id = object
@@ -234,8 +237,9 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             raise
 
     def _credential_setup(self):
+        auth_source = environ.get('ANSIBLE_AZURE_AUTH_SOURCE', None) or self.get_option('auth_source')
         auth_options = dict(
-            auth_source=self.get_option('auth_source'),
+            auth_source=auth_source,
             profile=self.get_option('profile'),
             subscription_id=self.get_option('subscription_id'),
             client_id=self.get_option('client_id'),
@@ -249,6 +253,18 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             track1_cred=True,
             adfs_authority_url=self.get_option('adfs_authority_url')
         )
+
+        if self.templar.is_template(auth_options["tenant"]):
+            auth_options["tenant"] = self.templar.template(variable=auth_options["tenant"], disable_lookups=False)
+
+        if self.templar.is_template(auth_options["client_id"]):
+            auth_options["client_id"] = self.templar.template(variable=auth_options["client_id"], disable_lookups=False)
+
+        if self.templar.is_template(auth_options["secret"]):
+            auth_options["secret"] = self.templar.template(variable=auth_options["secret"], disable_lookups=False)
+
+        if self.templar.is_template(auth_options["subscription_id"]):
+            auth_options["subscription_id"] = self.templar.template(variable=auth_options["subscription_id"], disable_lookups=False)
 
         self.azure_auth = AzureRMAuth(**auth_options)
 
@@ -431,8 +447,14 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             if not batch_requests:
                 break
 
-            batch_resp = self._send_batch(batch_requests)
+            self.retry_batch(batch_requests, batch_response_handlers)
 
+    def retry_batch(self, batch_requests, batch_response_handlers, backoff_factor=0.8, retry_limit=10):
+        retry_count = 1
+        _SAFE_CODES = set(range(506)) - set([408, 429, 500, 502, 503, 504])
+        _RETRY_CODES = set(range(999)) - _SAFE_CODES
+        while True:
+            batch_resp = self._send_batch(batch_requests)
             key_name = None
             if 'responses' in batch_resp:
                 key_name = 'responses'
@@ -440,7 +462,8 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                 key_name = 'value'
             else:
                 raise AnsibleError("didn't find expected key responses/value in batch response")
-
+            batch_processed = []
+            batch_retry = False
             for idx, r in enumerate(batch_resp[key_name]):
                 status_code = r.get('httpStatusCode')
                 returned_name = r['name']
@@ -449,30 +472,61 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                     # FUTURE: error-tolerant operation mode (eg, permissions)
                     # FUTURE: store/handle errors from individual handlers
                     result.handler(r['content'], **result.handler_args)
+                    batch_processed.append(returned_name)
+                elif status_code in _RETRY_CODES:
+                    # 429: Too many requests Error, Backoff and Retry
+                    batch_retry = True
+            if batch_retry:
+                time.sleep(backoff_factor * (2 ** (retry_count)))
+                retry_count += 1
+                if len(batch_processed) > 0:
+                    # Remove already processed requests
+                    for idx, r in enumerate(batch_requests):
+                        if r.get('name') in batch_processed:
+                            processed = batch_requests.pop(idx)
+                if retry_count > retry_limit:
+                    raise AnsibleError("Reached maximum retries in batch request")
+            else:
+                break
 
     def _send_batch(self, batched_requests):
         url = '/batch'
         query_parameters = {'api-version': '2015-11-01'}
         header_parameters = {'x-ms-client-request-id': str(uuid.uuid4()), 'Content-Type': 'application/json; charset=utf-8'}
+        polling_timeout = 600
+        polling_interval = 30
+        operation_config = {}
         body_content = dict(requests=batched_requests)
 
         header = {'x-ms-client-request-id': str(uuid.uuid4())}
         header.update(self._default_header_parameters)
 
         request_new = self.new_client.post(url, query_parameters, header_parameters, body_content)
-        response = self.new_client.send_request(request_new)
+        response = self.new_client.send_request(request_new, **operation_config)
+
         if response.status_code == 202:
-            try:
-                poller = ARMPolling(timeout=3)
-                poller.initialize(client=self.new_client,
-                                  initial_response=PipelineResponse(None, response, None),
-                                  deserialization_callback=lambda r: r)
-                poller.run()
-                return poller.resource().context['deserialized_data']
-            except Exception as ec:
-                raise
+            def get_long_running_output(response):
+                return response
+            poller = LROPoller(self.new_client,
+                               PipelineResponse(None, response, None),
+                               get_long_running_output,
+                               ARMPolling(polling_interval, **operation_config))
+            response = self.get_poller_result(poller, polling_timeout)
+            if hasattr(response, 'body'):
+                response = json.loads(response.body())
+            elif hasattr(response, 'context'):
+                response = response.context['deserialized_data']
         else:
-            return json.loads(response.body())
+            response = json.loads(response.body())
+
+        return response
+
+    def get_poller_result(self, poller, timeout):
+        try:
+            poller.wait(timeout=timeout)
+            return poller.result()
+        except Exception as exc:
+            raise
 
     def send_request(self, url, api_version):
         query_parameters = {'api-version': api_version}
@@ -559,6 +613,7 @@ class AzureHost(object):
             public_ipv4_address=[],
             public_dns_hostnames=[],
             private_ipv4_addresses=[],
+            subnet=[],
             id=self._vm_model['id'],
             location=self._vm_model['location'],
             name=self._vm_model['name'],
@@ -587,8 +642,12 @@ class AzureHost(object):
         # set nic-related values from the primary NIC first
         for nic in sorted(self.nics, key=lambda n: n.is_primary, reverse=True):
             # and from the primary IP config per NIC first
-            for ipc in sorted(nic._nic_model['properties']['ipConfigurations'], key=lambda i: i['properties'].get('primary', False), reverse=True):
+            for ipc in sorted(nic._nic_model.get('properties', {}).get('ipConfigurations', []),
+                              key=lambda i: i.get('properties', {}).get('primary', False), reverse=True):
                 try:
+                    subnet = ipc['properties'].get('subnet')
+                    if subnet:
+                        new_hostvars['subnet'].append(subnet)
                     private_ip = ipc['properties'].get('privateIPAddress')
                     if private_ip:
                         new_hostvars['private_ipv4_addresses'].append(private_ip)

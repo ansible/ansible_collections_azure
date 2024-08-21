@@ -15,6 +15,8 @@ version_added: "0.1.2"
 short_description: Manage a managed Azure Container Service (AKS) instance
 description:
     - Create, update and delete a managed Azure Container Service (AKS) instance.
+    - You can only specify C(identity) or C(service_principal), not both.  If you don't specify either it will
+      default to identity->type->SystemAssigned.
 
 options:
     resource_group:
@@ -194,7 +196,7 @@ options:
                 type: str
     service_principal:
         description:
-            - The service principal suboptions. If not provided - use system-assigned managed identity.
+            - The service principal suboptions.
         type: dict
         suboptions:
             client_id:
@@ -205,6 +207,25 @@ options:
             client_secret:
                 description:
                     - The secret password associated with the service principal.
+                type: str
+    identity:
+        description:
+            - Identity for the Server.
+        type: dict
+        version_added: '2.4.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                required: false
+                choices:
+                    - UserAssigned
+                    - SystemAssigned
+                default: SystemAssigned
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identity
                 type: str
     enable_rbac:
         description:
@@ -228,6 +249,12 @@ options:
                 choices:
                     - azure
                     - kubenet
+            network_plugin_mode:
+                description:
+                    - Network plugin mode used for building the Kubernetes network.
+                type: str
+                choices:
+                    - Overlay
             network_policy:
                 description: Network policy used for building Kubernetes network.
                 type: str
@@ -271,6 +298,8 @@ options:
                 choices:
                     - loadBalancer
                     - userDefinedRouting
+                    - managedNATGateway
+                    - userAssignedNATGateway
     api_server_access_profile:
         description:
             - Profile of API Access configuration.
@@ -308,7 +337,12 @@ options:
                 type: str
             managed:
                 description:
-                    - Whether to enable manged AAD.
+                    - Whether to enable managed AAD.
+                type: bool
+                default: false
+            enable_azure_rbac:
+                description:
+                    - Whether to enable Azure RBAC for Kubernetes authorization.
                 type: bool
                 default: false
             admin_group_object_ids:
@@ -380,6 +414,57 @@ options:
             - Name of the resource group containing agent pool nodes.
             - Unable to update.
         type: str
+    pod_identity_profile:
+        description:
+            - Config pod identities in managed Kubernetes cluster.
+        type: dict
+        suboptions:
+            enabled:
+                description:
+                    - Whether the pod identity addon is enabled.
+                type: bool
+            allow_network_plugin_kubenet:
+                description:
+                    - Whether using Kubenet network plugin with AAD Pod Identity.
+                type: bool
+            user_assigned_identities:
+                description:
+                    - The pod identities to use in the cluster.
+                type: list
+                elements: dict
+                suboptions:
+                    name:
+                        description:
+                            - The name of the pod identity.
+                        type: str
+                        required: true
+                    namespace:
+                        description:
+                            - The namespace of the pod identity.
+                        type: str
+                        required: true
+                    binding_selector:
+                        description:
+                            - The binding selector to use for the AzureIdentityBinding resource.
+                        type: str
+                    identity:
+                        description:
+                            - The user assigned identity details.
+                        type: dict
+                        required: true
+                        suboptions:
+                            resource_id:
+                                description:
+                                    - The resource ID of the user assigned identity.
+                                type: str
+                            object_id:
+                                description:
+                                    - The object ID of the user assigned identity.
+                                type: str
+                            client_id:
+                                description:
+                                    - The client ID of the user assigned identity.
+                                type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -487,6 +572,45 @@ EXAMPLES = '''
         type: VirtualMachineScaleSets
         enable_auto_scaling: false
 
+- name: Create an AKS instance wit pod_identity_profile settings
+  azure_rm_aks:
+    name: "aks{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+    location: eastus
+    dns_prefix: "aks{{ rpfx }}"
+    kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
+    service_principal:
+      client_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+      client_secret: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    linux_profile:
+      admin_username: azureuser
+      ssh_key: ssh-rsa AAAAB3Ip6***************
+    agent_pool_profiles:
+      - name: default
+        count: 1
+        vm_size: Standard_B2s
+        type: VirtualMachineScaleSets
+        mode: System
+        node_labels: {"release":"stable"}
+        max_pods: 42
+        availability_zones:
+          - 1
+          - 2
+    node_resource_group: "node{{ noderpfx }}"
+    enable_rbac: true
+    network_profile:
+      load_balancer_sku: standard
+    pod_identity_profile:
+      enabled: false
+      allow_network_plugin_kubenet: false
+      user_assigned_identities:
+        - name: fredtest
+          namespace: fredtest
+          binding_selector: test
+          identity:
+            client_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+            object_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
 - name: Remove a managed Azure Container Services (AKS) instance
   azure_rm_aks:
     name: myAKS
@@ -514,7 +638,7 @@ state:
         changed: false
         dns_prefix: aks9860bdcd89
         id: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourcegroups/myResourceGroup/providers/Microsoft.ContainerService/managedClusters/aks9860bdc"
-        kube_config: "......"
+        kube_config: ["......"]
         kubernetes_version: 1.14.6
         linux_profile:
            admin_username: azureuser
@@ -524,13 +648,32 @@ state:
         provisioning_state: Succeeded
         service_principal_profile:
            client_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        identity:
+           "type": "UserAssigned"
+           "user_assigned_identities": {}
+        pod_identity_profile: {
+            "allow_network_plugin_kubenet": false,
+            "user_assigned_identities": [
+                {
+                        "binding_selector": "test",
+                        "identity": {
+                            "client_id": xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx,
+                            "object_id": xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                        },
+                        "name": "fredtest",
+                        "namespace": "fredtest",
+                        "provisioning_state": "Updating"
+                }
+            ]
+        }
         tags: {}
         type: Microsoft.ContainerService/ManagedClusters
 '''
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
+    from azure.core.exceptions import HttpResponseError
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -552,6 +695,7 @@ def create_aks_dict(aks):
         tags=aks.tags,
         linux_profile=create_linux_profile_dict(aks.linux_profile),
         windows_profile=create_windows_profile_dict(aks.windows_profile),
+        identity=aks.identity.as_dict() if aks.identity else None,
         service_principal_profile=create_service_principal_profile_dict(
             aks.service_principal_profile),
         provisioning_state=aks.provisioning_state,
@@ -565,13 +709,23 @@ def create_aks_dict(aks):
         api_server_access_profile=create_api_server_access_profile_dict(aks.api_server_access_profile),
         addon=create_addon_dict(aks.addon_profiles),
         fqdn=aks.fqdn,
-        node_resource_group=aks.node_resource_group
+        node_resource_group=aks.node_resource_group,
+        pod_identity_profile=create_pod_identity_profile(aks.pod_identity_profile.as_dict()) if aks.pod_identity_profile else None
     )
+
+
+def create_pod_identity_profile(pod_profile):
+    return dict(
+        enabled=pod_profile.get('enabled', False),
+        allow_network_plugin_kubenet=pod_profile.get('allow_network_plugin_kubenet', False),
+        user_assigned_identities=pod_profile.get('user_assigned_identities')
+    ) if pod_profile else {}
 
 
 def create_network_profiles_dict(network):
     return dict(
         network_plugin=network.network_plugin,
+        network_plugin_mode=network.network_plugin_mode,
         network_policy=network.network_policy,
         pod_cidr=network.pod_cidr,
         service_cidr=network.service_cidr,
@@ -735,13 +889,14 @@ agent_pool_profile_spec = dict(
 
 network_profile_spec = dict(
     network_plugin=dict(type='str', choices=['azure', 'kubenet']),
+    network_plugin_mode=dict(type='str', choices=['Overlay']),
     network_policy=dict(type='str', choices=['azure', 'calico']),
     pod_cidr=dict(type='str'),
     service_cidr=dict(type='str'),
     dns_service_ip=dict(type='str'),
     docker_bridge_cidr=dict(type='str'),
     load_balancer_sku=dict(type='str', choices=['standard', 'basic']),
-    outbound_type=dict(type='str', default='loadBalancer', choices=['userDefinedRouting', 'loadBalancer'])
+    outbound_type=dict(type='str', default='loadBalancer', choices=['userDefinedRouting', 'loadBalancer', 'userAssignedNATGateway', 'managedNATGateway'])
 )
 
 
@@ -751,6 +906,7 @@ aad_profile_spec = dict(
     server_app_secret=dict(type='str', no_log=True),
     tenant_id=dict(type='str'),
     managed=dict(type='bool', default='false'),
+    enable_azure_rbac=dict(type='bool', default='false'),
     admin_group_object_ids=dict(type='list', elements='str')
 )
 
@@ -761,7 +917,20 @@ api_server_access_profile_spec = dict(
 )
 
 
-class AzureRMManagedCluster(AzureRMModuleBase):
+managed_identity_spec = dict(
+    type=dict(type='str', choices=['SystemAssigned', 'UserAssigned'], default='SystemAssigned'),
+    user_assigned_identities=dict(type='str'),
+)
+
+
+class dotdict(dict):
+    """dot.notation access to dictionary attributes"""
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
+class AzureRMManagedCluster(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM container service (AKS) resource"""
 
     def __init__(self):
@@ -805,6 +974,14 @@ class AzureRMManagedCluster(AzureRMModuleBase):
                 type='dict',
                 options=service_principal_spec
             ),
+            identity=dict(
+                type='dict',
+                options=managed_identity_spec,
+                required_if=[
+                    ('type', 'UserAssigned', [
+                        'user_assigned_identities']),
+                ]
+            ),
             enable_rbac=dict(
                 type='bool',
                 default=False
@@ -827,6 +1004,31 @@ class AzureRMManagedCluster(AzureRMModuleBase):
             ),
             node_resource_group=dict(
                 type='str'
+            ),
+            pod_identity_profile=dict(
+                type='dict',
+                options=dict(
+                    enabled=dict(type='bool'),
+                    allow_network_plugin_kubenet=dict(type='bool'),
+                    user_assigned_identities=dict(
+                        type='list',
+                        elements='dict',
+                        options=dict(
+                            name=dict(type='str', required=True),
+                            namespace=dict(type='str', required=True),
+                            binding_selector=dict(type='str'),
+                            identity=dict(
+                                type='dict',
+                                required=True,
+                                options=dict(
+                                    resource_id=dict(type='str'),
+                                    client_id=dict(type='str'),
+                                    object_id=dict(type='str')
+                                )
+                            )
+                        )
+                    )
+                )
             )
         )
 
@@ -841,12 +1043,16 @@ class AzureRMManagedCluster(AzureRMModuleBase):
         self.windows_profile = None
         self.agent_pool_profiles = None
         self.service_principal = None
+        self.identity = None
         self.enable_rbac = False
         self.network_profile = None
         self.aad_profile = None
         self.api_server_access_profile = None
         self.addon = None
         self.node_resource_group = None
+        self.pod_identity_profile = None
+
+        mutually_exclusive = [('identity', 'service_principal')]
 
         required_if = [
             ('state', 'present', [
@@ -858,7 +1064,8 @@ class AzureRMManagedCluster(AzureRMModuleBase):
         super(AzureRMManagedCluster, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                     supports_check_mode=True,
                                                     supports_tags=True,
-                                                    required_if=required_if)
+                                                    required_if=required_if,
+                                                    mutually_exclusive=mutually_exclusive)
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -882,6 +1089,11 @@ class AzureRMManagedCluster(AzureRMModuleBase):
             available_versions = self.get_all_versions()
             if not response:
                 to_be_updated = True
+                # Default to SystemAssigned if service_principal is not specified
+                if not self.service_principal and not self.identity:
+                    self.identity = dotdict({'type': 'SystemAssigned'})
+                if self.identity:
+                    changed, self.identity = self.update_identity(self.identity, {})
                 if self.kubernetes_version not in available_versions.keys():
                     self.fail("Unsupported kubernetes version. Expected one of {0} but got {1}".format(available_versions.keys(), self.kubernetes_version))
             else:
@@ -945,7 +1157,8 @@ class AzureRMManagedCluster(AzureRMModuleBase):
                         to_be_updated = True
 
                     if response['api_server_access_profile'] != self.api_server_access_profile and self.api_server_access_profile is not None:
-                        if self.api_server_access_profile.get('enable_private_cluster') != response['api_server_access_profile'].get('enable_private_cluster'):
+                        if bool(self.api_server_access_profile.get('enable_private_cluster')) != \
+                           bool(response['api_server_access_profile'].get('enable_private_cluster')):
                             self.log(("Api Server Access Diff - Origin {0} / Update {1}"
                                      .format(str(self.api_server_access_profile), str(response['api_server_access_profile']))))
                             self.fail("The enable_private_cluster of the api server access profile cannot be updated")
@@ -1037,6 +1250,18 @@ class AzureRMManagedCluster(AzureRMModuleBase):
                         if not matched:
                             self.log("Agent Pool not found")
                             to_be_updated = True
+                        if not self.default_compare({}, self.pod_identity_profile, response['pod_identity_profile'], '', dict(compare=[])):
+                            to_be_updated = True
+                        else:
+                            self.pod_identity_profile = response['pod_identity_profile']
+
+                        # Default to SystemAssigned if service_principal is not specified
+                        if not self.service_principal and not self.identity:
+                            self.identity = dotdict({'type': 'SystemAssigned'})
+                        if self.identity:
+                            changed, self.identity = self.update_identity(self.identity, response['identity'])
+                            if changed:
+                                to_be_updated = True
 
             if update_agentpool:
                 self.log("Need to update agentpool")
@@ -1097,12 +1322,12 @@ class AzureRMManagedCluster(AzureRMModuleBase):
         if self.agent_pool_profiles:
             agentpools = [self.create_agent_pool_profile_instance(profile) for profile in self.agent_pool_profiles]
 
+        # Only service_principal or identity can be specified, but default to SystemAssigned if none specified.
         if self.service_principal:
             service_principal_profile = self.create_service_principal_profile_instance(self.service_principal)
             identity = None
         else:
             service_principal_profile = None
-            identity = self.managedcluster_models.ManagedClusterIdentity(type='SystemAssigned')
 
         if self.linux_profile:
             linux_profile = self.create_linux_profile_instance(self.linux_profile)
@@ -1114,6 +1339,15 @@ class AzureRMManagedCluster(AzureRMModuleBase):
         else:
             windows_profile = None
 
+        if self.pod_identity_profile:
+            pod_identity_profile = self.managedcluster_models.ManagedClusterPodIdentityProfile(
+                enabled=self.pod_identity_profile.get('enabled'),
+                allow_network_plugin_kubenet=self.pod_identity_profile.get('allow_network_plugin_kubenet'),
+                user_assigned_identities=self.pod_identity_profile.get('user_assigned_identities')
+            )
+        else:
+            pod_identity_profile = None
+
         parameters = self.managedcluster_models.ManagedCluster(
             location=self.location,
             dns_prefix=self.dns_prefix,
@@ -1123,13 +1357,14 @@ class AzureRMManagedCluster(AzureRMModuleBase):
             agent_pool_profiles=agentpools,
             linux_profile=linux_profile,
             windows_profile=windows_profile,
-            identity=identity,
+            identity=self.identity,
             enable_rbac=self.enable_rbac,
             network_profile=self.create_network_profile_instance(self.network_profile),
             aad_profile=self.create_aad_profile_instance(self.aad_profile),
             api_server_access_profile=self.create_api_server_access_profile_instance(self.api_server_access_profile),
             addon_profiles=self.create_addon_profile_instance(self.addon),
-            node_resource_group=self.node_resource_group
+            node_resource_group=self.node_resource_group,
+            pod_identity_profile=pod_identity_profile
         )
 
         # self.log("service_principal_profile : {0}".format(parameters.service_principal_profile))
@@ -1240,10 +1475,12 @@ class AzureRMManagedCluster(AzureRMModuleBase):
 
         :return: AKS instance kubeconfig
         '''
-        access_profile = self.managedcluster_client.managed_clusters.get_access_profile(resource_group_name=self.resource_group,
-                                                                                        resource_name=self.name,
-                                                                                        role_name="clusterUser")
-        return access_profile.kube_config.decode('utf-8')
+        try:
+            access_profile = self.managedcluster_client.managed_clusters.list_cluster_user_credentials(self.resource_group, self.name)
+        except HttpResponseError as ec:
+            self.log("Lists the cluster user credentials of a managed cluster Failed, Exception as {0}".format(ec))
+            return []
+        return [item.value.decode('utf-8') for item in access_profile.kubeconfigs]
 
     def create_agent_pool_profile_instance(self, agentpoolprofile):
         '''
@@ -1310,6 +1547,34 @@ class AzureRMManagedCluster(AzureRMModuleBase):
                     config[config_spec[v]] = config[v]
                 result[name] = self.managedcluster_models.ManagedClusterAddonProfile(config=config, enabled=config['enabled'])
         return result
+
+    # AKS only supports a single UserAssigned Identity
+    def update_identity(self, param_identity, curr_identity):
+        user_identity = None
+        changed = False
+        current_managed_type = curr_identity.get('type', 'SystemAssigned')
+        current_managed_identity = curr_identity.get('user_assigned_identities', {})
+        param_managed_identity = param_identity.get('user_assigned_identities')
+
+        # If type set to SystamAssigned, and Resource has SystamAssigned, nothing to do
+        if 'SystemAssigned' in param_identity.get('type') and current_managed_type == 'SystemAssigned':
+            pass
+        # If type set to SystemAssigned, and Resource has current identity, remove UserAssigned identity
+        elif param_identity.get('type') == 'SystemAssigned':
+            changed = True
+        # If type in module args contains 'UserAssigned'
+        elif 'UserAssigned' in param_identity.get('type'):
+            if param_managed_identity not in current_managed_identity.keys():
+                user_identity = {param_managed_identity: {}}
+                changed = True
+
+        new_identity = self.managedcluster_models.ManagedClusterIdentity(
+            type=param_identity.get('type'),
+        )
+        if user_identity:
+            new_identity.user_assigned_identities = user_identity
+
+        return changed, new_identity
 
 
 def main():

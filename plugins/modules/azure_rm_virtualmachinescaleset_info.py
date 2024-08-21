@@ -126,6 +126,30 @@ vmss:
                     returned: always
                     type: str
                     sample: Standard_LRS
+        identity:
+            description:
+                - Identity for the Server.
+            type: complex
+            returned: when available
+            contains:
+                type:
+                    description:
+                        - Type of the managed identity
+                    returned: always
+                    sample: UserAssigned
+                    type: str
+                user_assigned_identities:
+                    description:
+                        - User Assigned Managed Identities and its options
+                    returned: always
+                    type: complex
+                    contains:
+                        id:
+                            description:
+                                - Dict of the user assigned identities IDs associated to the Resource
+                            returned: always
+                            type: dict
+                            elements: dict
         image:
             description:
                 - Image specification.
@@ -388,6 +412,7 @@ class AzureRMVirtualMachineScaleSetInfo(AzureRMModuleBase):
                     'virtual_network_name': virtual_network_name,
                     'subnet_name': subnet_name,
                     'load_balancer': load_balancer_name,
+                    'identity': vmss.get('identity', None),
                     'tags': vmss.get('tags')
                 }
 

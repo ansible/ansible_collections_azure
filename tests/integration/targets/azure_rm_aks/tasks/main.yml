@@ -1,21 +1,46 @@
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
 - name: Set varialbles
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(8, True, '') }}"
     noderpfx: "{{ resource_group | hash('md5') | truncate(4, True, '') }}"
+    location: westus2
+
+- name: Create User Managed Identity
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-aks-identity"
+    - "ansible-test-aks-identity-2"
+
+- name: Set identities IDs to test. Identities ansible-test-aks-identity and ansible-test-aks-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-aks-identity"
+    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-aks-identity-2"
 
 - name: Include aks tasks
   ansible.builtin.include_tasks: minimal-cluster.yml
 
 - name: Find available k8s version
   azure_rm_aksversion_info:
-    location: eastus
+    location: "{{ location }}"
   register: versions
 
 - name: Create an AKS instance (check mode)
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
@@ -27,7 +52,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         node_labels: {"release":"stable"}
@@ -56,7 +81,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
@@ -68,7 +93,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         node_labels: {"release":"stable"}
@@ -107,7 +132,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
@@ -119,7 +144,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         node_labels: {"release":"stable", "environment":"dev"}
@@ -167,7 +192,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
@@ -178,7 +203,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         max_pods: 42
@@ -198,7 +223,7 @@
 
 - name: Get available version
   azure_rm_aksversion_info:
-    location: eastus
+    location: "{{ location }}"
     version: "{{ versions.azure_aks_versions[0] }}"
   register: version1
 
@@ -206,7 +231,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
@@ -217,7 +242,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         max_pods: 42
@@ -246,7 +271,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
@@ -257,7 +282,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         max_pods: 42
@@ -282,7 +307,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
@@ -294,7 +319,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         enable_auto_scaling: true
@@ -323,7 +348,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
@@ -335,7 +360,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         enable_auto_scaling: true
@@ -360,7 +385,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
@@ -372,7 +397,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         enable_auto_scaling: true
@@ -384,7 +409,7 @@
           - 2
       - name: default2
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: User
     node_resource_group: "node{{ noderpfx }}"
@@ -408,7 +433,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
@@ -420,7 +445,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         enable_auto_scaling: true
         max_count: 6
@@ -431,7 +456,7 @@
           - 2
       - name: default2
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: User
     node_resource_group: "node{{ noderpfx }}"
@@ -449,7 +474,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
@@ -461,7 +486,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
         enable_auto_scaling: true
@@ -473,7 +498,7 @@
           - 2
       - name: default2
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
     node_resource_group: "node{{ noderpfx }}"
@@ -497,7 +522,7 @@
   azure_rm_aks:
     name: "aks{{ rpfx }}"
     resource_group: "{{ resource_group }}"
-    location: eastus
+    location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
@@ -509,7 +534,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         enable_auto_scaling: true
         max_count: 6
@@ -520,7 +545,7 @@
           - 2
       - name: default2
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         type: VirtualMachineScaleSets
         mode: System
     node_resource_group: "node{{ noderpfx }}"
@@ -576,3 +601,15 @@
   ansible.builtin.assert:
     that:
       - "fact.aks | length == 0"
+
+- name: Destroy User Managed Identity
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-aks-identity"
+    - "ansible-test-aks-identity-2"

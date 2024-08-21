@@ -76,13 +76,13 @@ options:
             version:
                 description:
                     - Version of the framework. For Linux web app supported value, see U(https://aka.ms/linux-stacks) for more info.
-                    - C(net_framework) supported value sample, C(v4.0) for .NET 4.6 and C(v3.0) for .NET 3.5.
-                    - C(php) supported value sample, C(5.5), C(5.6), C(7.0).
-                    - C(python) supported value sample, C(2.7), C(3.8), C(3.10).
-                    - C(node) supported value sample, C(6.6), C(6.9).
-                    - C(dotnetcore) supported value sample, C(1.0), C(1.1), C(1.2).
+                    - C(net_framework) supported value sample, C(v4.8) for .NET 4.8 and C(v3.5) for .NET 3.5.
+                    - C(php) supported value sample, C(8.1), C(8.2).
+                    - C(python) supported value sample, C(3.8), C(3.9), C(3.10), C(3.11), C(3.12).
+                    - C(node) supported value sample, C(18), C(20).
+                    - C(dotnetcore) supported value sample, C(8), C(7), C(6).
                     - C(ruby) supported value sample, C(2.3).
-                    - C(java) supported value sample, C(1.9) for Windows web app. C(1.8) for Linux web app.
+                    - C(java) supported value sample, C(21), C(17), C(11) and C(8).
                 type: str
                 required: true
             settings:
@@ -93,14 +93,14 @@ options:
                     java_container:
                         description:
                             - Name of Java container.
-                            - Supported only when I(frameworks=java). Sample values C(Tomcat), C(Jetty).
+                            - Supported only when I(frameworks=java). Sample values C(Tomcat), C(JavaSE), C(RedHat).
                         type: str
                         required: True
                     java_container_version:
                         description:
                             - Version of Java container.
                             - Supported only when I(frameworks=java).
-                            - Sample values for C(Tomcat), C(8.0), C(8.5), C(9.0). For C(Jetty,), C(9.1), C(9.3).
+                            - Sample values for C(Tomcat), C(8.5), C(9.0), C(10.0), C(10.1).
                         type: str
                         required: True
 
@@ -213,7 +213,227 @@ options:
             - stopped
             - restarted
         default: started
-
+    site_auth_settings:
+        description:
+            - Configuration settings for the Azure App Service Authentication / Authorization feature.
+        type: dict
+        suboptions:
+            kind:
+                description:
+                    - Kind of resource.
+                type: str
+            enabled:
+                description:
+                    - Whether enable or disable the Authentication / Authorization feature for the current app.
+                type: bool
+            runtime_version:
+                description:
+                    - The RuntimeVersion of the Authentication / Authorization feature in use for the current app.
+                type: str
+            unauthenticated_client_action:
+                description:
+                    - The action to take when an unauthenticated client attempts to access the app.
+                type: str
+                choices:
+                    - RedirectToLoginPage
+                    - AllowAnonymous
+            token_store_enabled:
+                description:
+                    - Whether to use App Service Token Store.
+                type: bool
+            allowed_external_redirect_urls:
+                description:
+                    - External URLs that can be redirected to as part of logging in or logging out of the app.
+                    - Note that the query string part of the URL is ignored.
+                type: list
+                elements: str
+            default_provider:
+                description:
+                    - The default authentication provider to use when multiple providers are configured.
+                type: str
+                choices:
+                    - AzureActiveDirectory
+                    - Facebook
+                    - Google
+                    - MicrosoftAccount
+                    - Twitter
+                    - Github
+            token_refresh_extension_hours:
+                description:
+                    - The number of hours after session token expiration that a session token can be used to call the token refresh API.
+                type: float
+            client_id:
+                description:
+                    - The Client ID of this relying party application, known as the client_id.
+                type: str
+            client_secret:
+                description:
+                    - The Client Secret of this relying party application (in Azure Active Directory, this is also referred to as the Key).
+                type: str
+            client_secret_setting_name:
+                description:
+                    - The app setting name that contains the client secret of the relying party application.
+                type: str
+            client_secret_certificate_thumbprint:
+                description:
+                    - An alternative to the client secret, that is the thumbprint of a certificate used for signing purposes.
+                    - This property acts as a replacement for the Client Secret. It is also optional.
+                type: str
+            issuer:
+                description:
+                    - The OpenID Connect Issuer URI that represents the entity which issues access tokens for this application.
+                type: str
+            allowed_audiences:
+                description:
+                    - Allowed audience values to consider when validating JWTs issued by Azure Active Directory.
+                type: list
+                elements: str
+            aad_claims_authorization:
+                description:
+                    - Gets a JSON string containing the Azure AD Acl settings.
+                type: str
+            additional_login_params:
+                description:
+                    - Login parameters to send to the OpenID Connect authorization endpoint when a user logs in.
+                    - Each parameter must be in the form "key=value".
+                type: str
+            google_client_id:
+                description:
+                    - The OpenID Connect Client ID for the Google web application.
+                type: str
+            google_client_secret:
+                description:
+                    - The client secret associated with the Google web application.
+                type: str
+            google_client_secret_setting_name:
+                description:
+                    - The app setting name that contains the client secret associated with the Google web application.
+                type: str
+            google_o_auth_scopes:
+                description:
+                    - The OAuth 2.0 scopes that will be requested as part of Google Sign-In authentication.
+                    - This setting is optional. If not specified, "openid", "profile", and "email" are used as default scopes.
+                type: list
+                elements: str
+            facebook_app_id:
+                description:
+                    - The App ID of the Facebook app used for login.
+                type: str
+            facebook_app_secret:
+                description:
+                    - The App Secret of the Facebook app used for Facebook Login.
+                type: str
+            facebook_app_secret_setting_name:
+                description:
+                    - The app setting name that contains the app secret used for Facebook Login.
+                type: str
+            facebook_o_auth_scopes:
+                description:
+                    - The OAuth 2.0 scopes that will be requested as part of Facebook for Facebook Login.
+                type: list
+                elements: str
+            git_hub_client_id:
+                description:
+                    - The Client Id of the GitHub app used for login.
+                type: str
+            git_hub_client_secret:
+                description:
+                    - The Client Secret of the GitHub app used for Github Login.
+                type: str
+            git_hub_client_secret_setting_name:
+                description:
+                    - The app setting name that contains the client secret of the Github app used for GitHub Login.
+                type: str
+            git_hub_o_auth_scopes:
+                description:
+                    - The OAuth 2.0 scopes that will be requested as part of GitHub Login authentication.
+                    - This setting is optional.
+                type: list
+                elements: str
+            twitter_consumer_key:
+                description:
+                    - The OAuth 1.0a consumer key of the Twitter application used for sign-in.
+                type: str
+            twitter_consumer_secret:
+                description:
+                    - The OAuth 1.0a consumer secret of the Twitter application used for sign-in.
+                    - This setting is required for enabling Twitter Sign-In.
+                type: str
+            twitter_consumer_secret_setting_name:
+                description:
+                    - The app setting name that contains the OAuth 1.0a consumer secret of the Twitter application used for sign-in.
+                type: str
+            microsoft_account_client_id:
+                description:
+                    - The OAuth 2.0 client ID that was created for the app used for authentication.
+                    - This setting is required for enabling Microsoft Account authentication.
+                type: str
+            microsoft_account_client_secret:
+                description:
+                    - The OAuth 2.0 client secret that was created for the app used for authentication.
+                type: str
+            microsoft_account_client_secret_setting_name:
+                description:
+                    - The app setting name containing the OAuth 2.0 client secret that was created for the app used for authentication.
+                type: str
+            microsoft_account_o_auth_scopes:
+                description:
+                    - The OAuth 2.0 scopes that will be requested as part of Microsoft Account authentication.
+                type: list
+                elements: str
+            is_auth_from_file:
+                description:
+                    - If I(is_auth_from_file=true), the auth config settings should be read from a file.
+                type: str
+                choices:
+                    - 'true'
+                    - 'false'
+            auth_file_path:
+                description:
+                    - The path of the config file containing auth settings.
+                    - If the path is relative, base will the site's root directory.
+                type: str
+            config_version:
+                description:
+                    - The ConfigVersion of the Authentication / Authorization feature in use for the current app.
+                    - The setting in this value can control the behavior of the control plane for Authentication / Authorization.
+                type: str
+    identity:
+        description:
+            - Identity for the WebApp.
+        type: dict
+        version_added: '2.5.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the WebApp
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
     state:
         description:
             - State of the Web App.
@@ -294,7 +514,7 @@ EXAMPLES = '''
       testkey: testvalue
     frameworks:
       - name: "node"
-        version: "6.6"
+        version: "18"
 
 - name: Create a windows web app with node, php
   azure_rm_webapp:
@@ -307,9 +527,9 @@ EXAMPLES = '''
       testkey: testvalue
     frameworks:
       - name: "node"
-        version: 6.6
+        version: 18
       - name: "php"
-        version: "7.0"
+        version: 8.2
 
 - name: Create a stage deployment slot for an existing web app
   azure_rm_webapp:
@@ -337,6 +557,26 @@ EXAMPLES = '''
           java_container: "Tomcat"
           java_container_version: "8.5"
 
+- name: Create a windows web app with site_auth_settings
+  azure_rm_webapp:
+    resource_group: myResourceGroup
+    name: myWindowWebapp
+    site_auth_settings:
+      client_id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+      default_provider: 'MicrosoftAccount'
+      runtime_version: '-2'
+      token_refresh_extension_hours: 120
+      unauthenticated_client_action: 'RedirectToLoginPage'
+      client_secret: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+      token_store_enabled: false
+      enabled: true
+      is_auth_from_file: false
+    plan:
+      resource_group: myResourceGroup
+      name: myLinuxwebapp
+      is_linux: false
+      sku: S1
+
 - name: Create a linux web app with python framework
   azure_rm_webapp:
     resource_group: myResourceGroup
@@ -360,12 +600,14 @@ id:
     sample: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.Web/sites/myWebApp"
 '''
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
-    from azure.mgmt.web.models import Site, AppServicePlan, SkuDescription, NameValuePair, SiteSourceControl, StringDictionary
+    from azure.core.exceptions import HttpResponseError
+    from azure.mgmt.web.models import Site, AppServicePlan, SkuDescription, NameValuePair, SiteSourceControl, \
+        StringDictionary, ManagedServiceIdentity, UserAssignedIdentity
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -396,6 +638,77 @@ framework_spec = dict(
         choices=['net_framework', 'java', 'php', 'node', 'python', 'dotnetcore', 'ruby']),
     version=dict(type='str', required=True),
     settings=dict(type='dict', options=framework_settings_spec)
+)
+
+
+site_auth_settings_spec = dict(
+    kind=dict(type='str'),
+    enabled=dict(type='bool'),
+    runtime_version=dict(type='str'),
+    unauthenticated_client_action=dict(type='str', choices=["RedirectToLoginPage", "AllowAnonymous"]),
+    token_store_enabled=dict(type='bool'),
+    allowed_external_redirect_urls=dict(type='list', elements='str'),
+    default_provider=dict(type='str', choices=["Facebook", "Google", "MicrosoftAccount", "Twitter", "Github", "AzureActiveDirectory"]),
+    token_refresh_extension_hours=dict(type='float', no_log=True),
+    client_id=dict(type='str'),
+    client_secret=dict(type='str', no_log=True),
+    client_secret_setting_name=dict(type='str'),
+    client_secret_certificate_thumbprint=dict(type='str', no_log=True),
+    issuer=dict(type='str'),
+    allowed_audiences=dict(type='list', elements='str'),
+    additional_login_params=dict(type='str'),
+    aad_claims_authorization=dict(type='str'),
+    google_client_id=dict(type='str'),
+    google_client_secret=dict(type='str', no_log=True),
+    google_client_secret_setting_name=dict(type='str'),
+    google_o_auth_scopes=dict(type='list', elements='str'),
+    facebook_app_id=dict(type='str'),
+    facebook_app_secret=dict(type='str', no_log=True),
+    facebook_app_secret_setting_name=dict(type='str'),
+    facebook_o_auth_scopes=dict(type='list', elements='str'),
+    git_hub_client_id=dict(type='str'),
+    git_hub_client_secret=dict(type='str', no_log=True),
+    git_hub_client_secret_setting_name=dict(type='str'),
+    git_hub_o_auth_scopes=dict(type='list', elements='str'),
+    twitter_consumer_key=dict(type='str', no_log=True),
+    twitter_consumer_secret=dict(type='str', no_log=True),
+    twitter_consumer_secret_setting_name=dict(type='str'),
+    microsoft_account_client_id=dict(type='str'),
+    microsoft_account_client_secret=dict(type='str', no_log=True),
+    microsoft_account_client_secret_setting_name=dict(type='str'),
+    microsoft_account_o_auth_scopes=dict(type='list', elements='str'),
+    is_auth_from_file=dict(type='str', choices=['true', 'false']),
+    auth_file_path=dict(type='str'),
+    config_version=dict(type='str')
+)
+
+
+user_assigned_identities_spec = dict(
+    id=dict(
+        type='list',
+        default=[],
+        elements='str'
+    ),
+    append=dict(
+        type='bool',
+        default=True
+    )
+)
+
+managed_identity_spec = dict(
+    type=dict(
+        type='str',
+        choices=['SystemAssigned',
+                 'UserAssigned',
+                 'SystemAssigned, UserAssigned',
+                 'None'],
+        default='None'
+    ),
+    user_assigned_identities=dict(
+        type='dict',
+        options=user_assigned_identities_spec,
+        default={}
+    ),
 )
 
 
@@ -457,15 +770,16 @@ def webapp_to_dict(webapp):
         skip_custom_domain_verification=webapp.skip_custom_domain_verification if hasattr(webapp, 'skip_custom_domain_verification') else None,
         ttl_in_seconds=webapp.ttl_in_seconds if hasattr(webapp, 'ttl_in_seconds') else None,
         state=webapp.state,
+        identity=webapp.identity.as_dict() if webapp.identity else None,
         tags=webapp.tags if webapp.tags else None
     )
 
 
 class Actions:
-    CreateOrUpdate, UpdateAppSettings, Delete = range(3)
+    CreateOrUpdate, UpdateAppSettings, UpdateAuthSettings, Delete = range(4)
 
 
-class AzureRMWebApps(AzureRMModuleBase):
+class AzureRMWebApps(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM Web App resource"""
 
     def __init__(self):
@@ -536,6 +850,14 @@ class AzureRMWebApps(AzureRMModuleBase):
                 choices=['started', 'stopped', 'restarted'],
                 default='started'
             ),
+            site_auth_settings=dict(
+                type='dict',
+                options=site_auth_settings_spec
+            ),
+            identity=dict(
+                type='dict',
+                options=managed_identity_spec
+            ),
             state=dict(
                 type='str',
                 default='present',
@@ -555,10 +877,14 @@ class AzureRMWebApps(AzureRMModuleBase):
 
         self.tags = None
 
+        # Managed Identity
+        self.identity = None
+
         # site config, e.g app settings, ssl
         self.site_config = dict()
         self.app_settings = dict()
         self.app_settings_strDic = None
+        self.site_auth_settings = None
 
         # app service plan
         self.plan = None
@@ -600,12 +926,22 @@ class AzureRMWebApps(AzureRMModuleBase):
                                      "https_only"]
 
         self.supported_linux_frameworks = ['ruby', 'php', 'python', 'dotnetcore', 'node', 'java']
-        self.supported_windows_frameworks = ['net_framework', 'php', 'python', 'node', 'java']
+        self.supported_windows_frameworks = ['net_framework', 'php', 'python', 'node', 'java', 'dotnetcore']
+
+        self._managed_identity = None
 
         super(AzureRMWebApps, self).__init__(derived_arg_spec=self.module_arg_spec,
                                              mutually_exclusive=mutually_exclusive,
                                              supports_check_mode=True,
                                              supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": ManagedServiceIdentity,
+                                      "user_assigned": UserAssignedIdentity
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -631,6 +967,7 @@ class AzureRMWebApps(AzureRMModuleBase):
 
         if old_response:
             self.results['id'] = old_response['id']
+            self.results['site_auth_settings'] = self.get_auth_settings()
 
         if self.state == 'present':
             if not self.plan and not old_response:
@@ -664,15 +1001,15 @@ class AzureRMWebApps(AzureRMModuleBase):
                     self.site_config['linux_fx_version'] = (self.frameworks[0]['name'] + '|' + self.frameworks[0]['version']).upper()
 
                     if self.frameworks[0]['name'] == 'java':
-                        if self.frameworks[0]['version'] != '8':
-                            self.fail("Linux web app only supports java 8.")
+                        if self.frameworks[0]['version'] not in ['8', '11', '17', '21']:
+                            self.fail("Linux web app only supports java 8, 11, 17 and 21.")
                         if self.frameworks[0]['settings'] and self.frameworks[0]['settings']['java_container'].lower() != 'tomcat':
                             self.fail("Linux web app only supports tomcat container.")
 
                         if self.frameworks[0]['settings'] and self.frameworks[0]['settings']['java_container'].lower() == 'tomcat':
                             self.site_config['linux_fx_version'] = 'TOMCAT|' + self.frameworks[0]['settings']['java_container_version'] + '-jre8'
                         else:
-                            self.site_config['linux_fx_version'] = 'JAVA|8-jre8'
+                            self.site_config['linux_fx_version'] = 'JAVA|{0}-jre{0}'.format(self.frameworks[0]['version'])
                 else:
                     for fx in self.frameworks:
                         if fx.get('name') not in self.supported_windows_frameworks:
@@ -723,7 +1060,12 @@ class AzureRMWebApps(AzureRMModuleBase):
 
                 to_be_updated = True
                 self.to_do.append(Actions.CreateOrUpdate)
+                if self.site_auth_settings is not None:
+                    self.to_do.append(Actions.UpdateAuthSettings)
                 self.site.tags = self.tags
+
+                if self.identity:
+                    update_identity, self.site.identity = self.update_identities({})
 
                 # service plan is required for creation
                 if not self.plan:
@@ -760,10 +1102,18 @@ class AzureRMWebApps(AzureRMModuleBase):
 
                 self.log('Result: {0}'.format(old_response))
 
+                if self.identity:
+                    update_identity, self.site.identity = self.update_identities(old_response.get('identity', None))
+
+                    if update_identity:
+                        to_be_updated = True
+                        self.to_do.append(Actions.CreateOrUpdate)
+
                 update_tags, self.site.tags = self.update_tags(old_response.get('tags', None))
 
                 if update_tags:
                     to_be_updated = True
+                    self.to_do.append(Actions.CreateOrUpdate)
 
                 # check if root level property changed
                 if self.is_updatable_property_changed(old_response):
@@ -799,6 +1149,12 @@ class AzureRMWebApps(AzureRMModuleBase):
                         for key in self.app_settings.keys():
                             self.app_settings_strDic[key] = self.app_settings[key]
 
+                if self.site_auth_settings is not None:
+                    result = dict(compare=[])
+                    if not self.default_compare({}, self.site_auth_settings, self.results['site_auth_settings'], '', dict(compare=[])):
+                        to_be_updated = True
+                        self.to_do.append(Actions.UpdateAuthSettings)
+
         elif self.state == 'absent':
             if old_response:
                 self.log("Delete Web App instance")
@@ -829,6 +1185,12 @@ class AzureRMWebApps(AzureRMModuleBase):
             if Actions.UpdateAppSettings in self.to_do:
                 update_response = self.update_app_settings()
                 self.results['id'] = update_response.id
+
+            if Actions.UpdateAuthSettings in self.to_do:
+                auth_settings = self.update_auth_settings(self.site_auth_settings)
+                self.results['site_auth_settings'] = auth_settings
+            else:
+                self.results['site_auth_settings'] = self.get_auth_settings()
 
         webapp = None
         if old_response:
@@ -1026,6 +1388,36 @@ class AzureRMWebApps(AzureRMModuleBase):
             self.fail("Failed to list application settings for web app {0} in resource group {1}: {2}".format(
                 self.name, self.resource_group, str(ex)))
 
+    def update_auth_settings(self, body):
+        '''
+        Update web app auth settings
+        :return: deserialized updating response
+        '''
+        self.log("Update web app auth settings")
+
+        try:
+            response = self.web_client.web_apps.update_auth_settings(self.resource_group, self.name, body)
+            self.log("Response : {0}".format(response))
+            return response.as_dict()
+        except HttpResponseError as ex:
+            self.fail("Failed to update web app auth settings for web app {0} in resource group {1}: {2}".format(
+                self.name, self.resource_group, str(ex)))
+
+    def get_auth_settings(self):
+        '''
+        Get the web app auth settings
+        :return: deserialized updating response
+        '''
+        self.log("Get the web app auth settings")
+
+        try:
+            response = self.web_client.web_apps.get_auth_settings(self.resource_group, self.name)
+            self.log("Response : {0}".format(response))
+            return response.as_dict()
+        except HttpResponseError as ex:
+            self.log("Failed to Get web app auth settings for web app {0} in resource group {1}: {2}".format(
+                     self.name, self.resource_group, str(ex)))
+
     def update_app_settings(self):
         '''
         Update application settings
@@ -1040,9 +1432,8 @@ class AzureRMWebApps(AzureRMModuleBase):
             response = self.web_client.web_apps.update_application_settings(
                 resource_group_name=self.resource_group, name=self.name, app_settings=settings)
             self.log("Response : {0}".format(response))
-
             return response
-        except Exception as ex:
+        except HttpResponseError as ex:
             self.fail("Failed to update application settings for web app {0} in resource group {1}: {2}".format(
                 self.name, self.resource_group, str(ex)))
 

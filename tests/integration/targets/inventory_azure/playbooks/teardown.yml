@@ -15,6 +15,13 @@
         remove_on_absent: all_autocreated
         state: absent
 
+    - name: Delete VM 2
+      azure_rm_virtualmachine:
+        resource_group: "{{ resource_group }}"
+        name: "{{ vm_name_2 }}"
+        remove_on_absent: all_autocreated
+        state: absent
+
     - name: Destroy subnet
       azure_rm_subnet:
         resource_group: "{{ resource_group }}"

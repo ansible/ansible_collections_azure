@@ -64,8 +64,8 @@ cp -aT "${SHIPPABLE_BUILD_DIR}" "${TEST_DIR}"
 cd "${TEST_DIR}"
 mkdir -p shippable/testresults
 
-pip install  -I -r "${TEST_DIR}/requirements-azure.txt"
-pip install  -I -r "${TEST_DIR}/sanity-requirements-azure.txt"
+pip install  -I -r "${TEST_DIR}/requirements.txt"
+pip install  -I -r "${TEST_DIR}/sanity-requirements.txt"
 
 pip install ansible-lint
 
@@ -103,6 +103,7 @@ AZURE_SUBSCRIPTION_SEC_ID:${AZURE_SUBSCRIPTION_SEC_ID}
 AZURE_TENANT:${AZURE_TENANT}
 RESOURCE_GROUP:${RESOURCE_GROUP}
 RESOURCE_GROUP_SECONDARY:${RESOURCE_GROUP_SECONDARY}
+RESOURCE_GROUP_THIRD:${RESOURCE_GROUP_THIRD}
 RESOURCE_GROUP_DATALAKE:${RESOURCE_GROUP_DATALAKE}
 AZURE_PRINCIPAL_ID:${AZURE_PRINCIPAL_ID}
 AZURE_MANAGED_BY_TENANT_ID:${AZURE_MANAGED_BY_TENANT_ID}

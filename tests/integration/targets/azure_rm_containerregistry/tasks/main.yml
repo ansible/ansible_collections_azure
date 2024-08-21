@@ -1,8 +1,36 @@
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
+- name: Set Azure Region based on resource group location
+  ansible.builtin.set_fact:
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-acr-identity"
+    - "ansible-test-acr-identity-2"
+
+- name: Set identities IDs to test. Identities ansible-test-acr-identity and ansible-test-acr-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-acr-identity"
+    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-acr-identity-2"
+
 - name: Create an container registry
   azure_rm_containerregistry:
     name: "acr{{ resource_group | hash('md5') | truncate(7, True, '') }}"
     resource_group: "{{ resource_group }}"
-    location: eastus2
+    location: "{{ location }}"
     admin_user_enabled: true
     sku: Premium
     tags:
@@ -15,7 +43,7 @@
     that:
       - output.changed
       - output.admin_user_enabled
-      - output.location == 'eastus2'
+      - output.location == location
       - output.sku == 'Premium'
       - output.tags['Environment'] == 'Production'
       - output.tags['Release'] == 'beta1'
@@ -27,7 +55,7 @@
   azure_rm_containerregistry:
     name: "acr{{ resource_group | hash('md5') | truncate(7, True, '') }}"
     resource_group: "{{ resource_group }}"
-    location: eastus2
+    location: "{{ location }}"
     admin_user_enabled: false
     sku: Standard
     tags:
@@ -40,7 +68,7 @@
   azure_rm_containerregistry:
     name: "acr{{ resource_group | hash('md5') | truncate(7, True, '') }}sec"
     resource_group: "{{ resource_group }}"
-    location: eastus2
+    location: "{{ location }}"
     admin_user_enabled: false
     sku: Premium
     tags:
@@ -103,6 +131,73 @@
       - output.registries[1]['id'] != None
       - output.registries[1]['credentials'] != None
 
+- name: Update second container registry to test identity
+  azure_rm_containerregistry:
+    name: "acr{{ resource_group | hash('md5') | truncate(7, True, '') }}sec"
+    resource_group: "{{ resource_group }}"
+    location: "{{ location }}"
+    admin_user_enabled: false
+    sku: Premium
+    tags:
+      Release: beta1
+      Environment: Production
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+  register: output
+
+- name: Assert the container registry instance is well created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+      - user_identity_1 in output.identity.user_assigned_identities
+
+- name: Update second container registry to test appending identity
+  azure_rm_containerregistry:
+    name: "acr{{ resource_group | hash('md5') | truncate(7, True, '') }}sec"
+    resource_group: "{{ resource_group }}"
+    location: "{{ location }}"
+    admin_user_enabled: false
+    sku: Premium
+    tags:
+      Release: beta1
+      Environment: Production
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_2 }}"
+  register: output
+
+- name: Assert the container registry instance is well created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+      - user_identity_1 in output.identity.user_assigned_identities
+      - user_identity_2 in output.identity.user_assigned_identities
+
+- name: Update second container registry to test System Identity
+  azure_rm_containerregistry:
+    name: "acr{{ resource_group | hash('md5') | truncate(7, True, '') }}sec"
+    resource_group: "{{ resource_group }}"
+    location: "{{ location }}"
+    admin_user_enabled: false
+    sku: Premium
+    tags:
+      Release: beta1
+      Environment: Production
+    identity:
+      type: SystemAssigned
+  register: output
+
+- name: Assert the container registry instance is well created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+      - '"user_assigned_identities" not in output.identity'
+
 - name: Delete first container registry
   azure_rm_containerregistry:
     name: "acr{{ resource_group | hash('md5') | truncate(7, True, '') }}"
@@ -114,3 +209,15 @@
     name: "acr{{ resource_group | hash('md5') | truncate(7, True, '') }}sec"
     resource_group: "{{ resource_group }}"
     state: absent
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-acr-identity"
+    - "ansible-test-acr-identity-2"

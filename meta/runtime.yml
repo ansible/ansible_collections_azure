@@ -1,7 +1,8 @@
 ---
-requires_ansible: '>=2.14.0'
+requires_ansible: '>=2.15.0'
 action_groups:
   all:
+    - azure.azcollection.azure_rm_accesstoken_info
     - azure.azcollection.azure_rm_account_info
     - azure.azcollection.azure_rm_adapplication
     - azure.azcollection.azure_rm_adapplication_info
@@ -13,11 +14,14 @@ action_groups:
     - azure.azcollection.azure_rm_adserviceprincipal_info
     - azure.azcollection.azure_rm_aduser
     - azure.azcollection.azure_rm_aduser_info
+    - azure.azcollection.azure_rm_afdendpoint
+    - azure.azcollection.azure_rm_afdendpoint_info
     - azure.azcollection.azure_rm_aks
     - azure.azcollection.azure_rm_aks_info
     - azure.azcollection.azure_rm_aksagentpool
     - azure.azcollection.azure_rm_aksagentpool_info
     - azure.azcollection.azure_rm_aksagentpoolversion_info
+    - azure.azcollection.azure_rm_akscredentials_info
     - azure.azcollection.azure_rm_aksupgrade_info
     - azure.azcollection.azure_rm_aksversion_info
     - azure.azcollection.azure_rm_apimanagement
@@ -47,6 +51,7 @@ action_groups:
     - azure.azcollection.azure_rm_bastionhost
     - azure.azcollection.azure_rm_bastionhost_info
     - azure.azcollection.azure_rm_batchaccount
+    - azure.azcollection.azure_rm_batchaccount_info
     - azure.azcollection.azure_rm_cdnendpoint
     - azure.azcollection.azure_rm_cdnendpoint_info
     - azure.azcollection.azure_rm_cdnprofile
@@ -67,8 +72,6 @@ action_groups:
     - azure.azcollection.azure_rm_cosmosdbaccount_info
     - azure.azcollection.azure_rm_datafactory
     - azure.azcollection.azure_rm_datafactory_info
-    - azure.azcollection.azure_rm_datalakestore
-    - azure.azcollection.azure_rm_datalakestore_info
     - azure.azcollection.azure_rm_ddosprotectionplan
     - azure.azcollection.azure_rm_ddosprotectionplan_info
     - azure.azcollection.azure_rm_deployment
@@ -169,12 +172,20 @@ action_groups:
     - azure.azcollection.azure_rm_notificationhub_info
     - azure.azcollection.azure_rm_openshiftmanagedcluster
     - azure.azcollection.azure_rm_openshiftmanagedcluster_info
+    - azure.azcollection.azure_rm_openshiftmanagedclusterkubeconfig_info
     - azure.azcollection.azure_rm_postgresqlconfiguration
     - azure.azcollection.azure_rm_postgresqlconfiguration_info
     - azure.azcollection.azure_rm_postgresqldatabase
     - azure.azcollection.azure_rm_postgresqldatabase_info
     - azure.azcollection.azure_rm_postgresqlfirewallrule
     - azure.azcollection.azure_rm_postgresqlfirewallrule_info
+    - azure.azcollection.azure_rm_postgresqlflexibleconfiguration_info
+    - azure.azcollection.azure_rm_postgresqlflexibledatabase
+    - azure.azcollection.azure_rm_postgresqlflexibledatabase_info
+    - azure.azcollection.azure_rm_postgresqlflexiblefirewallrule
+    - azure.azcollection.azure_rm_postgresqlflexiblefirewallrule_info
+    - azure.azcollection.azure_rm_postgresqlflexibleserver
+    - azure.azcollection.azure_rm_postgresqlflexibleserver_info
     - azure.azcollection.azure_rm_postgresqlserver
     - azure.azcollection.azure_rm_postgresqlserver_info
     - azure.azcollection.azure_rm_privatednsrecordset
@@ -195,6 +206,8 @@ action_groups:
     - azure.azcollection.azure_rm_proximityplacementgroup_info
     - azure.azcollection.azure_rm_publicipaddress
     - azure.azcollection.azure_rm_publicipaddress_info
+    - azure.azcollection.azure_rm_publicipprefix
+    - azure.azcollection.azure_rm_publicipprefix_info
     - azure.azcollection.azure_rm_recoveryservicesvault
     - azure.azcollection.azure_rm_recoveryservicesvault_info
     - azure.azcollection.azure_rm_rediscache
@@ -231,10 +244,12 @@ action_groups:
     - azure.azcollection.azure_rm_sqlelasticpool_info
     - azure.azcollection.azure_rm_sqlfirewallrule
     - azure.azcollection.azure_rm_sqlfirewallrule_info
-    - azure.azcollection.azure_rm_sqlserver
-    - azure.azcollection.azure_rm_sqlserver_info
     - azure.azcollection.azure_rm_sqlmanagedinstance
     - azure.azcollection.azure_rm_sqlmanagedinstance_info
+    - azure.azcollection.azure_rm_sqlserver
+    - azure.azcollection.azure_rm_sqlserver_info
+    - azure.azcollection.azure_rm_sshpublickey
+    - azure.azcollection.azure_rm_sshpublickey_info
     - azure.azcollection.azure_rm_storageaccount
     - azure.azcollection.azure_rm_storageaccount_info
     - azure.azcollection.azure_rm_storageblob
@@ -284,3 +299,9 @@ action_groups:
     - azure.azcollection.azure_rm_webappslot
     - azure.azcollection.azure_rm_webappvnetconnection
     - azure.azcollection.azure_rm_webappvnetconnection_info
+    - azure.azcollection.azure_rm_networkwatcher
+    - azure.azcollection.azure_rm_networkwatcher_info
+    - azure.azcollection.azure_rm_networkflowlog
+    - azure.azcollection.azure_rm_networkflowlog_info
+    - azure.azcollection.azure_rm_capacityreservationgroup
+    - azure.azcollection.azure_rm_capacityreservationgroup_info

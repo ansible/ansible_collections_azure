@@ -90,6 +90,12 @@ options:
     admin_password:
         description:
             - The password of the administrator login.
+            - The supplied password must be between 6-72 characters long and must satisfy at least 3 of password complexity requirements from the following.
+            - 1. Contains an uppercase character
+            - 2. Contains a lowercase character
+            - 3. Contains a numeric digit
+            - 4. Contains a special character
+            - 5. Control characters are not allowed
         type: str
     create_mode:
         description:

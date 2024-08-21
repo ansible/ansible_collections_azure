@@ -79,47 +79,6 @@ options:
             - Windows
             - Linux
         default: Linux
-    private_ip_address:
-        description:
-            - (Deprecate) Valid IPv4 address that falls within the specified subnet.
-            - This option will be deprecated in 2.9, use I(ip_configurations) instead.
-        type: str
-    private_ip_allocation_method:
-        description:
-            - (Deprecate) Whether or not the assigned IP address is permanent.
-            - When creating a network interface, if you specify I(private_ip_address=Static), you must provide a value for I(private_ip_address).
-            - You can update the allocation method to C(Static) after a dynamic private IP address has been assigned.
-            - This option will be deprecated in 2.9, use I(ip_configurations) instead.
-        default: Dynamic
-        type: str
-        choices:
-            - Dynamic
-            - Static
-    public_ip:
-        description:
-            - (Deprecate) When creating a network interface, if no public IP address name is provided a default public IP address will be created.
-            - Set to C(false) if you do not want a public IP address automatically created.
-            - This option will be deprecated in 2.9, use I(ip_configurations) instead.
-        type: bool
-        default: 'yes'
-    public_ip_address_name:
-        description:
-            - (Deprecate) Name of an existing public IP address object to associate with the security group.
-            - This option will be deprecated in 2.9, use I(ip_configurations) instead.
-        type: str
-        aliases:
-            - public_ip_address
-            - public_ip_name
-    public_ip_allocation_method:
-        description:
-            - (Deprecate) If a I(public_ip_address_name) is not provided, a default public IP address will be created.
-            - The allocation method determines whether or not the public IP address assigned to the network interface is permanent.
-            - This option will be deprecated in 2.9, use I(ip_configurations) instead.
-        type: str
-        choices:
-            - Dynamic
-            - Static
-        default: Dynamic
     ip_configurations:
         description:
             - List of IP configurations. Each configuration object should include
@@ -323,7 +282,6 @@ EXAMPLES = '''
     virtual_network: vnet001
     subnet_name: subnet001
     create_with_security_group: false
-    public_ip: false
     ip_configurations:
       - name: default
         primary: true
@@ -521,8 +479,8 @@ except ImportError:
     # This is handled in azure_rm_common
     pass
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import (AzureRMModuleBase,
-                                                                                         azure_id_to_dict,
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import (azure_id_to_dict,
                                                                                          normalize_location_name,
                                                                                          format_resource_id
                                                                                          )
@@ -602,7 +560,7 @@ ip_configuration_spec = dict(
 )
 
 
-class AzureRMNetworkInterface(AzureRMModuleBase):
+class AzureRMNetworkInterface(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -614,13 +572,8 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
             create_with_security_group=dict(type='bool', default=True),
             security_group=dict(type='raw', aliases=['security_group_name']),
             state=dict(default='present', choices=['present', 'absent']),
-            private_ip_address=dict(type='str'),
-            private_ip_allocation_method=dict(type='str', choices=['Dynamic', 'Static'], default='Dynamic'),
-            public_ip_address_name=dict(type='str', aliases=['public_ip_address', 'public_ip_name']),
-            public_ip=dict(type='bool', default=True),
             subnet_name=dict(type='str', aliases=['subnet']),
             virtual_network=dict(type='raw', aliases=['virtual_network_name']),
-            public_ip_allocation_method=dict(type='str', choices=['Dynamic', 'Static'], default='Dynamic'),
             ip_configurations=dict(type='list', default=[], elements='dict', options=ip_configuration_spec),
             os_type=dict(type='str', choices=['Windows', 'Linux'], default='Linux'),
             open_ports=dict(type='list', elements='str'),
@@ -638,13 +591,8 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
         self.create_with_security_group = None
         self.enable_accelerated_networking = None
         self.security_group = None
-        self.private_ip_address = None
-        self.private_ip_allocation_method = None
-        self.public_ip_address_name = None
-        self.public_ip = None
         self.subnet_name = None
         self.virtual_network = None
-        self.public_ip_allocation_method = None
         self.state = None
         self.tags = None
         self.os_type = None
@@ -686,7 +634,10 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
 
         # if application security groups set, convert to resource id format
         if self.ip_configurations:
+            primary_flag = False
             for config in self.ip_configurations:
+                if config.get('primary'):
+                    primary_flag = True
                 if config.get('application_security_groups'):
                     asgs = []
                     for asg in config['application_security_groups']:
@@ -702,18 +653,18 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
                         asgs.append(asg_resource_id)
                     if len(asgs) > 0:
                         config['application_security_groups'] = asgs
+            if not primary_flag:
+                self.ip_configurations[0]['primary'] = True
 
+        # If ip_confiurations is not specified then provide the default
+        # private interface
+        skip_compare = False
         if self.state == 'present' and not self.ip_configurations:
-            # construct the ip_configurations array for compatible
-            self.deprecate('Setting ip_configuration flatten is deprecated and will be removed.'
-                           ' Using ip_configurations list to define the ip configuration', version=(2, 9))
+            skip_compare = True
             self.ip_configurations = [
                 dict(
-                    private_ip_address=self.private_ip_address,
-                    private_ip_allocation_method=self.private_ip_allocation_method,
-                    public_ip_address_name=self.public_ip_address_name if self.public_ip else None,
-                    public_ip_allocation_method=self.public_ip_allocation_method,
                     name='default',
+                    private_ip_allocation_method='Dynamic',
                     primary=True
                 )
             ]
@@ -784,19 +735,8 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
                 # name, private_ip_address, public_ip_address_name, private_ip_allocation_method, subnet_name
                 ip_configuration_result = self.construct_ip_configuration_set(results['ip_configurations'])
                 ip_configuration_request = self.construct_ip_configuration_set(self.ip_configurations)
-                ip_configuration_result_name = [item['name'] for item in ip_configuration_result]
-                for item_request in ip_configuration_request:
-                    if item_request['name'] not in ip_configuration_result_name:
-                        changed = True
-                        break
-                    else:
-                        for item_result in ip_configuration_result:
-                            if len(ip_configuration_request) == 1 and len(ip_configuration_result) == 1:
-                                item_request['primary'] = True
-                            if item_request['name'] == item_result['name'] and item_request != item_result:
-                                changed = True
-                                break
-
+                if not skip_compare and not self.default_compare({}, ip_configuration_request, ip_configuration_result, '', dict(compare=[])):
+                    changed = True
             elif self.state == 'absent':
                 self.log("CHANGED: network interface {0} exists but requested state is 'absent'".format(self.name))
                 changed = True
@@ -816,7 +756,7 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
             if self.state == 'present':
                 subnet = self.network_models.SubResource(
                     id='/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Network/virtualNetworks/{2}/subnets/{3}'.format(
-                        self.virtual_network['subscription_id'],
+                        self.virtual_network['subscription'] if self.virtual_network.get('subscription') else self.virtual_network['subscription_id'],
                         self.virtual_network['resource_group'],
                         self.virtual_network['name'],
                         self.subnet_name))
@@ -875,7 +815,7 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
     def get_or_create_public_ip_address(self, ip_config):
         name = ip_config.get('public_ip_address_name')
 
-        if not (self.public_ip and name):
+        if not name:
             return None
 
         pip = self.get_public_ip_address(name)
@@ -954,7 +894,6 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
             private_ip_allocation_method=to_native(item.get('private_ip_allocation_method')),
             public_ip_address_name=(to_native(item.get('public_ip_address').get('name'))
                                     if item.get('public_ip_address') else to_native(item.get('public_ip_address_name'))),
-            primary=item.get('primary'),
             load_balancer_backend_address_pools=(set([to_native(self.backend_addr_pool_id(id))
                                                       for id in item.get('load_balancer_backend_address_pools')])
                                                  if item.get('load_balancer_backend_address_pools') else None),
@@ -963,7 +902,10 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
                                                        if item.get('application_gateway_backend_address_pools') else None),
             application_security_groups=(set([to_native(asg_id) for asg_id in item.get('application_security_groups')])
                                          if item.get('application_security_groups') else None),
-            name=to_native(item.get('name'))
+            name=to_native(item.get('name')),
+            private_ip_address=to_native(item.get('private_ip_address')),
+            private_ip_address_version=to_native(item.get('private_ip_address_version')),
+            public_ip_allocation_method=to_native(item.get('public_ip_allocation_method', 'Dynamic'))
         ) for item in raw]
         return configurations
 
