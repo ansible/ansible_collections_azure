@@ -441,7 +441,31 @@ options:
                                 description:
                                     - The client ID of the user assigned identity.
                                 type: str
-
+    managed_cluster_auto_upgrade_profile:
+        description:
+            - Auto upgrade profile for a managed cluster.
+        type: dict
+        suboptions:
+            upgrade_channel:
+                description:
+                    - Setting the AKS cluster auto-upgrade channel.
+                type: str
+                default: node-image
+                choices:
+                    - rapid
+                    - stable
+                    - patch
+                    - node-image
+                    - none
+            node_os_upgrade_channel:
+                description:
+                    - Manner in which the OS on your nodes is updated.
+                type: str
+                choices:
+                    - None
+                    - Unmanaged
+                    - SecurityPatch
+                    - NodeImage
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
@@ -979,6 +1003,18 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                         )
                     )
                 )
+            ),
+            managed_cluster_auto_upgrade_profile=dict(
+                auto_upgrade_channel=dict(
+                    type='str',
+                    choices=["rapid", "stable", "patch", "node-image", "none"],
+                    default='node-image'
+                ),
+                node_os_upgrade_channel=dict(
+                    type='str',
+                    choices=["None", "Unmanaged", "SecurityPatch", "NodeImage"],
+                    default='Unmanaged'
+                )
             )
         )
 
@@ -1000,6 +1036,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         self.addon = None
         self.node_resource_group = None
         self.pod_identity_profile = None
+        self.managed_cluster_auto_upgrade_profile = None
 
         mutually_exclusive = [('identity', 'service_principal')]
 
@@ -1278,6 +1315,14 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         else:
             pod_identity_profile = None
 
+        if self.managed_cluster_auto_upgrade_profile is not None:
+            managed_cluster_auto_upgrade_profile = self.managedcluster_models.ManagedClusterAutoUpgradeProfile(
+                upgrade_channel=self.managed_cluster_auto_upgrade_profile.get('upgrade_channel'),
+                node_os_upgrade_channel=self.managed_cluster_auto_upgrade_profile.get('node_os_upgrade_channel')
+            )
+        else:
+            managed_cluster_auto_upgrade_profile = None
+
         parameters = self.managedcluster_models.ManagedCluster(
             location=self.location,
             dns_prefix=self.dns_prefix,
@@ -1293,7 +1338,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
             api_server_access_profile=self.create_api_server_access_profile_instance(self.api_server_access_profile),
             addon_profiles=self.create_addon_profile_instance(self.addon),
             node_resource_group=self.node_resource_group,
-            pod_identity_profile=pod_identity_profile
+            pod_identity_profile=pod_identity_profile,
+            managed_cluster_auto_upgrade_profile=managed_cluster_auto_upgrade_profile
         )
 
         # self.log("service_principal_profile : {0}".format(parameters.service_principal_profile))
