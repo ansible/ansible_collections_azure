@@ -741,7 +741,7 @@ def create_network_profiles_dict(network):
         pod_cidr=network.pod_cidr,
         service_cidr=network.service_cidr,
         dns_service_ip=network.dns_service_ip,
-        docker_bridge_cidr=network.docker_bridge_cidr,
+        docker_bridge_cidr=network.docker_bridge_cidr if hasattr(network, 'docker_bridge_cidr') else None,
         load_balancer_sku=network.load_balancer_sku,
         outbound_type=network.outbound_type
     ) if network else dict()
