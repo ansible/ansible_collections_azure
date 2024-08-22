@@ -461,6 +461,7 @@ options:
                 description:
                     - Manner in which the OS on your nodes is updated.
                 type: str
+                default: NodeImage
                 choices:
                     - None
                     - Unmanaged
