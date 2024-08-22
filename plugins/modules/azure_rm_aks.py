@@ -256,8 +256,11 @@ options:
                 type: str
             docker_bridge_cidr:
                 description:
+                    - (deprecated) The docker bridge cidr.
                     - A CIDR notation IP range assigned to the Docker bridge network.
                     - It must not overlap with any Subnet IP ranges or the Kubernetes service address range.
+                    - API version is higher than 23.0.0, Model ContainerServiceNetworkProfile no longer has parameter (docker_bridge_cidr).
+                    - This parameter will be abandoned in the next version.
                 type: str
             load_balancer_sku:
                 description:
@@ -884,7 +887,7 @@ network_profile_spec = dict(
     pod_cidr=dict(type='str'),
     service_cidr=dict(type='str'),
     dns_service_ip=dict(type='str'),
-    docker_bridge_cidr=dict(type='str'),
+    docker_bridge_cidr=dict(type='str', removed_in_version='3.0.0', removed_from_collection='azure.azcollection'),
     load_balancer_sku=dict(type='str', choices=['standard', 'basic']),
     outbound_type=dict(type='str', default='loadBalancer', choices=['userDefinedRouting', 'loadBalancer', 'userAssignedNATGateway', 'managedNATGateway'])
 )
@@ -1159,7 +1162,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     if self.network_profile:
                         for key in self.network_profile.keys():
                             original = response['network_profile'].get(key) or ''
-                            if self.network_profile[key] and self.network_profile[key].lower() != original.lower():
+                            if key != 'docker_bridge_cidr' and self.network_profile[key] and self.network_profile[key].lower() != original.lower():
                                 to_be_updated = True
 
                     def compare_addon(origin, patch, config):
