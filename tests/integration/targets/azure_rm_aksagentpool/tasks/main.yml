@@ -227,7 +227,7 @@
     mode: System
     node_labels: {"release":"stable"}
     node_taints:
-      - "nodeType=testy:NoSchedule"
+      - "CriticalAddonsOnly=true:NoSchedule"
     max_pods: 42
     enable_auto_scaling: true
     min_count: 1
@@ -271,7 +271,7 @@
     mode: System
     node_labels: {"release":"stable"}
     node_taints:
-      - "nodeType=testy:NoSchedule"
+      - "CriticalAddonsOnly=true:NoSchedule"
     max_pods: 42
     enable_auto_scaling: true
     min_count: 1
