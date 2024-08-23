@@ -94,6 +94,12 @@ options:
         description:
             -  Agent pool node labels to be persisted across all nodes in agent pool.
         type: dict
+    node_taints:
+        description:
+            - The taints added to new nodes during node pool create and scale.
+            - For example as example, value:NoSchedule'.
+        type: list
+        elements: str
     min_count:
         description:
             - Minimum number of nodes for auto-scaling.
@@ -828,6 +834,10 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
             node_labels=dict(
                 type='dict'
             ),
+            node_taints=dict(
+                type='list',
+                elements='str'
+            ),
             min_count=dict(
                 type='int'
             ),
@@ -996,6 +1006,7 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
         self.enable_auto_scaling = None
         self.max_count = None
         self.node_labels = None
+        self.node_taints = None
         self.min_count = None
         self.max_pods = None
         self.tags = None
@@ -1045,6 +1056,9 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
                                 changed = True
                     elif key == 'node_public_ip_prefix_id':
                         pass
+                    elif key == 'node_taints' and self.body[key] is not None:
+                        if len(self.body[key]) != len(agent_pool[key]) or (not all(item in agent_pool[key] for item in self.body[key])):
+                            changed = True
                     elif self.body[key] is not None and self.body[key] != agent_pool[key] and key not in ['scale_set_priority', 'spot_max_price']:
                         changed = True
                     else:
@@ -1122,7 +1136,7 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
             scale_set_eviction_policy=agent_pool.scale_set_eviction_policy,
             spot_max_price=agent_pool.spot_max_price,
             node_labels=agent_pool.node_labels,
-            node_taints=agent_pool.node_taints,
+            node_taints=agent_pool.node_taints if agent_pool.node_taints else [],
             tags=agent_pool.tags,
             kubelet_disk_type=agent_pool.kubelet_disk_type,
             workload_runtime=agent_pool.workload_runtime,
