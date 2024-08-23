@@ -600,9 +600,9 @@ aks_agent_pools:
         node_taints:
             description:
                 - Taints added to new nodes during node pool create and scale.
-            type: str
+            type: list
             returned: always
-            sample: null
+            sample: ["CriticalAddonsOnly=false:NoSchedule"]
         orchestrator_version:
             description:
                 - Version of orchestrator specified when creating the managed cluster.
