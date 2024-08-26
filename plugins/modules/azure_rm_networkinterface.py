@@ -633,8 +633,8 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
         self.security_group = self.parse_resource_to_dict(self.security_group or self.name)
 
         # if application security groups set, convert to resource id format
+        primary_flag = False
         if self.ip_configurations:
-            primary_flag = False
             for config in self.ip_configurations:
                 if config.get('primary'):
                     primary_flag = True
@@ -735,8 +735,20 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
                 # name, private_ip_address, public_ip_address_name, private_ip_allocation_method, subnet_name
                 ip_configuration_result = self.construct_ip_configuration_set(results['ip_configurations'])
                 ip_configuration_request = self.construct_ip_configuration_set(self.ip_configurations)
-                if not skip_compare and not self.default_compare({}, ip_configuration_request, ip_configuration_result, '', dict(compare=[])):
-                    changed = True
+                if skip_compare:
+                    self.ip_configurations = results['ip_configurations']
+                else:
+                    if not primary_flag:
+                        self.ip_configurations[0]['primary'] = False
+                    if not self.default_compare({}, ip_configuration_request, ip_configuration_result, '', dict(compare=[])):
+                        changed = True
+                        ip_configuration_request_name = [item['name'] for item in ip_configuration_request]
+                        for item_result in ip_configuration_result:
+                            if item_result['name'] not in ip_configuration_request_name:
+                                if primary_flag:
+                                    item_result['primary'] = False
+                                self.ip_configurations.append(item_result)
+
             elif self.state == 'absent':
                 self.log("CHANGED: network interface {0} exists but requested state is 'absent'".format(self.name))
                 changed = True
@@ -905,7 +917,8 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
             name=to_native(item.get('name')),
             private_ip_address=to_native(item.get('private_ip_address')),
             private_ip_address_version=to_native(item.get('private_ip_address_version')),
-            public_ip_allocation_method=to_native(item.get('public_ip_allocation_method', 'Dynamic'))
+            public_ip_allocation_method=to_native(item.get('public_ip_allocation_method', 'Dynamic')),
+            primary=bool(item.get('primary'))
         ) for item in raw]
         return configurations
 
