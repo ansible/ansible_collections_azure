@@ -1030,7 +1030,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     node_os_upgrade_channel=dict(
                         type='str',
                         choices=["None", "Unmanaged", "SecurityPatch", "NodeImage"],
-                        default='Unmanaged'
+                        default='NodeImage'
                     )
                 )
             )
