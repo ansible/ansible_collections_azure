@@ -874,6 +874,8 @@ def default_compare(new, old, path):
         if not isinstance(old, dict):
             return False
         for k in new.keys():
+            if k == 'disable_outbound_snat':
+                return True
             if not default_compare(new.get(k), old.get(k, None), path + '/' + k):
                 return False
         return True
