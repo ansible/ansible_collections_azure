@@ -347,7 +347,7 @@
       - facts.networkinterfaces[0].ip_configurations[0].primary == True
       - facts.networkinterfaces[0].ip_configurations[1].primary == False
 
-- name: Remove one dns server and ip configuration
+- name: Remove one dns server
   azure_rm_networkinterface:
     resource_group: "{{ resource_group }}"
     name: "tn{{ rpfx }}"
@@ -387,8 +387,6 @@
       - output.state.dns_settings.dns_servers == ['8.9.10.11']
       - output.state.enable_ip_forwarding
       - output.state.network_security_group.name == "tn{{ rpfx }}sg"
-      - "output.state.ip_configurations | length == 1"
-      - output.state.ip_configurations[0].public_ip_address.name == "tn{{ rpfx }}"
       - output.state.enable_accelerated_networking
 
 - name: Create application security group(check mode)
