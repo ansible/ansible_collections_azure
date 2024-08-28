@@ -743,7 +743,7 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
                     if not self.default_compare({}, ip_configuration_request, ip_configuration_result, '', dict(compare=[])):
                         changed = True
                         ip_configuration_request_name = [item['name'] for item in ip_configuration_request]
-                        for item_result in ip_configuration_result:
+                        for item_result in results['ip_configurations']:
                             if item_result['name'] not in ip_configuration_request_name:
                                 if primary_flag:
                                     item_result['primary'] = False
