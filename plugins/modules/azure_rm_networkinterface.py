@@ -915,7 +915,6 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
             application_security_groups=(set([to_native(asg_id) for asg_id in item.get('application_security_groups')])
                                          if item.get('application_security_groups') else None),
             name=to_native(item.get('name')),
-            private_ip_address=to_native(item.get('private_ip_address')),
             private_ip_address_version=to_native(item.get('private_ip_address_version')),
             public_ip_allocation_method=to_native(item.get('public_ip_allocation_method', 'Dynamic')),
             primary=bool(item.get('primary'))
