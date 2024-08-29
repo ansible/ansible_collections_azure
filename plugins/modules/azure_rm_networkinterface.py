@@ -650,7 +650,7 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
                                 asg = dict(name=asg)
                         else:
                             if asg.get('name') is None:
-                                self.fail('The Name must be defined in the dictionary')
+                                self.fail("If the element of application_security_groups is a dictionary, you must define 'name'.")
                         asg_resource_id = format_resource_id(val=asg['name'],
                                                              subscription_id=self.subscription_id,
                                                              namespace='Microsoft.Network',
@@ -751,8 +751,8 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
                         ip_configuration_request_name = [item['name'] for item in ip_configuration_request]
                         for item_result in results['ip_configurations']:
                             if item_result['name'] not in ip_configuration_request_name:
-                                if primary_flag:
-                                    item_result['primary'] = False
+                                if primary_flag and item_result.get('primary'):
+                                    self.fail("Both the service and playbook  ip configuration have primary keys. Please confirm which primary key is used")
                                 self.ip_configurations.append(item_result)
 
             elif self.state == 'absent':
