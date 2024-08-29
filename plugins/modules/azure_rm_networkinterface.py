@@ -643,9 +643,10 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
                     for asg in config['application_security_groups']:
                         asg_resource_id = asg
                         if isinstance(asg, str):
-                            if not is_valid_resource_id(asg):
-                                self.fail('The string must be the ID of the application security group')
-                            asg = self.parse_resource_to_dict(asg)
+                            if is_valid_resource_id(asg):
+                                asg = self.parse_resource_to_dict(asg)
+                            else:
+                                asg = dict(name=asg)
                         else:
                             if asg.get('name') is None:
                                 self.fail('The Name must be defined in the dictionary')
