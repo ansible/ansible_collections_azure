@@ -151,7 +151,8 @@ options:
             application_security_groups:
                 description:
                     - List of application security groups in which the IP configuration is included.
-                    - Element of the list could be a resource id of application security group, or dict of I(resource_group) and I(name).
+                    - Element of the list could be a resource id of application security group, or the name of the application
+                      security group located in the current resource group, or a dictionary with resource groups and names.
                 type: list
                 elements: raw
     enable_accelerated_networking:
