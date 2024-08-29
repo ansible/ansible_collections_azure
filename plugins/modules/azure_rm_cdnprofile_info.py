@@ -247,7 +247,7 @@ class AzureRMCdnprofileInfo(AzureRMModuleBase):
         new_result['sku'] = cdnprofile.sku.name
         new_result['provisioning_state'] = cdnprofile.provisioning_state
         new_result['tags'] = cdnprofile.tags
-        new_result['identity'] = cdnprofile.identity.as_dict()
+        new_result['identity'] = cdnprofile.identity.as_dict() if cdnprofile.identity else None
         return new_result
 
     def get_cdn_client(self):

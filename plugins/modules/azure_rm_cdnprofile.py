@@ -107,7 +107,7 @@ def cdnprofile_to_dict(cdnprofile):
         resource_state=cdnprofile.resource_state,
         provisioning_state=cdnprofile.provisioning_state,
         tags=cdnprofile.tags,
-        identity=cdnprofile.identity.as_dict()
+        identity=cdnprofile.identity.as_dict() if cdnprofile.identity else None
     )
 
 

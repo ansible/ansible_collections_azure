@@ -194,7 +194,7 @@ class AzureRMDiskEncryptionSetInfo(AzureRMModuleBase):
             tags=diskencryptionset.tags,
             active_key=diskencryptionset.active_key.as_dict(),
             provisioning_state=diskencryptionset.provisioning_state,
-            identity=diskencryptionset.identity.as_dict(),
+            identity=diskencryptionset.identity.as_dict() if diskencryptionset.identity else None,
             type=diskencryptionset.type
         )
         return result
