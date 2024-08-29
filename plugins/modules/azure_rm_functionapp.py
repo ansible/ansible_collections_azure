@@ -76,6 +76,42 @@ options:
         description:
             - Dictionary containing application settings.
         type: dict
+    identity:
+        description:
+            - Identity for the FunctionApp.
+        type: dict
+        version_added: '2.5.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the FunctionApp
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
     state:
         description:
             - Assert the state of the Function App. Use C(present) to create or update a Function App and C(absent) to delete.
@@ -171,11 +207,12 @@ state:
         default_host_name: myfunctionapp.azurewebsites.net
 '''  # NOQA
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
-    from azure.mgmt.web.models import Site, SiteConfig, NameValuePair
+    from azure.mgmt.web.models import Site, SiteConfig, NameValuePair, ManagedServiceIdentity, UserAssignedIdentity
+
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -186,9 +223,36 @@ container_settings_spec = dict(
     registry_server_user=dict(type='str'),
     registry_server_password=dict(type='str', no_log=True)
 )
+user_assigned_identities_spec = dict(
+    id=dict(
+        type='list',
+        default=[],
+        elements='str'
+    ),
+    append=dict(
+        type='bool',
+        default=True
+    )
+)
+
+managed_identity_spec = dict(
+    type=dict(
+        type='str',
+        choices=['SystemAssigned',
+                 'UserAssigned',
+                 'SystemAssigned, UserAssigned',
+                 'None'],
+        default='None'
+    ),
+    user_assigned_identities=dict(
+        type='dict',
+        options=user_assigned_identities_spec,
+        default={}
+    ),
+)
 
 
-class AzureRMFunctionApp(AzureRMModuleBase):
+class AzureRMFunctionApp(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -204,6 +268,10 @@ class AzureRMFunctionApp(AzureRMModuleBase):
             app_settings=dict(type='dict'),
             plan=dict(
                 type='raw'
+            ),
+            identity=dict(
+                type='dict',
+                options=managed_identity_spec
             ),
             container_settings=dict(
                 type='dict',
@@ -224,6 +292,10 @@ class AzureRMFunctionApp(AzureRMModuleBase):
         self.app_settings = None
         self.plan = None
         self.container_settings = None
+        self._managed_identity = None
+
+        # Managed Identity
+        self.identity = None
 
         required_if = [('state', 'present', ['storage_account'])]
 
@@ -232,6 +304,14 @@ class AzureRMFunctionApp(AzureRMModuleBase):
             supports_check_mode=True,
             required_if=required_if
         )
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": ManagedServiceIdentity,
+                                      "user_assigned": UserAssignedIdentity
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
 
@@ -285,6 +365,12 @@ class AzureRMFunctionApp(AzureRMModuleBase):
             if not self.plan and exists:
                 self.plan = function_app.server_farm_id
 
+            curr_identity = function_app.identity.as_dict() if exists and function_app.identity is not None else None
+            update_identity = False
+
+            if self.identity:
+                update_identity, self.identity = self.update_managed_identity(new_identity=self.identity, curr_identity=curr_identity)
+
             if not exists:
                 function_app = Site(
                     location=self.location,
@@ -292,11 +378,15 @@ class AzureRMFunctionApp(AzureRMModuleBase):
                     site_config=SiteConfig(
                         app_settings=self.aggregated_app_settings(),
                         scm_type='LocalGit'
-                    )
+                    ),
+                    identity=self.identity
                 )
                 self.results['changed'] = True
             else:
-                self.results['changed'], function_app = self.update(function_app)
+                new_identity = None
+                if update_identity:
+                    new_identity = self.identity
+                self.results['changed'], function_app = self.update(function_app, new_identity)
 
             # get app service plan
             if self.plan:
@@ -326,7 +416,7 @@ class AzureRMFunctionApp(AzureRMModuleBase):
 
         return self.results
 
-    def update(self, source_function_app):
+    def update(self, source_function_app, identity=None):
         """Update the Site object if there are any changes"""
 
         source_app_settings = self.web_client.web_apps.list_application_settings(
@@ -340,6 +430,10 @@ class AzureRMFunctionApp(AzureRMModuleBase):
             app_settings=target_app_settings,
             scm_type='LocalGit'
         )
+
+        if identity is not None:
+            source_function_app.identity = identity
+            changed = True
 
         return changed, source_function_app
 
