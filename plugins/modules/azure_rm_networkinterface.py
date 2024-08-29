@@ -642,14 +642,18 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
                     asgs = []
                     for asg in config['application_security_groups']:
                         asg_resource_id = asg
-                        if isinstance(asg, str) and (not is_valid_resource_id(asg)):
+                        if isinstance(asg, str):
+                            if not is_valid_resource_id(asg):
+                                self.fail('The string must be the ID of the application security group')
                             asg = self.parse_resource_to_dict(asg)
-                        if isinstance(asg, dict):
-                            asg_resource_id = format_resource_id(val=asg['name'],
-                                                                 subscription_id=self.subscription_id,
-                                                                 namespace='Microsoft.Network',
-                                                                 types='applicationSecurityGroups',
-                                                                 resource_group=asg['resource_group'])
+                        else:
+                            if asg.get('name') is None:
+                                self.fail('The Name must be defined in the dictionary')
+                        asg_resource_id = format_resource_id(val=asg['name'],
+                                                             subscription_id=self.subscription_id,
+                                                             namespace='Microsoft.Network',
+                                                             types='applicationSecurityGroups',
+                                                             resource_group=asg.get('resource_group', self.resource_group))
                         asgs.append(asg_resource_id)
                     if len(asgs) > 0:
                         config['application_security_groups'] = asgs
