@@ -13,7 +13,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: azure_rm_afdendpoint
-version_added: "2.4.0"
+version_added: "2.7.0"
 short_description: Manage an Azure Front Door Endpoint to be used with Standard or Premium Frontdoor
 description:
     - Create, update and delete an Azure Front Door (AFD) Endpoint to be used by a Front Door Service Profile created using azure_rm_cdnprofile.
