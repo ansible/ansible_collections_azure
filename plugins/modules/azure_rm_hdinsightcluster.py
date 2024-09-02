@@ -162,7 +162,7 @@ EXAMPLES = '''
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: MuABCPassword!!@123
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: myStorageAccount.blob.core.windows.net
         is_default: true
@@ -174,13 +174,13 @@ EXAMPLES = '''
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: MuABCPassword!!@123
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 2
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: MuABCPassword!!@123
+          password: "{{ password }}"
 '''
 
 RETURN = '''

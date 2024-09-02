@@ -11,6 +11,7 @@
     azuread_group_name: "Test Security Group"
     azuread_group_id: "00000000-0000-0000-0000-000000000000"
     location: "{{ __rg_info.resourcegroups.0.location }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
   run_once: true
 
 - name: Create User Managed Identities
@@ -38,7 +39,7 @@
     name: "sqlsrv{{ random_postfix }}"
     location: eastus
     admin_username: mylogin
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     identity: SystemAssigned
   check_mode: true
   register: output
@@ -53,7 +54,7 @@
     name: "sqlsrv{{ random_postfix }}"
     location: eastus
     admin_username: mylogin
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     identity: SystemAssigned
     tags:
       aaa: bbb
@@ -80,7 +81,7 @@
     name: "sqlsrv{{ random_postfix }}"
     location: eastus
     admin_username: mylogin
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     identity: SystemAssigned
   register: output
 - name: Assert the state has not changed
@@ -95,7 +96,7 @@
     name: "sqlsrv-extended-{{ random_postfix }}"
     location: eastus
     admin_username: mylogin2
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     minimal_tls_version: '1.2'
     public_network_access: Disabled
     restrict_outbound_network_access: Enabled
@@ -131,7 +132,7 @@
     name: "sqlsrv-extended-{{ random_postfix }}"
     location: eastus
     admin_username: mylogin2
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     minimal_tls_version: '1.2'
     public_network_access: Disabled
     restrict_outbound_network_access: Enabled
@@ -155,7 +156,7 @@
     resource_group: "{{ resource_group }}"
     name: "sqlsrv-extended-{{ random_postfix }}"
     location: eastus
-    admin_password: Password123!321!
+    admin_password: "{{ password }}321!"
     change_admin_password: true
   register: output
 - name: Assert the state has changed
@@ -169,7 +170,7 @@
     name: "sqlsrv-azuread-{{ random_postfix }}"
     location: eastus
     admin_username: sqllogin
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     administrators:
       principal_type: Group
       login: "{{ azuread_group_name }}"
@@ -191,7 +192,7 @@
     name: "sqlsrv-azuread-{{ random_postfix }}"
     location: eastus
     admin_username: sqllogin
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     administrators:
       principal_type: Group
       login: "{{ azuread_group_name }}"

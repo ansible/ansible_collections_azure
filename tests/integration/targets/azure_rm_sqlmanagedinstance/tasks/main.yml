@@ -1,6 +1,7 @@
 - name: Prepare random number
   ansible.builtin.set_fact:
     random_postfix: "sqlmi{{ 1000 | random }}{{ resource_group | hash('md5') | truncate(7, True, '') }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=25) }}"
 
 - name: Create virtual network
   azure_rm_virtualnetwork:
@@ -75,7 +76,7 @@
       family: Gen5
       capacity: 8
     administrator_login: azureuser
-    administrator_login_password: Fredtest@password0329test
+    administrator_login_password: "{{ password }}"
     storage_size_in_gb: 256
     v_cores: 8
     tags:
@@ -100,7 +101,7 @@
       family: Gen5
       capacity: 8
     administrator_login: azureuser
-    administrator_login_password: Fredtest@password0329test
+    administrator_login_password: "{{ password }}"
     storage_size_in_gb: 256
     v_cores: 8
     tags:
@@ -149,7 +150,7 @@
       family: Gen5
       capacity: 8
     administrator_login: azureuser
-    administrator_login_password: Fredtest@password0329test
+    administrator_login_password: "{{ password }}"
     storage_size_in_gb: 256
     v_cores: 8
     tags:

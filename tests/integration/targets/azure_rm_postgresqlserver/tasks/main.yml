@@ -1,6 +1,7 @@
 - name: Prepare random number
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
   run_once: true
 
 - name: Create instance of PostgreSQL Server -- check mode
@@ -14,7 +15,7 @@
     storage_mb: 51200
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   check_mode: true
   register: output
 - name: Assert the resource instance is well created
@@ -33,7 +34,7 @@
     storage_mb: 51200
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   register: output
 - name: Assert the resource instance is well created
   ansible.builtin.assert:
@@ -52,7 +53,7 @@
     storage_mb: 51200
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   register: output
 - name: Assert the state has not changed
   ansible.builtin.assert:
@@ -71,7 +72,7 @@
     storage_mb: 128000
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   register: output
 - name: Assert the state has not changed
   ansible.builtin.assert:
@@ -105,7 +106,7 @@
     storage_autogrow: true
     backup_retention_days: 7
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     tags:
       aaa: bbb
 
@@ -122,7 +123,7 @@
     storage_autogrow: true
     backup_retention_days: 7
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     tags:
       ccc: ddd
 

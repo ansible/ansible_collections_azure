@@ -156,14 +156,14 @@ EXAMPLES = '''
     name: server_name
     location: westus
     admin_username: mylogin
-    admin_password: Testpasswordxyz12!
+    admin_password: "{{ password }}"
 
 - name: Change SQL Server admin password
   azure_rm_sqlserver:
     resource_group: myResourceGroup
     name: server_name
     location: westus
-    admin_password: NewPasswordx123!
+    admin_password: "{{ password }}"
     change_admin_password: true
 
 - name: Create SQL Server with Azure Active Directory admin
@@ -172,7 +172,7 @@ EXAMPLES = '''
     name: server_name
     location: westus
     admin_username: mylogin
-    admin_password: Testpasswordxyz12!
+    admin_password: "{{ password }}"
     administrators:
       principal_type: Group
       login: MySqlAdminGroup

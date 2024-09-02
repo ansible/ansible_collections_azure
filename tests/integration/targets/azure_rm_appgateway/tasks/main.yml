@@ -1,6 +1,7 @@
 - name: Gather Resource Group info
   azure.azcollection.azure_rm_resourcegroup_info:
     name: "{{ resource_group }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
   register: __rg_info
 
 - name: Prepare random number
@@ -82,7 +83,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     gateway_ip_configurations:
       - subnet:
@@ -237,7 +238,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     gateway_ip_configurations:
       - subnet:
@@ -392,7 +393,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     gateway_ip_configurations:
       - subnet:
@@ -550,7 +551,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     gateway_ip_configurations:
       - subnet:
@@ -713,7 +714,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     gateway_ip_configurations:
       - subnet:
@@ -879,7 +880,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     trusted_root_certificates:
       - name: "rootCert3"
@@ -1047,7 +1048,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     trusted_root_certificates:
       - name: "rootCert3"
@@ -1218,7 +1219,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     gateway_ip_configurations:
       - subnet:
@@ -1382,7 +1383,7 @@
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: cert2
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', cert2_file) }}"
     gateway_ip_configurations:
       - subnet:

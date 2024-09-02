@@ -1,6 +1,7 @@
 - name: Prepare random number
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
   run_once: true
 
 - name: Create storage account
@@ -37,7 +38,7 @@
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: Password123!
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: storage{{ rpfx }}.blob.core.windows.net
         is_default: true
@@ -49,19 +50,19 @@
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 1
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: zookeepernode
         target_instance_count: 3
         vm_size: Medium
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
   check_mode: true
   register: output
 - name: Assert the resource instance is well created
@@ -80,7 +81,7 @@
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: Password123!
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: storage{{ rpfx }}.blob.core.windows.net
         is_default: true
@@ -92,19 +93,19 @@
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 1
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: zookeepernode
         target_instance_count: 3
         vm_size: Medium
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
   register: output
 
 - name: Assert the resource instance is well created
@@ -123,7 +124,7 @@
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: Password123!
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: storage{{ rpfx }}.blob.core.windows.net
         is_default: true
@@ -135,19 +136,19 @@
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 1
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: zookeepernode
         target_instance_count: 3
         vm_size: Medium
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
   register: output
 - name: Assert the state has not changed
   ansible.builtin.assert:
@@ -165,7 +166,7 @@
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: Password123!
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: storage{{ rpfx }}.blob.core.windows.net
         is_default: true
@@ -177,19 +178,19 @@
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 2
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: zookeepernode
         target_instance_count: 3
         vm_size: Medium
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
     tags:
       aaa: bbb
   register: output

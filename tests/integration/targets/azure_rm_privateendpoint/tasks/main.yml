@@ -1,6 +1,7 @@
 - name: Set Private Endpoint Name
   ansible.builtin.set_fact:
     rpfx: "private{{ resource_group | hash('md5') | truncate(18, True, '') }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
 
 - name: Create virtual network
   azure_rm_virtualnetwork:
@@ -44,7 +45,7 @@
     storage_mb: 51200
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   register: post_output
 
 - name: Delete private endpoint, makesure there is no private endpoint exist

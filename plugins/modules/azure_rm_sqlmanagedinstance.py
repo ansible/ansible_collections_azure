@@ -236,7 +236,7 @@ EXAMPLES = '''
     identity:
       type: SystemAssigned
     administrator_login: azureuser
-    administrator_login_password: Ft@password0329test
+    administrator_login_password: "{{ password }}"
     storage_size_in_gb: 256
     v_cores: 8
 

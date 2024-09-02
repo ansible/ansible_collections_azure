@@ -1126,7 +1126,7 @@ EXAMPLES = '''
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: ssl_cert
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', 'certfile') }}"
     gateway_ip_configurations:
       - subnet:
@@ -1248,7 +1248,7 @@ EXAMPLES = '''
       policy_name: ssl_policy20170401_s
     ssl_certificates:
       - name: ssl_cert
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', ssl_cert) }}"
     gateway_ip_configurations:
       - subnet:

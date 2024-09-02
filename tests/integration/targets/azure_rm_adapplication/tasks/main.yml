@@ -1,6 +1,7 @@
 - name: Set display name variable
   ansible.builtin.set_fact:
     display_name: "test_app_{{ 999999999999999999994 | random | to_uuid }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=13) }}"
   run_once: true
 
 - name: Get full list from ad app info
@@ -40,7 +41,7 @@
         description: "for app role test"
         display_name: "{{ display_name }}_approle"
         is_enabled: true
-        value: Password@0329
+        value: "{{ password }}"
     optional_claims:
       access_token_claims:
         - name: aud

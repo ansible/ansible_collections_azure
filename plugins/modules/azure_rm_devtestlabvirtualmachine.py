@@ -169,7 +169,7 @@ EXAMPLES = '''
     os_type: linux
     vm_size: Standard_A2_v2
     user_name: vmadmin
-    password: ZSuppas$$21!
+    password: "{{ password }}"
     lab_subnet:
       name: myvnSubnet
       virtual_network_name: myvn

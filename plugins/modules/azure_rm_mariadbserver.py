@@ -116,7 +116,7 @@ EXAMPLES = '''
     enforce_ssl: true
     version: 10.2
     admin_username: cloudsa
-    admin_password: password
+    admin_password: "{{ password }}"
 '''
 
 RETURN = '''

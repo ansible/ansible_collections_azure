@@ -148,7 +148,7 @@ EXAMPLES = '''
     enforce_ssl: true
     version: 5.7
     admin_username: cloudsa
-    admin_password: password
+    admin_password: "{{ password }}"
 '''
 
 RETURN = '''

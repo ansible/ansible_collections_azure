@@ -146,7 +146,7 @@ EXAMPLES = '''
     enforce_ssl: true
     storage_autogrow: true
     admin_username: cloudsa
-    admin_password: password
+    admin_password: "{{ password }}"
 '''
 
 RETURN = '''

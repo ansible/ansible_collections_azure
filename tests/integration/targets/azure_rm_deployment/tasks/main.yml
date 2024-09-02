@@ -1,6 +1,7 @@
 - name: Create random dns label
   ansible.builtin.set_fact:
     dns_label: "test{{ resource_group | hash('md5') | truncate(16, True, '') + (65535 | random | string) }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
 
 - name: Error Create Azure Deploy
   azure_rm_deployment:
@@ -12,7 +13,7 @@
       adminUsername:
         value: chouseknecht
       adminPassword:
-        value: password123!
+        value: "{{ password }}"
       dnsLabelPrefix:
         value: "{{ dns_label }}"
       ubuntuOSVersion:
@@ -30,7 +31,7 @@
       adminUsername:
         value: chouseknecht
       adminPassword:
-        value: password123!
+        value: "{{ password }}"
       dnsLabelPrefix:
         value: "{{ dns_label }}"
       ubuntuOSVersion:
@@ -42,7 +43,7 @@
     hostname: "{{ item.vm_name }}"
     ansible_host: "{{ item['ips'][0].public_ip }}"
     ansible_user: chouseknecht
-    ansible_ssh_pass: password123!
+    ansible_ssh_pass: "{{ password }}"
     groupname: azure_vms
   with_items: "{{ output.deployment.instances }}"
 

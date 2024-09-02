@@ -260,7 +260,7 @@ EXAMPLES = '''
       name: Standard_B1ms
       tier: Burstable
     administrator_login: azureuser
-    administrator_login_password: Fred@0329
+    administrator_login_password: "{{ password }}"
     version: 12
     storage:
       storage_size_gb: 128

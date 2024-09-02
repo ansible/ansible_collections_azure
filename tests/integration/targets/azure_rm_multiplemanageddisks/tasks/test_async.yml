@@ -22,7 +22,7 @@
     managed_disk_type: Standard_LRS
     virtual_network: "{{ async_virtual_network }}-{{ item }}"
     admin_username: adminuser
-    admin_password: "!test123@"
+    admin_password: "{{ password }}"
     os_type: Linux
     image:
       offer: 0001-com-ubuntu-server-focal
