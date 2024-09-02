@@ -242,6 +242,7 @@ try:
     from azure.mgmt.core.tools import parse_resource_id, resource_id, is_valid_resource_id
     from azure.cli.core import cloud as azure_cloud
     from azure.mgmt.network import NetworkManagementClient
+    from azure.mgmt.network import models as NetworkModels
     from azure.mgmt.resource.resources import ResourceManagementClient
     from azure.mgmt.managementgroups import ManagementGroupsAPI as ManagementGroupsClient
     from azure.mgmt.resource.subscriptions import SubscriptionClient
@@ -351,7 +352,7 @@ AZURE_PKG_VERSIONS = {
     },
     'NetworkManagementClient': {
         'package_name': 'network',
-        'expected_version': '2.3.0'
+        'expected_version': '26.0.0'
     },
     'ResourceManagementClient': {
         'package_name': 'resource',
@@ -1078,7 +1079,7 @@ class AzureRMModuleBase(object):
     @property
     def network_models(self):
         self.log("Getting network models...")
-        return NetworkManagementClient.models("2024-01-01")
+        return NetworkModels
 
     @property
     def rm_client(self):
