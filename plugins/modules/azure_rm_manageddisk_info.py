@@ -201,8 +201,8 @@ class AzureRMManagedDiskInfo(AzureRMModuleBase):
         results = []
 
         try:
-            results = [self.compute_client.disks.get(self.resource_group,
-                                                     self.name)]
+            results = [self.disk_client.disks.get(self.resource_group,
+                                                  self.name)]
             if self.managed_by:
                 results = [disk for disk in results if disk.managed_by == self.managed_by]
             if self.tags:
@@ -218,7 +218,7 @@ class AzureRMManagedDiskInfo(AzureRMModuleBase):
         results = []
 
         try:
-            results = self.compute_client.disks.list()
+            results = self.disk_client.disks.list()
             if self.managed_by:
                 results = [disk for disk in results if disk.managed_by == self.managed_by]
             if self.tags:
@@ -234,7 +234,7 @@ class AzureRMManagedDiskInfo(AzureRMModuleBase):
         results = []
 
         try:
-            results = self.compute_client.disks.list_by_resource_group(resource_group_name=self.resource_group)
+            results = self.disk_client.disks.list_by_resource_group(resource_group_name=self.resource_group)
             if self.managed_by:
                 results = [disk for disk in results if disk.managed_by == self.managed_by]
             if self.tags:

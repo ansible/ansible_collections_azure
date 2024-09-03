@@ -340,7 +340,7 @@ class AzureRMImage(AzureRMModuleBase):
         return self._get_resource(self.image_client.snapshots.get, resource_group, snapshot_name)
 
     def get_disk(self, resource_group, disk_name):
-        return self._get_resource(self.image_client.disks.get, resource_group, disk_name)
+        return self._get_resource(self.disk_client.disks.get, resource_group, disk_name)
 
     def get_vm(self, resource_group, vm_name):
         return self._get_resource(self.image_client.virtual_machines.get, resource_group, vm_name, 'instanceview')
