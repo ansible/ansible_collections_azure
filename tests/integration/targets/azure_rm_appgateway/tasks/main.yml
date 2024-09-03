@@ -148,16 +148,19 @@
               - "/123/*"
     request_routing_rules:
       - name: "app-routing1"
+        priority: 100
         rule_type: "basic"
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
+        priority: 101
         rule_type: "path_based_routing"
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
+        priority: 102
         rule_type: "basic"
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
@@ -303,6 +306,7 @@
               - "/123/*"
     request_routing_rules:
       - name: "app-routing1"
+        priority: 100
         rule_type: "basic"
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
@@ -310,10 +314,12 @@
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -459,16 +465,19 @@
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -617,16 +626,19 @@
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -780,16 +792,19 @@
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -954,16 +969,19 @@
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -1122,16 +1140,19 @@
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -1285,16 +1306,19 @@
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -1449,16 +1473,19 @@
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
