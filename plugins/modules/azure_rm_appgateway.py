@@ -771,6 +771,11 @@ options:
                     - Can be the name of the rewrite rule set or full resource ID.
                 type: raw
                 version_added: "1.11.0"
+            priority:
+                description:
+                    - Priority of the request routing rule.
+                type: int
+                required: true
     autoscale_configuration:
         version_added: "1.15.0"
         description:
@@ -975,6 +980,7 @@ EXAMPLES = '''
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
         name: rule1
+        priority: 100
 
 - name: Create instance of Application Gateway with custom trusted root certificate
   azure_rm_appgateway:
@@ -1018,6 +1024,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
@@ -1059,6 +1066,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
@@ -1098,6 +1106,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: path_based_routing
+        priority: 100
         http_listener: sample_http_listener
         name: rule1
         url_path_map: path_mappings
@@ -1193,15 +1202,18 @@ EXAMPLES = '''
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     probes:
@@ -1315,16 +1327,19 @@ EXAMPLES = '''
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -1421,6 +1436,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
@@ -1460,6 +1476,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
@@ -1516,6 +1533,7 @@ EXAMPLES = '''
             - 200
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: http_listener
@@ -1965,6 +1983,7 @@ class AzureRMApplicationGateways(AzureRMModuleBaseExt):
                 elements='dict',
                 options=dict(
                     rule_type=dict(type='str', choices=['basic', 'path_based_routing']),
+                    priority=dict(type='int', required=True),
                     backend_address_pool=dict(type='raw'),
                     backend_http_settings=dict(type='raw'),
                     http_listener=dict(type='raw'),
