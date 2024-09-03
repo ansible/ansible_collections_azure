@@ -1129,13 +1129,13 @@ class AzureRMModuleBase(object):
         if not self._disk_client:
             self._disk_client = self.get_mgmt_svc_client(ComputeManagementClient,
                                                          base_url=self._cloud_environment.endpoints.resource_manager,
-                                                         api_version='2024-03-02')
+                                                         api_version='2021-04-01')
         return self._disk_client
 
     @property
     def disk_models(self):
         self.log("Getting disk models")
-        return ComputeManagementClient.models("2024-03-02")
+        return ComputeManagementClient.models("2021-04-01")
 
     @property
     def diskencryptionset_client(self):
