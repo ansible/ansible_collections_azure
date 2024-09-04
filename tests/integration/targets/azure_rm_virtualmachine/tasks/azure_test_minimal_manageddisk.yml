@@ -19,6 +19,8 @@
     virtual_network: "{{ network_name }}-disk"
     subnet: "{{ subnet_name }}"
     location: westeurope
+    open_ports:
+      - 33
 
 - name: Create minimal VM with defaults and a custom managed disk type
   azure_rm_virtualmachine:
@@ -29,6 +31,8 @@
     managed_disk_type: StandardSSD_ZRS
     public_ip_allocation_method: Disabled
     location: westeurope
+    open_ports:
+      - 33
     network_interface_names:
       - name: "{{ interface_name }}-disk"
         resource_group: "{{ resource_group }}"
