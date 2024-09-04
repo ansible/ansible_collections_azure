@@ -88,6 +88,8 @@
     name: "tn{{ rpfx }}"
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
+    open_ports:
+      - 33
     create_with_security_group: false
   register: output
   check_mode: true
@@ -101,6 +103,8 @@
   azure_rm_networkinterface:
     resource_group: "{{ resource_group }}"
     name: "tn{{ rpfx }}"
+    open_ports:
+      - 33
     virtual_network:
       name: "tn{{ rpfx }}"
       resource_group: "{{ resource_group_secondary }}"
@@ -137,6 +141,8 @@
   azure_rm_networkinterface:
     resource_group: "{{ facts.networkinterfaces[0].resource_group }}"
     name: "{{ facts.networkinterfaces[0].name }}"
+    open_ports:
+      - 33
     virtual_network: "{{ facts.networkinterfaces[0].virtual_network }}"
     create_with_security_group: false
     ip_configurations:
@@ -156,6 +162,8 @@
   azure_rm_networkinterface:
     resource_group: "{{ resource_group }}"
     name: "tn{{ rpfx }}"
+    open_ports:
+      - 33
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
     create_with_security_group: false
@@ -170,6 +178,8 @@
   azure_rm_networkinterface:
     resource_group: "{{ resource_group }}"
     name: "tn{{ rpfx }}"
+    open_ports:
+      - 33
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
     security_group: "tn{{ rpfx }}sg"
@@ -185,6 +195,8 @@
   azure_rm_networkinterface:
     resource_group: "{{ resource_group }}"
     name: "tn{{ rpfx }}"
+    open_ports:
+      - 33
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
     ip_configurations:
@@ -203,6 +215,8 @@
   azure_rm_networkinterface:
     resource_group: "{{ resource_group }}"
     name: "tn{{ rpfx }}"
+    open_ports:
+      - 33
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
     enable_accelerated_networking: true
@@ -220,6 +234,8 @@
     resource_group: "{{ resource_group }}"
     name: "tn{{ rpfx }}"
     virtual_network: "{{ vn.state.id }}"
+    open_ports:
+      - 33
     subnet_name: "tn{{ rpfx }}"
     create_with_security_group: false
     enable_ip_forwarding: true
@@ -238,6 +254,8 @@
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
     create_with_security_group: false
+    open_ports:
+      - 33
     dns_servers:
       - 8.9.10.11
       - 7.8.9.10
@@ -256,6 +274,8 @@
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
     enable_accelerated_networking: true
+    open_ports:
+      - 33
     enable_ip_forwarding: true
     security_group: "tn{{ rpfx }}sg"
     dns_servers:
@@ -295,6 +315,8 @@
     resource_group: "{{ resource_group }}"
     name: "tn{{ rpfx }}"
     virtual_network: "{{ vn.state.id }}"
+    open_ports:
+      - 33
     subnet_name: "tn{{ rpfx }}"
     enable_accelerated_networking: true
     security_group: "tn{{ rpfx }}sg"
@@ -353,6 +375,8 @@
     name: "tn{{ rpfx }}"
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
+    open_ports:
+      - 33
     security_group: "tn{{ rpfx }}sg"
     enable_accelerated_networking: true
     enable_ip_forwarding: true
@@ -470,6 +494,8 @@
     name: "{{ nic_name1 }}"
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
+    open_ports:
+      - 33
     create_with_security_group: true
     ip_configurations:
       - name: ipconfig1
@@ -491,6 +517,8 @@
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
     create_with_security_group: true
+    open_ports:
+      - 33
     ip_configurations:
       - name: ipconfig1
         private_ip_address: "{{ output.state.ip_configurations[0].private_ip_address }}"
@@ -513,6 +541,8 @@
     virtual_network: "{{ vn.state.id }}"
     subnet_name: "tn{{ rpfx }}"
     create_with_security_group: true
+    open_ports:
+      - 33
     ip_configurations:
       - name: ipconfig1
         application_security_groups:
@@ -604,6 +634,8 @@
     virtual_network: "tn{{ rpfx }}"
     subnet_name: "nic-appgw-subnet{{ rpfx }}"
     create_with_security_group: false
+    open_ports:
+      - 33
     ip_configurations:
       - name: "default"
         primary: true
@@ -626,6 +658,8 @@
     virtual_network: "tn{{ rpfx }}"
     subnet_name: "nic-appgw-subnet{{ rpfx }}"
     create_with_security_group: false
+    open_ports:
+      - 33
     ip_configurations:
       - name: "default"
         primary: true

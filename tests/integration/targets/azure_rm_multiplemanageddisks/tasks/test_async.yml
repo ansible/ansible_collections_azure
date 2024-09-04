@@ -23,6 +23,8 @@
     virtual_network: "{{ async_virtual_network }}-{{ item }}"
     admin_username: adminuser
     admin_password: "{{ password }}"
+    open_ports:
+      - 33
     os_type: Linux
     image:
       offer: 0001-com-ubuntu-server-focal
