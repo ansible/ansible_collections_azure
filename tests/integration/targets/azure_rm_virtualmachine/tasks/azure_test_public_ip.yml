@@ -15,7 +15,7 @@
     rules:
       - name: ALLOW_SSH
         protocol: Tcp
-        destination_port_range: 22
+        destination_port_range: 33
         access: Allow
         priority: 100
         direction: Inbound
