@@ -46,6 +46,6 @@ azure-mgmt-automation==1.1.0b3
 azure-mgmt-iothub==3.0.0
 azure-iot-hub==2.6.1;platform_machine=="x86_64"
 azure-mgmt-recoveryservices==3.0.0
-azure-mgmt-recoveryservicesbackup==9.1.0
+azure-mgmt-recoveryservicesbackup==4.0.0
 azure-mgmt-notificationhubs==7.0.0
 azure-mgmt-eventhub==10.1.0
