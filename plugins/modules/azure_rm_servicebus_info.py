@@ -401,7 +401,7 @@ servicebuses:
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
-    from azure.mgmt.servicebus.v2021_06_01_preview.models import Identity
+    from azure.mgmt.servicebus.v2022_10_01_preview.models import Identity
 except Exception:
     # This is handled in azure_rm_common
     pass

@@ -1318,13 +1318,13 @@ class AzureRMModuleBase(object):
         self.log('Getting servicebus client')
         if not self._servicebus_client:
             self._servicebus_client = self.get_mgmt_svc_client(ServiceBusManagementClient,
-                                                               api_version="2021-06-01-preview",
+                                                               api_version="2022-10-01-preview",
                                                                base_url=self._cloud_environment.endpoints.resource_manager)
         return self._servicebus_client
 
     @property
     def servicebus_models(self):
-        return ServiceBusManagementClient.models("2021-06-01-preview")
+        return ServiceBusManagementClient.models("2022-10-01-preview")
 
     @property
     def automation_client(self):

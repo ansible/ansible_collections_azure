@@ -112,7 +112,7 @@ id:
 
 try:
     from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
-    from azure.mgmt.servicebus.v2021_06_01_preview.models import (Identity, UserAssignedIdentity)
+    from azure.mgmt.servicebus.v2022_10_01_preview.models import (Identity, UserAssignedIdentity)
 except ImportError:
     # This is handled in azure_rm_common
     pass
