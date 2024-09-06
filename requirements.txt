@@ -27,7 +27,7 @@ azure-mgmt-privatedns==1.0.0
 azure-mgmt-redis==13.1.0
 azure-mgmt-resource==21.1.0
 azure-mgmt-rdbms==10.2.0b12
-azure-mgmt-search==8.0.0
+azure-mgmt-search==9.2.0b2
 azure-mgmt-servicebus==7.1.0
 azure-mgmt-sql==3.0.1
 azure-mgmt-storage==19.0.0
