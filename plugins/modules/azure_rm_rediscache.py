@@ -771,9 +771,9 @@ class AzureRMRedisCaches(AzureRMModuleBaseExt):
                 identity=self.identity
             )
 
-            response = self._client.redis.update(resource_group_name=self.resource_group,
-                                                 name=self.name,
-                                                 parameters=params)
+            response = self._client.redis.begin_update(resource_group_name=self.resource_group,
+                                                       name=self.name,
+                                                       parameters=params)
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
 
