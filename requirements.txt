@@ -16,7 +16,7 @@ azure-mgmt-containerregistry==9.1.0
 azure-containerregistry==1.1.0
 azure-mgmt-containerservice==31.0.0
 azure-mgmt-datafactory==2.0.0
-azure-mgmt-dns==8.0.0
+azure-mgmt-dns==8.1.0
 azure-mgmt-marketplaceordering==1.1.0
 azure-mgmt-monitor==3.0.0
 azure-mgmt-managedservices==6.0.0

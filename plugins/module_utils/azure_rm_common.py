@@ -1143,13 +1143,13 @@ class AzureRMModuleBase(object):
         if not self._dns_client:
             self._dns_client = self.get_mgmt_svc_client(DnsManagementClient,
                                                         base_url=self._cloud_environment.endpoints.resource_manager,
-                                                        api_version='2018-05-01')
+                                                        api_version='2023-07-01-preview')
         return self._dns_client
 
     @property
     def dns_models(self):
         self.log("Getting dns models...")
-        return DnsManagementClient.models('2018-05-01')
+        return DnsManagementClient.models('2023-07-01-preview')
 
     @property
     def private_dns_client(self):
