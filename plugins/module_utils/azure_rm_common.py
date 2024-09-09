@@ -1279,7 +1279,7 @@ class AzureRMModuleBase(object):
         if not self._monitor_autoscale_settings_client:
             self._monitor_autoscale_settings_client = self.get_mgmt_svc_client(MonitorManagementClient,
                                                                                base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                               api_version="2015-04-01")
+                                                                               api_version="2022-10-01")
         return self._monitor_autoscale_settings_client
 
     @property
