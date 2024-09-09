@@ -24,7 +24,7 @@ azure-mgmt-managementgroups==1.0.0
 azure-mgmt-network==19.1.0
 azure-mgmt-nspkg==2.0.0
 azure-mgmt-privatedns==1.0.0
-azure-mgmt-redis==13.1.0
+azure-mgmt-redis==14.4.0
 azure-mgmt-resource==21.1.0
 azure-mgmt-rdbms==10.2.0b12
 azure-mgmt-search==9.2.0b2
