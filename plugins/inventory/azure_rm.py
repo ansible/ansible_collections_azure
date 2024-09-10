@@ -592,7 +592,7 @@ class AzureHost(object):
             return self._hostvars
 
         system = "unknown"
-        if self._arcvm:
+        if self._arcvm and self._arcvm['properties'].get('osType'):  # osType unavailable with disabled guest agent
             system = self._arcvm['properties']['osType']
         elif 'osProfile' in self._vm_model['properties']:
             if 'linuxConfiguration' in self._vm_model['properties']['osProfile']:
