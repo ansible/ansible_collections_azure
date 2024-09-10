@@ -1253,7 +1253,7 @@ class AzureRMModuleBase(object):
         if not self._containerinstance_client:
             self._containerinstance_client = self.get_mgmt_svc_client(ContainerInstanceManagementClient,
                                                                       base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                      api_version='2018-06-01')
+                                                                      api_version='2023-05-01')
 
         return self._containerinstance_client
 
