@@ -438,10 +438,9 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         if next_link:
             self._enqueue_get(url=next_link, api_version=self._compute_api_version, handler=self._on_arcvm_page_response)
 
-        # FUTURE: add direct VMSS filtering by tag here (performance optimization)?
         for arcvm in response['value']:
             url = '{0}/providers/Microsoft.AzureStackHCI/virtualMachineInstances'.format(arcvm['id'])
-            # VMSS instances look close enough to regular VMs that we can share the handler impl...
+            # Stack HCI instances look close enough to regular VMs that we can share the handler impl...
             self._enqueue_get(url=url, api_version=self._stackhci_api_version, handler=self._on_vm_page_response, handler_args=dict(arcvm=arcvm))
 
     def _on_vmss_page_response(self, response):
