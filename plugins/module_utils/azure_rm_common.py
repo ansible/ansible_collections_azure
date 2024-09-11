@@ -1171,7 +1171,7 @@ class AzureRMModuleBase(object):
         if not self._web_client:
             self._web_client = self.get_mgmt_svc_client(WebSiteManagementClient,
                                                         base_url=self._cloud_environment.endpoints.resource_manager,
-                                                        api_version='2021-03-01')
+                                                        api_version='2023-12-01')
         return self._web_client
 
     @property
