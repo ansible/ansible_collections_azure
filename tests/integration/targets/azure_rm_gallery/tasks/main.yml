@@ -86,6 +86,8 @@
     name: "vmforimage{{ rpfx }}nic"
     virtual_network: "testVnet{{ rpfx }}"
     subnet: "testSubnet{{ rpfx }}"
+    open_ports:
+      - 33
 
 - name: Create VM
   azure_rm_virtualmachine:
@@ -94,6 +96,8 @@
     location: eastus
     admin_username: testuser
     ssh_password_enabled: false
+    open_ports:
+      - 33
     ssh_public_keys:
       - path: /home/testuser/.ssh/authorized_keys
         key_data: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDfoYlIV4lTPZTv7hXaVwQQuqBgGs4yeNRX0SPo2+HQt9u4X7IGwrtXc0nEUm6LfaCikMH58bOL8f20NTGz285kxdFHZRcBXtqmnMz2rXwhK9gwq5h1khc+GzHtdcJXsGA4y0xuaNcidcg04jxAlN/06fwb/VYwwWTVbypNC0gpGEpWckCNm8vlDlA55sU5et0SZ+J0RKVvEaweUOeNbFZqckGPA384imfeYlADppK/7eAxqfBVadVvZG8IJk4yvATgaIENIFj2cXxqu2mQ/Bp5Wr45uApvJsFXmi+v/nkiOEV1QpLOnEwAZo6EfFS4CCQtsymxJCl1PxdJ5LD4ZOtP xiuxi.sun@qq.com"

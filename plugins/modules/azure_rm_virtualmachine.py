@@ -2462,7 +2462,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
 
         try:
             os_disk = {}
-            response = self.compute_client.disks.get(resource_group_name, os_disk_name)
+            response = self.disk_client.disks.get(resource_group_name, os_disk_name)
             os_disk['name'] = response.name
             os_disk['managed_disk'] = dict(id=response.id)
             os_disk['create_option'] = response.creation_data.create_option
