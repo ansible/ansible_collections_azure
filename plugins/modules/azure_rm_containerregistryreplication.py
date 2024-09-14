@@ -64,7 +64,8 @@ EXAMPLES = '''
     resource_group: myResourceGroup
     registry_name: myRegistry
     replication_name: myReplication
-    replication: replication
+    replication:
+      Key: value
     location: eastus
 '''
 

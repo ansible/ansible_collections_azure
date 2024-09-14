@@ -652,7 +652,7 @@ class AzureRMNetworkInterface(AzureRMModuleBaseExt):
                             if asg.get('name') is None:
                                 self.fail("If the element of application_security_groups is a dictionary, you must define 'name'.")
                         asg_resource_id = format_resource_id(val=asg['name'],
-                                                             subscription_id=self.subscription_id,
+                                                             subscription_id=asg.get('subscription_id', self.subscription_id),
                                                              namespace='Microsoft.Network',
                                                              types='applicationSecurityGroups',
                                                              resource_group=asg.get('resource_group', self.resource_group))

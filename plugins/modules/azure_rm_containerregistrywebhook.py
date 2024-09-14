@@ -86,6 +86,12 @@ EXAMPLES = '''
     registry_name: myRegistry
     webhook_name: myWebhook
     location: eastus
+    service_uri: http://test123.com
+    scope: test123
+    custom_headers:
+      Key: Value1
+    actions:
+      - push
 '''
 
 RETURN = '''
