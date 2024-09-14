@@ -815,7 +815,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: EP{{ random_postfix }}
-    zone_redundant: true
+    zone_redundant: false
     tags:
       aaa1: bbb1
   register: output
@@ -836,7 +836,7 @@
   ansible.builtin.assert:
     that:
       - output.changed == False
-      - output.elastic_pool[0].zone_redundant == true
+      - output.elastic_pool[0].zone_redundant == false
       - output.elastic_pool[0].tags | length == 2
 
 - name: Delete instance of SQL Elastic Pool
