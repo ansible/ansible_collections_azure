@@ -1035,7 +1035,7 @@ class AzureRMModuleBase(object):
         if not self._authorization_client:
             self._authorization_client = self.get_mgmt_svc_client(AuthorizationManagementClient,
                                                                   base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                  api_version='2022-04-01')
+                                                                  api_version='2020-04-01-preview')
         return self._authorization_client
 
     @property
