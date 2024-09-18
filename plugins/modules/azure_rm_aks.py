@@ -791,6 +791,7 @@ def create_service_principal_profile_dict(serviceprincipalprofile):
         client_id=serviceprincipalprofile.client_id
     )
 
+
 def create_agent_pool_profiles_dict(agentpoolprofiles):
     '''
     Helper method to deserialize a ContainerServiceAgentPoolProfile to a dict
