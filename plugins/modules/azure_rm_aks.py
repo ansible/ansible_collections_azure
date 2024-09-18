@@ -790,8 +790,6 @@ def create_service_principal_profile_dict(serviceprincipalprofile):
     return dict(
         client_id=serviceprincipalprofile.client_id
     )
-,
-tags=profile['tags']
 
 def create_agent_pool_profiles_dict(agentpoolprofiles):
     '''
@@ -1241,7 +1239,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                                     self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(str(profile_result), str(profile_self))))
                                     to_be_updated = True
                                 elif not self.default_compare({}, tags, profile_result['tags'], '', dict(compare=[])):
-                                    self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(profile_result['tags'], tags))
+                                    self.log("Agent Profile Diff - Origin {0} / Update {1}".format(profile_result['tags'], tags))
                                     to_be_updated = True
 
                         if not matched:
