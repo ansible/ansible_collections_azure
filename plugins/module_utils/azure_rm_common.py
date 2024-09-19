@@ -609,7 +609,7 @@ class AzureRMModuleBase(object):
         '''
         resource_dict = parse_resource_id(resource) if not isinstance(resource, dict) else resource
         resource_dict['resource_group'] = resource_dict.get('resource_group', self.resource_group)
-        resource_dict['subscription_id'] = resource_dict.get('subscription_id', self.subscription_id)
+        resource_dict['subscription_id'] = resource_dict.get('subscription', self.subscription_id)
         return resource_dict
 
     def serialize_obj(self, obj, class_name, enum_modules=None):
