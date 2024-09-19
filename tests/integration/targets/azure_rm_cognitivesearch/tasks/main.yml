@@ -78,7 +78,7 @@
     resource_group: "{{ resource_group }}"
   register: search_info
 
-- name: Assert status succeeded and results
+- name: Assert status Succeeded and results
   ansible.builtin.assert:
     that:
       - search_info.changed
@@ -90,7 +90,7 @@
       - search_info.state.partition_count == 1
       - search_info.state.replica_count == 1
       - search_info.state.sku == "basic"
-      - search_info.state.provisioning_state == "succeeded"
+      - search_info.state.provisioning_state == "Succeeded"
       - search_info.state.public_network_access == "Enabled"
       - search_info.state.status == "running"
 
@@ -100,7 +100,7 @@
     resource_group: "{{ resource_group }}"
   register: search_info_module
 
-- name: Assert status succeeded and results
+- name: Assert status Succeeded and results
   ansible.builtin.assert:
     that:
       - search_info_module.search.id is defined
@@ -111,7 +111,7 @@
       - search_info_module.search.partition_count == 1
       - search_info_module.search.replica_count == 1
       - search_info_module.search.sku == "basic"
-      - search_info_module.search.provisioning_state == "succeeded"
+      - search_info_module.search.provisioning_state == "Succeeded"
       - search_info_module.search.public_network_access == "Enabled"
       - search_info_module.search.status == "running"
 
@@ -149,7 +149,7 @@
       foo: bar
   register: search_info
 
-- name: Assert status succeeded and results
+- name: Assert status Succeeded and results
   ansible.builtin.assert:
     that:
       - search_info.changed
@@ -161,7 +161,7 @@
       - search_info.state.partition_count == 2
       - search_info.state.replica_count == 2
       - search_info.state.sku == "standard"
-      - search_info.state.provisioning_state == "succeeded"
+      - search_info.state.provisioning_state == "Succeeded"
       - search_info.state.status == "running"
 
 - name: Update Azure Search not default parameters (Idempotence)

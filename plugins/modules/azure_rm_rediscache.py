@@ -562,7 +562,7 @@ class AzureRMRedisCaches(AzureRMModuleBaseExt):
         # get management client
         self._client = self.get_mgmt_svc_client(RedisManagementClient,
                                                 base_url=self._cloud_environment.endpoints.resource_manager,
-                                                api_version='2018-03-01')
+                                                api_version='2024-03-01')
 
         # set location
         resource_group = self.get_resource_group(self.resource_group)
@@ -771,9 +771,9 @@ class AzureRMRedisCaches(AzureRMModuleBaseExt):
                 identity=self.identity
             )
 
-            response = self._client.redis.update(resource_group_name=self.resource_group,
-                                                 name=self.name,
-                                                 parameters=params)
+            response = self._client.redis.begin_update(resource_group_name=self.resource_group,
+                                                       name=self.name,
+                                                       parameters=params)
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
 
