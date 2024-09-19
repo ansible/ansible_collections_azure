@@ -1,7 +1,30 @@
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
 - name: Prepare random number
   ansible.builtin.set_fact:
     name_rpfx: "loganalytics{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
     retention_days: 60
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-loganalyze-identity"
+
+- name: Set identities IDs to test. Identities ansible-test-loganalyze-identity have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-loganalyze-identity"
 
 - name: Create Log Analytics Workspace (Check Mode On)
   azure_rm_loganalyticsworkspace:
@@ -11,6 +34,8 @@
       Containers: true
     retention_in_days: "{{ retention_days }}"
     resource_group: "{{ resource_group }}"
+    identity:
+      type: SystemAssigned
   check_mode: true
   register: output
 
@@ -44,6 +69,8 @@
     resource_group: "{{ resource_group }}"
     tags:
       key1: value1
+    identity:
+      type: SystemAssigned
   register: output
 
 - name: Assert the log analytics workspace created
@@ -55,6 +82,7 @@
       # - output.intelligence_packs | json_query('[?name == `Containers`].enabled') | first == true
       - output.sku == 'per_gb2018'
       - output.tags.key1 == 'value1'
+      - output.identity.type == 'SystemAssigned'
 
 - name: Update Log Analytics Workspace
   azure_rm_loganalyticsworkspace:
@@ -67,6 +95,9 @@
     tags:
       key1: value1
       key2: value2
+    identity:
+      type: UserAssigned
+      user_assigned_identity: "{{ user_identity_1 }}"
   register: output
 
 - name: Assert the log analytics workspace updated
@@ -75,6 +106,8 @@
       - output.changed
       - output.retention_in_days == retention_days
       - output.tags.key2 == 'value2'
+      - output.identity.type == 'UserAssigned'
+      - output.identity.user_assigned_identities | length == 1
 
 - name: Get Log Analytics workspace information (Show full information)
   azure_rm_loganalyticsworkspace_info:
@@ -102,6 +135,7 @@
       - facts.workspaces[0].usages | length > 0
       - facts.workspaces[0].management_groups is defined
       - facts.workspaces[0].sku == 'per_gb2018'
+      - user_identity_1 in facts.workspaces[0].identity.user_assigned_identities
 
 - name: Get Log Analytics workspace information (Show default information)
   azure_rm_loganalyticsworkspace_info:
@@ -193,3 +227,14 @@
   ansible.builtin.assert:
     that:
       - not output.changed
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-loganalyze-identity"

@@ -300,6 +300,8 @@ class AzureRMHDInsightclusterInfo(AzureRMModuleBase):
             'cluster_definition': {
                 'kind': d.get('properties', {}).get('cluster_definition', {}).get('kind')
             },
+            'identity': d.get('identity'),
+            'cluster_state': d.get('properties', {}).get('cluster_state'),
             'compute_profile_roles': [{
                 'name': item.get('name'),
                 'target_instance_count': item.get('target_instance_count'),
