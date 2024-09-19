@@ -38,6 +38,26 @@ options:
         description:
             - Resource location.
         type: str
+    identity:
+        description:
+            - Identity for Azure Recovery Service Vault.
+        type: dict
+        version_added: '3.0.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identity:
+                description:
+                    - User Assigned Managed Identity associated to this resource
+                required: false
+                type: str
     sku:
         description:
             - The SKU of the workspace.
@@ -160,14 +180,15 @@ usages:
 from ansible.module_utils.common.dict_transformations import _snake_to_camel, _camel_to_snake
 
 try:
-    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
     from azure.core.exceptions import ResourceNotFoundError
+    from azure.mgmt.loganalytics.models import (Identity, UserIdentityProperties)
 except ImportError:
     # This is handled in azure_rm_common
     pass
 
 
-class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
+class AzureRMLogAnalyticsWorkspace(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -175,6 +196,10 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
             resource_group=dict(type='str', required=True),
             name=dict(type='str', required=True),
             state=dict(type='str', default='present', choices=['present', 'absent']),
+            identity=dict(
+                type='dict',
+                options=self.managed_identity_single_spec
+            ),
             location=dict(type='str'),
             sku=dict(type='str', default='per_gb2018', choices=['free', 'standard', 'premium', 'unlimited', 'per_node', 'per_gb2018', 'standalone']),
             retention_in_days=dict(type='int'),
@@ -191,12 +216,22 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
         self.name = None
         self.state = None
         self.location = None
+        self.identity = None
         self.sku = None
         self.retention_in_days = None
         self.intelligence_packs = None
         self.force = None
+        self._managed_identity = None
 
         super(AzureRMLogAnalyticsWorkspace, self).__init__(self.module_arg_spec, supports_check_mode=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": Identity,
+                                      "user_assigned": UserIdentityProperties
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
 
@@ -215,11 +250,18 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
         else:
             self.sku = _snake_to_camel(self.sku)
         workspace = self.get_workspace()
+        update_identity = False
+        identity = None
+        if self.identity:
+            old_identity = workspace and workspace.identity.as_dict() or None
+            update_identity, identity = self.update_single_managed_identity(curr_identity=old_identity,
+                                                                            new_identity=self.identity)
         if not workspace and self.state == 'present':
             changed = True
             workspace = self.log_analytics_models.Workspace(sku=self.log_analytics_models.WorkspaceSku(name=self.sku),
                                                             retention_in_days=self.retention_in_days,
                                                             location=self.location,
+                                                            identity=identity,
                                                             tags=self.tags)
             if not self.check_mode:
                 workspace = self.create_workspace(workspace)
@@ -230,10 +272,13 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
             update_tags, results['tags'] = self.update_tags(workspace.tags)
             if update_tags:
                 changed = True
+            if update_identity:
+                changed = True
             if not self.check_mode and changed:
                 workspace = self.log_analytics_models.Workspace(sku=self.log_analytics_models.WorkspaceSku(name=self.sku),
                                                                 retention_in_days=self.retention_in_days,
                                                                 location=self.location,
+                                                                identity=identity,
                                                                 tags=results['tags'])
                 workspace = self.create_workspace(workspace)
         elif workspace and self.state == 'absent':
@@ -268,7 +313,7 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
             poller = self.log_analytics_client.workspaces.begin_create_or_update(self.resource_group, self.name, workspace)
             return self.get_poller_result(poller)
         except Exception as exc:
-            self.fail('Error when creating workspace {0} - {1}'.format(self.name, exc.message or str(exc)))
+            self.fail('Error when creating workspace {0} - {1}'.format(self.name, str(exc)))
 
     def get_workspace(self):
         try:
@@ -280,7 +325,7 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
         try:
             self.log_analytics_client.workspaces.begin_delete(self.resource_group, self.name, force=self.force)
         except Exception as exc:
-            self.fail('Error when deleting workspace {0} - {1}'.format(self.name, exc.message or str(exc)))
+            self.fail('Error when deleting workspace {0} - {1}'.format(self.name, str(exc)))
 
     def to_dict(self, workspace):
         result = workspace.as_dict()
@@ -292,7 +337,7 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
             response = self.log_analytics_client.intelligence_packs.list(self.resource_group, self.name)
             return [x.as_dict() for x in response]
         except Exception as exc:
-            self.fail('Error when listing intelligence packs {0}'.format(exc.message or str(exc)))
+            self.fail('Error when listing intelligence packs {0}'.format(str(exc)))
 
     def change_intelligence(self, key, value):
         try:
@@ -301,7 +346,7 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
             else:
                 self.log_analytics_client.intelligence_packs.disable(self.resource_group, self.name, key)
         except Exception as exc:
-            self.fail('Error when changing intelligence pack {0} - {1}'.format(key, exc.message or str(exc)))
+            self.fail('Error when changing intelligence pack {0} - {1}'.format(key, str(exc)))
 
     def list_management_groups(self):
         result = []
@@ -312,7 +357,7 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
         except StopIteration:
             pass
         except Exception as exc:
-            self.fail('Error when listing management groups {0}'.format(exc.message or str(exc)))
+            self.fail('Error when listing management groups {0}'.format(str(exc)))
         return result
 
     def list_usages(self):
@@ -324,14 +369,14 @@ class AzureRMLogAnalyticsWorkspace(AzureRMModuleBase):
         except StopIteration:
             pass
         except Exception as exc:
-            self.fail('Error when listing usages {0}'.format(exc.message or str(exc)))
+            self.fail('Error when listing usages {0}'.format(str(exc)))
         return result
 
     def get_shared_keys(self):
         try:
             return self.log_analytics_client.shared_keys.get_shared_keys(self.resource_group, self.name).as_dict()
         except Exception as exc:
-            self.fail('Error when getting shared key {0}'.format(exc.message or str(exc)))
+            self.fail('Error when getting shared key {0}'.format(str(exc)))
 
 
 def main():

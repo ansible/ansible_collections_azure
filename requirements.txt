@@ -41,11 +41,11 @@ azure-mgmt-keyvault==10.3.1
 azure-mgmt-cosmosdb==10.0.0b3
 azure-mgmt-hdinsight==9.0.0
 azure-mgmt-devtestlabs==10.0.0b1
-azure-mgmt-loganalytics==12.0.0
+azure-mgmt-loganalytics==13.0.0b6
 azure-mgmt-automation==1.0.0
 azure-mgmt-iothub==3.0.0
 azure-iot-hub==2.6.1;platform_machine=="x86_64"
 azure-mgmt-recoveryservices==2.0.0
 azure-mgmt-recoveryservicesbackup==3.0.0
-azure-mgmt-notificationhubs==7.0.0
-azure-mgmt-eventhub==10.1.0
+azure-mgmt-notificationhubs==8.1.0b1
+azure-mgmt-eventhub==11.1.0
