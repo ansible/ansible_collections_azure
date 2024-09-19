@@ -609,7 +609,7 @@ class AzureRMModuleBase(object):
         '''
         resource_dict = parse_resource_id(resource) if not isinstance(resource, dict) else resource
         resource_dict['resource_group'] = resource_dict.get('resource_group', self.resource_group)
-        resource_dict['subscription_id'] = resource_dict.get('subscription_id', self.subscription_id)
+        resource_dict['subscription_id'] = resource_dict.get('subscription', self.subscription_id)
         return resource_dict
 
     def serialize_obj(self, obj, class_name, enum_modules=None):
@@ -1409,7 +1409,7 @@ class AzureRMModuleBase(object):
             self._notification_hub_client = self.get_mgmt_svc_client(
                 NotificationHubsManagementClient,
                 base_url=self._cloud_environment.endpoints.resource_manager,
-                api_version='2016-03-01')
+                api_version='2017-04-01')
         return self._notification_hub_client
 
     @property
@@ -1419,7 +1419,7 @@ class AzureRMModuleBase(object):
             self._event_hub_client = self.get_mgmt_svc_client(
                 EventHubManagementClient,
                 base_url=self._cloud_environment.endpoints.resource_manager,
-                api_version='2021-11-01')
+                api_version='2024-01-01')
         return self._event_hub_client
 
     @property
