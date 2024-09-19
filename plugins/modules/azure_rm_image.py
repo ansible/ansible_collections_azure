@@ -262,7 +262,7 @@ class AzureRMImage(AzureRMModuleBase):
             self.fail("source parameter should be in type string or dictionary")
         if tokenize.get('type') == 'disks':
             disk = format_resource_id(tokenize['name'],
-                                      tokenize.get('subscription_id') or self.subscription_id,
+                                      tokenize.get('subscription') or self.subscription_id,
                                       'Microsoft.Compute',
                                       'disks',
                                       tokenize.get('resource_group') or self.resource_group)
@@ -270,7 +270,7 @@ class AzureRMImage(AzureRMModuleBase):
 
         if tokenize.get('type') == 'snapshots':
             snapshot = format_resource_id(tokenize['name'],
-                                          tokenize.get('subscription_id') or self.subscription_id,
+                                          tokenize.get('subscription') or self.subscription_id,
                                           'Microsoft.Compute',
                                           'snapshots',
                                           tokenize.get('resource_group') or self.resource_group)
