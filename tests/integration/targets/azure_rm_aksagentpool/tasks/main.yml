@@ -4,12 +4,13 @@
 
 - name: Find available k8s version
   azure_rm_aksversion_info:
-    location: eastus
+    location: westus2
   register: versions
 
 - name: Create proximity placement group
   azure_rm_proximityplacementgroup:
     resource_group: "{{ resource_group }}"
+    location: westus2
     name: "proxi{{ rpfx }}"
   register: proxi_output
 
@@ -17,6 +18,7 @@
   azure_rm_publicipprefix:
     resource_group: "{{ resource_group }}"
     name: "pipprefix{{ rpfx }}"
+    location: westus2
     zones:
       - 1
     public_ip_address_version: IPV4
@@ -29,7 +31,7 @@
 - name: Create a kubernet service with minimal parameters
   azure_rm_aks:
     name: "min{{ rpfx }}"
-    location: eastus
+    location: westus2
     resource_group: "{{ resource_group }}"
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     dns_prefix: "aks{{ rpfx }}"
@@ -224,6 +226,8 @@
     type_properties_type: VirtualMachineScaleSets
     mode: System
     node_labels: {"release":"stable"}
+    node_taints:
+      - "CriticalAddonsOnly=true:NoSchedule"
     max_pods: 42
     enable_auto_scaling: true
     min_count: 1
@@ -266,6 +270,8 @@
     type_properties_type: VirtualMachineScaleSets
     mode: System
     node_labels: {"release":"stable"}
+    node_taints:
+      - "CriticalAddonsOnly=true:NoSchedule"
     max_pods: 42
     enable_auto_scaling: true
     min_count: 1

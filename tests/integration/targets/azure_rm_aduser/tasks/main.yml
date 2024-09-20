@@ -20,6 +20,7 @@
     user_type: "Member"
     usage_location: "US"
     mail: "{{ user_name }}@{{ domain }}"
+    mobile_phone: "+12345678912"
     company_name: "Test Company"
     on_premises_extension_attributes:
       extension_attribute1: "test_extension_attribute1"
@@ -40,6 +41,7 @@
     user_type: "Member"
     usage_location: "US"
     mail: "{{ user_name }}@{{ domain }}"
+    mobile_phone: "+12345678912"
     company_name: "Test Company"
     on_premises_extension_attributes:
       extension_attribute1: "test_extension_attribute1"

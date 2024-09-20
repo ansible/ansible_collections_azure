@@ -58,6 +58,19 @@
     address_prefix_cidr: 10.152.0.0/24
   register: worker_sub_output
 
+- name: Get available openshift cluster versions
+  azure_rm_openshiftmanagedclusterversion_info:
+    location: "eastus"
+  register: ocp_cl_vers
+
+- name: Extract the latest available version
+  ansible.builtin.set_fact:
+    ocp_version: "{{ ocp_cl_vers.versions | community.general.version_sort | last }}"
+
+- name: Assert that selected ocp version is not empty
+  ansible.builtin.assert:
+    that: ocp_version | length != 0
+
 - name: Create openshift cluster
   azure_rm_openshiftmanagedcluster:
     resource_group: "{{ resource_group }}"
@@ -66,6 +79,7 @@
     cluster_profile:
       cluster_resource_group_id: "{{ rg_output.resourcegroups[0].id }}"
       domain: "{{ cluster_name }}"
+      version: "{{ ocp_version }}"
     service_principal_profile:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
@@ -73,7 +87,8 @@
       pod_cidr: "10.128.0.0/14"
       service_cidr: "172.30.0.0/16"
     worker_profiles:
-      - vm_size: "Standard_D4s_v3"
+      - name: worker
+        vm_size: "Standard_D4s_v3"
         subnet_id: "{{ worker_sub_output.state.id }}"
         disk_size: 128
         count: 3

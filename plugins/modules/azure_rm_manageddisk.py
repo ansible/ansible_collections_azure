@@ -436,6 +436,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
 
         result = None
         changed = False
+        update_flag = False
 
         resource_group = self.get_resource_group(self.resource_group)
         if not self.location:
@@ -443,6 +444,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
 
         disk_instance = self.get_managed_disk()
         if disk_instance is not None:
+            update_flag = True
             if self.create_option is None:
                 self.create_option = disk_instance.get('create_option')
             if self.source_uri is None:
@@ -461,7 +463,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             if not disk_instance or self.is_different(disk_instance, parameter):
                 changed = True
                 if not self.check_mode:
-                    result = self.create_or_update_managed_disk(parameter)
+                    result = self.create_or_update_managed_disk(parameter, update_flag)
                 else:
                     result = True
 
@@ -530,13 +532,13 @@ class AzureRMManagedDisk(AzureRMModuleBase):
                     lun = item.lun
 
         # prepare the data disk
-        params = self.compute_models.ManagedDiskParameters(id=disk.get('id'), storage_account_type=disk.get('storage_account_type'))
-        caching_options = self.compute_models.CachingTypes[self.attach_caching] if self.attach_caching and self.attach_caching != '' else None
+        params = self.disk_models.ManagedDiskParameters(id=disk.get('id'), storage_account_type=disk.get('storage_account_type'))
+        caching_options = self.disk_models.CachingTypes[self.attach_caching] if self.attach_caching and self.attach_caching != '' else None
         # pylint: disable=missing-kwoa
-        data_disk = self.compute_models.DataDisk(lun=lun,
-                                                 create_option=self.compute_models.DiskCreateOptionTypes.attach,
-                                                 managed_disk=params,
-                                                 caching=caching_options)
+        data_disk = self.disk_models.DataDisk(lun=lun,
+                                              create_option=self.compute_models.DiskCreateOptionTypes.attach,
+                                              managed_disk=params,
+                                              caching=caching_options)
         vm.storage_profile.data_disks.append(data_disk)
         return self._update_vm(resource_group, vm_name, vm)
 
@@ -573,19 +575,19 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         if self.zone:
             disk_params['zones'] = [self.zone]
         if self.storage_account_type:
-            storage_account_type = self.compute_models.DiskSku(name=self.storage_account_type)
+            storage_account_type = self.disk_models.DiskSku(name=self.storage_account_type)
             disk_params['sku'] = storage_account_type
         disk_params['disk_size_gb'] = self.disk_size_gb
-        creation_data['create_option'] = self.compute_models.DiskCreateOption.empty
+        creation_data['create_option'] = self.disk_models.DiskCreateOption.empty
         if self.create_option == 'import':
-            creation_data['create_option'] = self.compute_models.DiskCreateOption.import_enum
+            creation_data['create_option'] = self.disk_models.DiskCreateOption.import_enum
             creation_data['source_uri'] = self.source_uri
             creation_data['storage_account_id'] = self.storage_account_id
         elif self.create_option == 'copy':
-            creation_data['create_option'] = self.compute_models.DiskCreateOption.copy
+            creation_data['create_option'] = self.disk_models.DiskCreateOption.copy
             creation_data['source_resource_id'] = self.source_uri
         if self.os_type:
-            disk_params['os_type'] = self.compute_models.OperatingSystemTypes(self.os_type.capitalize())
+            disk_params['os_type'] = self.disk_models.OperatingSystemTypes(self.os_type.capitalize())
         else:
             disk_params['os_type'] = None
         if self.max_shares:
@@ -593,11 +595,16 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         disk_params['creation_data'] = creation_data
         return disk_params
 
-    def create_or_update_managed_disk(self, parameter):
+    def create_or_update_managed_disk(self, parameter, update_flag):
         try:
-            poller = self.compute_client.disks.begin_create_or_update(self.resource_group,
-                                                                      self.name,
-                                                                      parameter)
+            if update_flag:
+                poller = self.disk_client.disks.begin_update(self.resource_group,
+                                                             self.name,
+                                                             parameter)
+            else:
+                poller = self.disk_client.disks.begin_create_or_update(self.resource_group,
+                                                                       self.name,
+                                                                       parameter)
             aux = self.get_poller_result(poller)
             return managed_disk_to_dict(aux)
         except Exception as e:
@@ -611,7 +618,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             if not found_disk['disk_size_gb'] == new_disk['disk_size_gb']:
                 resp = True
         if new_disk.get('os_type'):
-            if found_disk['os_type'] is None or not self.compute_models.OperatingSystemTypes(found_disk['os_type'].capitalize()) == new_disk['os_type']:
+            if found_disk['os_type'] is None or not self.disk_models.OperatingSystemTypes(found_disk['os_type'].capitalize()) == new_disk['os_type']:
                 resp = True
         if new_disk.get('sku'):
             if not found_disk['storage_account_type'] == new_disk['sku'].name:
@@ -630,15 +637,15 @@ class AzureRMManagedDisk(AzureRMModuleBase):
 
     def delete_managed_disk(self):
         try:
-            poller = self.compute_client.disks.begin_delete(self.resource_group,
-                                                            self.name)
+            poller = self.disk_client.disks.begin_delete(self.resource_group,
+                                                         self.name)
             return self.get_poller_result(poller)
         except Exception as e:
             self.fail("Error deleting the managed disk: {0}".format(str(e)))
 
     def get_managed_disk(self):
         try:
-            resp = self.compute_client.disks.get(
+            resp = self.disk_client.disks.get(
                 self.resource_group,
                 self.name)
             return managed_disk_to_dict(resp)
@@ -650,7 +657,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         if vm_name:
             vm = self._get_vm(self.resource_group, vm_name)
             correspondence = next((d for d in vm.storage_profile.data_disks if d.name.lower() == disk.get('name').lower()), None)
-            caching_options = self.compute_models.CachingTypes[self.attach_caching] if self.attach_caching and self.attach_caching != '' else None
+            caching_options = self.disk_models.CachingTypes[self.attach_caching] if self.attach_caching and self.attach_caching != '' else None
             if correspondence and correspondence.caching != caching_options:
                 resp = True
                 if correspondence.caching == 'none' and (self.attach_caching == '' or self.attach_caching is None):

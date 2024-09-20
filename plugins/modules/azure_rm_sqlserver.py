@@ -45,9 +45,26 @@ options:
         type: str
     identity:
         description:
-            - The identity type. Set this to C(SystemAssigned) in order to automatically create and assign an Azure Active Directory principal for the resource.
-            - Possible values include C(SystemAssigned).
+            - Specifies the managed identity to be used with SqlServer.
+            - If a string, the Managed identity type is based on the name.
+            - Possible values include C(SystemAssigned) and C(None).
+            - If a dict with the keys I(type), I(user_assigned_identities)
+            - Possible values for I(type) include C(SystemAssigned, C(UserAssigned),
+              C(SystemAssigned, UserAssigned), and C(None).
+            - Possible values for I(user_assigned_identities) include a dict
+              with I(id) and I(append).
+            - Possible values for I(id) is a list of user assigned identities ID's
+            - Possible values for I(append) is a boolean of True to append identities
+              or False to overwrite with new I(id)'s.
+            - The string format is (deprecated) and the new dict format should be used
+              going forward.
+        type: raw
+    primary_user_assigned_identity_id:
+        description:
+            - Specifies the primary User Assigned Identity to use.
+            - This is required if you are using Managed Identity type of UserAssigned
         type: str
+        version_added: "2.7.0"
     minimal_tls_version:
         description:
             - Require clients to use a specified TLS version.
@@ -139,14 +156,14 @@ EXAMPLES = '''
     name: server_name
     location: westus
     admin_username: mylogin
-    admin_password: Testpasswordxyz12!
+    admin_password: "{{ password }}"
 
 - name: Change SQL Server admin password
   azure_rm_sqlserver:
     resource_group: myResourceGroup
     name: server_name
     location: westus
-    admin_password: NewPasswordx123!
+    admin_password: "{{ password }}"
     change_admin_password: true
 
 - name: Create SQL Server with Azure Active Directory admin
@@ -155,7 +172,7 @@ EXAMPLES = '''
     name: server_name
     location: westus
     admin_username: mylogin
-    admin_password: Testpasswordxyz12!
+    admin_password: "{{ password }}"
     administrators:
       principal_type: Group
       login: MySqlAdminGroup
@@ -197,6 +214,7 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
+    from azure.mgmt.sql.models import (ResourceIdentity, UserIdentity)
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -243,7 +261,10 @@ class AzureRMSqlServer(AzureRMModuleBaseExt):
                 type='str'
             ),
             identity=dict(
-                type='str'
+                type='raw'
+            ),
+            primary_user_assigned_identity_id=dict(
+                type='str',
             ),
             minimal_tls_version=dict(
                 type="str",
@@ -277,15 +298,51 @@ class AzureRMSqlServer(AzureRMModuleBaseExt):
         self.name = None
         self.parameters = dict()
         self.tags = None
+        # Managed Identity
+        self.identity = None
 
         self.results = dict(changed=False)
         self.state = None
         self.to_do = Actions.NoAction
         self.change_admin_password = False
+        self._managed_identity = None
 
         super(AzureRMSqlServer, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                supports_check_mode=True,
                                                supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": ResourceIdentity,
+                                      "user_assigned": UserIdentity
+                                      }
+        return self._managed_identity
+
+    def validate_identity_parameter(self):
+        errors = []
+        valid_identity_keys = ['type', 'user_assigned_identities']
+        valid_user_assigned_keys = ['id', 'append']
+        type_choices = ['SystemAssigned',
+                        'UserAssigned',
+                        'SystemAssigned, UserAssigned',
+                        'None']
+        for key in self.identity.keys():
+            if key not in valid_identity_keys:
+                errors.append("Invalid key {0}".format(key))
+        # Default option for type is "None"
+        self.identity["type"] = self.identity.get("type", "None")
+        if self.identity.get("type") not in type_choices:
+            errors.append("Invalid identity->type, Valid choices are: [{0}]".format(type_choices))
+        for key in self.identity.get("user_assigned_identities", dict()).keys():
+            if key not in valid_user_assigned_keys:
+                errors.append("Invalid key {0}".format(key))
+            if key == "append":
+                if isinstance(self.identity['user_assigned_identities'][key], bool) is not True:
+                    errors.append("identity->user_assigned_identity->append must be True or False")
+
+        if errors:
+            self.fail(msg="Some required options are missing from managed identity configuration.", errors=errors)
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -298,8 +355,8 @@ class AzureRMSqlServer(AzureRMModuleBaseExt):
                     self.parameters.update({"administrator_login": kwargs[key]})
                 elif key == "admin_password":
                     self.parameters.update({"administrator_login_password": kwargs[key]})
-                elif key == "identity":
-                    self.parameters.update({"identity": {"type": kwargs[key]}})
+                elif key == "primary_user_assigned_identity_id":
+                    self.parameters.update({"primary_user_assigned_identity_id": kwargs[key]})
                 else:
                     self.parameters[key] = kwargs[key]
 
@@ -312,6 +369,18 @@ class AzureRMSqlServer(AzureRMModuleBaseExt):
             self.parameters["location"] = resource_group.location
 
         old_response = self.get_sqlserver()
+
+        if self.identity and isinstance(self.identity, dict):
+            self.validate_identity_parameter()
+            update_identity, identity = self.update_managed_identity(old_response and old_response.get('identity'),
+                                                                     self.identity)
+            if update_identity:
+                self.parameters.update({"identity": identity.as_dict()})
+        elif self.identity and isinstance(self.identity, str):
+            self.parameters.update({"identity": {"type": self.identity}})
+            self.module.warn('Specifying the identity type as a string is deprecated, please update your playbook.')
+        elif self.identity:
+            self.fail("parameter error: expecting identity to be a string or dict not {0}".format(type(self.identity).__name__))
 
         if not old_response:
             self.log("SQL Server instance doesn't exist")

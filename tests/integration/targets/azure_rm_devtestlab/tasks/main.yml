@@ -1,6 +1,7 @@
 - name: Set devtest labe value
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(20, True, '') }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=13) }}"
 
 - name: Create a DevTest Lab (check mode)
   azure_rm_devtestlab:
@@ -90,7 +91,7 @@
     os_type: linux
     vm_size: Standard_A2_v2
     user_name: azureuser
-    password: Password@0329
+    password: "{{ password }}"
     lab_subnet:
       name: "vnet-{{ rpfx }}Subnet"
       virtual_network_name: "vnet-{{ rpfx }}"

@@ -41,6 +41,25 @@ options:
         description:
             - The url pointing to the encryption key to be used for disk encryption set.
         type: str
+    identity:
+        description:
+            - Identity for the Object
+        type: dict
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                default: SystemAssigned
+                type: str
+            user_assigned_identity:
+                description:
+                    - User Assigned Managed Identity associated to this resource
+                required: false
+                type: str
     state:
         description:
             - Assert the state of the disk encryption set. Use C(present) to create or update and C(absent) to delete.
@@ -153,8 +172,8 @@ state:
 '''
 
 from ansible.module_utils.basic import _load_params
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase, \
-    format_resource_id, normalize_location_name
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import format_resource_id, normalize_location_name
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 
 try:
     from azure.core.polling import LROPoller
@@ -164,7 +183,7 @@ except ImportError:
     pass
 
 
-class AzureRMDiskEncryptionSet(AzureRMModuleBase):
+class AzureRMDiskEncryptionSet(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -176,7 +195,11 @@ class AzureRMDiskEncryptionSet(AzureRMModuleBase):
             location=dict(type='str'),
             source_vault=dict(type='str'),
             key_url=dict(type='str', no_log=True),
-            state=dict(choices=['present', 'absent'], default='present', type='str')
+            state=dict(choices=['present', 'absent'], default='present', type='str'),
+            identity=dict(
+                type="dict",
+                options=self.managed_identity_single_required_spec
+            )
         )
 
         required_if = [
@@ -195,10 +218,21 @@ class AzureRMDiskEncryptionSet(AzureRMModuleBase):
         self.key_url = None
         self.state = None
         self.tags = None
+        self.identity = None
+        self._managed_identity = None
 
         super(AzureRMDiskEncryptionSet, self).__init__(self.module_arg_spec,
                                                        required_if=required_if,
                                                        supports_check_mode=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {
+                "identity": self.diskencryptionset_models.EncryptionSetIdentity,
+                "user_assigned": self.diskencryptionset_models.UserAssignedIdentitiesValue,
+            }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         for key in list(self.module_arg_spec.keys()) + ['tags']:
@@ -226,8 +260,8 @@ class AzureRMDiskEncryptionSet(AzureRMModuleBase):
 
         try:
             self.log('Fetching Disk encryption set {0}'.format(self.name))
-            disk_encryption_set_old = self.compute_client.disk_encryption_sets.get(self.resource_group,
-                                                                                   self.name)
+            disk_encryption_set_old = self.diskencryptionset_client.disk_encryption_sets.get(self.resource_group,
+                                                                                             self.name)
             # serialize object into a dictionary
             results = self.diskencryptionset_to_dict(disk_encryption_set_old)
             if self.state == 'present':
@@ -242,12 +276,15 @@ class AzureRMDiskEncryptionSet(AzureRMModuleBase):
                 if self.key_url != results['active_key']['key_url']:
                     changed = True
                     results['active_key']['key_url'] = self.key_url
+                if self.update_self_identity(old_identity=results["identity"]):
+                    changed = True
             elif self.state == 'absent':
                 changed = True
 
         except ResourceNotFoundError:
             if self.state == 'present':
                 changed = True
+                self.update_self_identity()
             else:
                 changed = False
 
@@ -259,16 +296,15 @@ class AzureRMDiskEncryptionSet(AzureRMModuleBase):
 
         if changed:
             if self.state == 'present':
-                identity = self.compute_models.EncryptionSetIdentity(type="SystemAssigned")
                 # create or update disk encryption set
                 disk_encryption_set_new = \
-                    self.compute_models.DiskEncryptionSet(location=self.location,
-                                                          identity=identity)
+                    self.diskencryptionset_models.DiskEncryptionSet(location=self.location,
+                                                                    identity=self.identity)
                 if self.source_vault:
-                    source_vault = self.compute_models.SourceVault(id=self.source_vault)
+                    source_vault = self.diskencryptionset_models.SourceVault(id=self.source_vault)
                     disk_encryption_set_new.active_key = \
-                        self.compute_models.KeyVaultAndKeyReference(source_vault=source_vault,
-                                                                    key_url=self.key_url)
+                        self.diskencryptionset_models.KeyForDiskEncryptionSet(source_vault=source_vault,
+                                                                              key_url=self.key_url)
                 if self.tags:
                     disk_encryption_set_new.tags = self.tags
                 self.results['state'] = self.create_or_update_diskencryptionset(disk_encryption_set_new)
@@ -280,13 +316,21 @@ class AzureRMDiskEncryptionSet(AzureRMModuleBase):
 
         return self.results
 
+    def update_self_identity(self, old_identity=None):
+        safe_identity = self.identity or {'type': 'SystemAssigned'}
+        update_identity, self.identity = self.update_single_managed_identity(
+            curr_identity=old_identity,
+            new_identity=safe_identity
+        )
+        return update_identity
+
     def create_or_update_diskencryptionset(self, disk_encryption_set):
         try:
             # create the disk encryption set
             response = \
-                self.compute_client.disk_encryption_sets.begin_create_or_update(resource_group_name=self.resource_group,
-                                                                                disk_encryption_set_name=self.name,
-                                                                                disk_encryption_set=disk_encryption_set)
+                self.diskencryptionset_client.disk_encryption_sets.begin_create_or_update(resource_group_name=self.resource_group,
+                                                                                          disk_encryption_set_name=self.name,
+                                                                                          disk_encryption_set=disk_encryption_set)
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
         except Exception as exc:
@@ -296,8 +340,8 @@ class AzureRMDiskEncryptionSet(AzureRMModuleBase):
     def delete_diskencryptionset(self):
         try:
             # delete the disk encryption set
-            response = self.compute_client.disk_encryption_sets.begin_delete(resource_group_name=self.resource_group,
-                                                                             disk_encryption_set_name=self.name)
+            response = self.diskencryptionset_client.disk_encryption_sets.begin_delete(resource_group_name=self.resource_group,
+                                                                                       disk_encryption_set_name=self.name)
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
         except Exception as exc:

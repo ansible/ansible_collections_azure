@@ -172,6 +172,30 @@ servers:
                                 - Tenant ID of the Azure AD administrator.
                             type: str
                             sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+                identity:
+                    description:
+                        - Identity for the Server.
+                    type: complex
+                    returned: when available
+                    contains:
+                        type:
+                            description:
+                                - Type of the managed identity
+                            returned: always
+                            sample: UserAssigned
+                            type: str
+                        user_assigned_identities:
+                            description:
+                                - User Assigned Managed Identities and its options
+                            returned: always
+                            type: complex
+                            contains:
+                                id:
+                                    description:
+                                        - Dict of the user assigned identities IDs associated to the Resource
+                                    returned: always
+                                    type: dict
+                                    elements: dict
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -282,6 +306,7 @@ class AzureRMSqlServerInfo(AzureRMModuleBase):
                 "sid": administrators.get("sid"),
                 "tenant_id": administrators.get("tenant_id"),
             },
+            "identity": response.get("identity"),
         }
 
 

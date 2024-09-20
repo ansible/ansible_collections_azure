@@ -170,6 +170,10 @@ options:
                 description:
                     - DNS prefix specified when creating the managed cluster.
                 type: str
+            tags:
+                description:
+                    - The tags to be persisted on the agent pool virtual machine scale set.
+                type: dict
     service_principal:
         description:
             - The service principal suboptions.
@@ -225,6 +229,12 @@ options:
                 choices:
                     - azure
                     - kubenet
+            network_plugin_mode:
+                description:
+                    - Network plugin mode used for building the Kubernetes network.
+                type: str
+                choices:
+                    - Overlay
             network_policy:
                 description: Network policy used for building Kubernetes network.
                 type: str
@@ -247,11 +257,6 @@ options:
                 description:
                     - An IP address assigned to the Kubernetes DNS service.
                     - It must be within the Kubernetes service address range specified in serviceCidr.
-                type: str
-            docker_bridge_cidr:
-                description:
-                    - A CIDR notation IP range assigned to the Docker bridge network.
-                    - It must not overlap with any Subnet IP ranges or the Kubernetes service address range.
                 type: str
             load_balancer_sku:
                 description:
@@ -308,6 +313,11 @@ options:
             managed:
                 description:
                     - Whether to enable managed AAD.
+                type: bool
+                default: false
+            enable_azure_rbac:
+                description:
+                    - Whether to enable Azure RBAC for Kubernetes authorization.
                 type: bool
                 default: false
             admin_group_object_ids:
@@ -430,7 +440,32 @@ options:
                                 description:
                                     - The client ID of the user assigned identity.
                                 type: str
-
+    auto_upgrade_profile:
+        description:
+            - Auto upgrade profile for a managed cluster.
+        type: dict
+        suboptions:
+            upgrade_channel:
+                description:
+                    - Setting the AKS cluster auto-upgrade channel.
+                type: str
+                default: node-image
+                choices:
+                    - rapid
+                    - stable
+                    - patch
+                    - node-image
+                    - none
+            node_os_upgrade_channel:
+                description:
+                    - Manner in which the OS on your nodes is updated.
+                type: str
+                default: NodeImage
+                choices:
+                    - None
+                    - Unmanaged
+                    - SecurityPatch
+                    - NodeImage
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
@@ -465,6 +500,8 @@ EXAMPLES = '''
         max_count: 3
         min_count: 1
         enable_rbac: true
+        tags:
+          key1: value1
       - name: user
         count: 1
         vm_size: Standard_D2_v2
@@ -523,7 +560,6 @@ EXAMPLES = '''
       outbound_type: userDefinedRouting
       service_cidr: "10.41.0.0/16"
       dns_service_ip: "10.41.0.10"
-      docker_bridge_cidr: "172.17.0.1/16"
     api_server_access_profile:
       authorized_ip_ranges:
         - "20.106.246.252/32"
@@ -600,6 +636,9 @@ state:
            storage_profile: ManagedDisks
            vm_size: Standard_B2s
            vnet_subnet_id: Null
+        auto_upgrade_profile:
+          node_os_upgrade_channel: NodeImage
+          upgrade_channel: patch
         changed: false
         dns_prefix: aks9860bdcd89
         id: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourcegroups/myResourceGroup/providers/Microsoft.ContainerService/managedClusters/aks9860bdc"
@@ -674,8 +713,16 @@ def create_aks_dict(aks):
         addon=create_addon_dict(aks.addon_profiles),
         fqdn=aks.fqdn,
         node_resource_group=aks.node_resource_group,
+        auto_upgrade_profile=create_auto_upgrade_profile_dict(aks.auto_upgrade_profile),
         pod_identity_profile=create_pod_identity_profile(aks.pod_identity_profile.as_dict()) if aks.pod_identity_profile else None
     )
+
+
+def create_auto_upgrade_profile_dict(auto_upgrade_profile):
+    return dict(
+        upgrade_channel=auto_upgrade_profile.upgrade_channel,
+        node_os_upgrade_channel=auto_upgrade_profile.node_os_upgrade_channel
+    ) if auto_upgrade_profile else None
 
 
 def create_pod_identity_profile(pod_profile):
@@ -689,11 +736,11 @@ def create_pod_identity_profile(pod_profile):
 def create_network_profiles_dict(network):
     return dict(
         network_plugin=network.network_plugin,
+        network_plugin_mode=network.network_plugin_mode,
         network_policy=network.network_policy,
         pod_cidr=network.pod_cidr,
         service_cidr=network.service_cidr,
         dns_service_ip=network.dns_service_ip,
-        docker_bridge_cidr=network.docker_bridge_cidr,
         load_balancer_sku=network.load_balancer_sku,
         outbound_type=network.outbound_type
     ) if network else dict()
@@ -766,7 +813,8 @@ def create_agent_pool_profiles_dict(agentpoolprofiles):
         max_count=profile.max_count,
         node_labels=profile.node_labels,
         min_count=profile.min_count,
-        max_pods=profile.max_pods
+        max_pods=profile.max_pods,
+        tags=profile.tags
     ) for profile in agentpoolprofiles] if agentpoolprofiles else None
 
 
@@ -825,17 +873,18 @@ agent_pool_profile_spec = dict(
     max_count=dict(type='int'),
     node_labels=dict(type='dict'),
     min_count=dict(type='int'),
-    max_pods=dict(type='int')
+    max_pods=dict(type='int'),
+    tags=dict(type='dict')
 )
 
 
 network_profile_spec = dict(
     network_plugin=dict(type='str', choices=['azure', 'kubenet']),
+    network_plugin_mode=dict(type='str', choices=['Overlay']),
     network_policy=dict(type='str', choices=['azure', 'calico']),
     pod_cidr=dict(type='str'),
     service_cidr=dict(type='str'),
     dns_service_ip=dict(type='str'),
-    docker_bridge_cidr=dict(type='str'),
     load_balancer_sku=dict(type='str', choices=['standard', 'basic']),
     outbound_type=dict(type='str', default='loadBalancer', choices=['userDefinedRouting', 'loadBalancer', 'userAssignedNATGateway', 'managedNATGateway'])
 )
@@ -847,6 +896,7 @@ aad_profile_spec = dict(
     server_app_secret=dict(type='str', no_log=True),
     tenant_id=dict(type='str'),
     managed=dict(type='bool', default='false'),
+    enable_azure_rbac=dict(type='bool', default='false'),
     admin_group_object_ids=dict(type='list', elements='str')
 )
 
@@ -965,6 +1015,21 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                         )
                     )
                 )
+            ),
+            auto_upgrade_profile=dict(
+                type='dict',
+                options=dict(
+                    upgrade_channel=dict(
+                        type='str',
+                        choices=["rapid", "stable", "patch", "node-image", "none"],
+                        default='node-image'
+                    ),
+                    node_os_upgrade_channel=dict(
+                        type='str',
+                        choices=["None", "Unmanaged", "SecurityPatch", "NodeImage"],
+                        default='NodeImage'
+                    )
+                )
             )
         )
 
@@ -986,6 +1051,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         self.addon = None
         self.node_resource_group = None
         self.pod_identity_profile = None
+        self.auto_upgrade_profile = None
 
         mutually_exclusive = [('identity', 'service_principal')]
 
@@ -1078,7 +1144,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                         to_be_updated = True
 
                     if response['api_server_access_profile'] != self.api_server_access_profile and self.api_server_access_profile is not None:
-                        if self.api_server_access_profile.get('enable_private_cluster') != response['api_server_access_profile'].get('enable_private_cluster'):
+                        if bool(self.api_server_access_profile.get('enable_private_cluster')) != \
+                           bool(response['api_server_access_profile'].get('enable_private_cluster')):
                             self.log(("Api Server Access Diff - Origin {0} / Update {1}"
                                      .format(str(self.api_server_access_profile), str(response['api_server_access_profile']))))
                             self.fail("The enable_private_cluster of the api server access profile cannot be updated")
@@ -1113,6 +1180,10 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                             addon_name = ADDONS[key]['name']
                             if not compare_addon(response['addon'].get(addon_name), self.addon.get(key), ADDONS[key].get('config')):
                                 to_be_updated = True
+                    if not self.default_compare({}, self.auto_upgrade_profile, response['auto_upgrade_profile'], '', dict(compare=[])):
+                        to_be_updated = True
+                    else:
+                        self.auto_upgrade_profile = response['auto_upgrade_profile']
 
                     for profile_result in response['agent_pool_profiles']:
                         matched = False
@@ -1131,6 +1202,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                                 node_labels = profile_self['node_labels']
                                 min_count = profile_self['min_count']
                                 max_pods = profile_self['max_pods']
+                                tags = profile_self['tags']
 
                                 if max_pods is not None and profile_result['max_pods'] != max_pods:
                                     self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(str(profile_result), str(profile_self))))
@@ -1167,6 +1239,10 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                                 elif node_labels is not None and profile_result['node_labels'] != node_labels:
                                     self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(str(profile_result), str(profile_self))))
                                     to_be_updated = True
+                                elif not self.default_compare({}, tags, profile_result['tags'], '', dict(compare=[])):
+                                    self.log("Agent Profile Diff - Origin {0} / Update {1}".format(profile_result['tags'], tags))
+                                    to_be_updated = True
+
                         if not matched:
                             self.log("Agent Pool not found")
                             to_be_updated = True
@@ -1263,6 +1339,14 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         else:
             pod_identity_profile = None
 
+        if self.auto_upgrade_profile is not None:
+            auto_upgrade_profile = self.managedcluster_models.ManagedClusterAutoUpgradeProfile(
+                upgrade_channel=self.auto_upgrade_profile.get('upgrade_channel'),
+                node_os_upgrade_channel=self.auto_upgrade_profile.get('node_os_upgrade_channel')
+            )
+        else:
+            auto_upgrade_profile = None
+
         parameters = self.managedcluster_models.ManagedCluster(
             location=self.location,
             dns_prefix=self.dns_prefix,
@@ -1278,7 +1362,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
             api_server_access_profile=self.create_api_server_access_profile_instance(self.api_server_access_profile),
             addon_profiles=self.create_addon_profile_instance(self.addon),
             node_resource_group=self.node_resource_group,
-            pod_identity_profile=pod_identity_profile
+            pod_identity_profile=pod_identity_profile,
+            auto_upgrade_profile=auto_upgrade_profile
         )
 
         # self.log("service_principal_profile : {0}".format(parameters.service_principal_profile))
@@ -1320,7 +1405,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     max_pods=profile["max_pods"],
                     enable_auto_scaling=profile["enable_auto_scaling"],
                     agent_pool_type=profile["type"],
-                    mode=profile["mode"]
+                    mode=profile["mode"],
+                    tags=profile['tags']
                 )
                 try:
                     poller = self.managedcluster_client.agent_pools.begin_create_or_update(self.resource_group, self.name, profile["name"], parameters)

@@ -53,6 +53,14 @@ options:
                 description:
                     - The Openshift version (immutable).
                 type: str
+            fips_validated_modules:
+                description:
+                    - If FIPS validated crypto modules are used
+                type: str
+                choices:
+                    - Disabled
+                    - Enabled
+                default: Enabled
     service_principal_profile:
         description:
             - service principal.
@@ -82,6 +90,21 @@ options:
                 description:
                     - CIDR for OpenShift Services (immutable).
                 type: str
+            outbound_type:
+                description:
+                    - The OutboundType used for egress traffic.
+                type: str
+                choices:
+                    - Loadbalancer
+                    - UserDefinedRouting
+            preconfigured_nsg:
+                description:
+                    - Specifies whether subnets are pre-attached with an NSG
+                type: str
+                choices:
+                    - Disabled
+                    - Enabled
+                default: Disabled
     master_profile:
         description:
             - Configuration for OpenShift master VMs.
@@ -91,14 +114,22 @@ options:
                 description:
                     - Size of agent VMs (immutable).
                 type: str
-                choices:
-                    - Standard_D8s_v3
-                    - Standard_D16s_v3
-                    - Standard_D32s_v3
             subnet_id:
                 description:
                     - The Azure resource ID of the master subnet (immutable).
                 required: true
+                type: str
+            encryption_at_host:
+                description:
+                    - Whether master virtual machines are encrypted at host.
+                type: str
+                choices:
+                    - Disabled
+                    - Enabled
+                default: Disabled
+            disk_encryption_set_id:
+                description:
+                    - The resource ID of an associated DiskEncryptionSet, if applicable.
                 type: str
     worker_profiles:
         description:
@@ -116,9 +147,6 @@ options:
                 description:
                     - The size of the worker Vms (immutable).
                 type: str
-                choices:
-                    - Standard_D4s_v3
-                    - Standard_D8s_v3
             disk_size:
                 description:
                     - The disk size of the worker VMs in GB. Must be 128 or greater (immutable).
@@ -132,6 +160,18 @@ options:
                 description:
                     - The number of worker VMs. Must be between 3 and 20 (immutable).
                 type: int
+            encryption_at_host:
+                description:
+                    - Whether worker virtual machines are encrypted at host.
+                type: str
+                choices:
+                    - Disabled
+                    - Enabled
+                default: Disabled
+            disk_encryption_set_id:
+                description:
+                    - The resource ID of an associated DiskEncryptionSet, if applicable.
+                type: str
     api_server_profile:
         description:
             - API server configuration.
@@ -214,13 +254,42 @@ EXAMPLES = '''
       pod_cidr: "10.128.0.0/14"
       service_cidr: "172.30.0.0/16"
     worker_profiles:
-      - vm_size: "Standard_D4s_v3"
+      - name: worker
+        vm_size: "Standard_D4s_v3"
         subnet_id: "/subscriptions/xx-xx-xx-xx-xx/resourceGroups/myResourceGroup/Microsoft.Network/virtualNetworks/myVnet/subnets/worker"
         disk_size: 128
         count: 3
     master_profile:
       vm_size: "Standard_D8s_v3"
       subnet_id: "/subscriptions/xx-xx-xx-xx-xx/resourceGroups/myResourceGroup/providers/Microsoft.Network/virtualNetworks/myVnet/subnets/master"
+- name: Create openshift cluster with multi parameters
+  azure_rm_openshiftmanagedcluster:
+    resource_group: "myResourceGroup"
+    name: "myCluster"
+    location: "eastus"
+    cluster_profile:
+      cluster_resource_group_id: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/clusterResourceGroup"
+      domain: "mydomain"
+      fips_validated_modules: Enabled
+    service_principal_profile:
+      client_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      client_secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    network_profile:
+      pod_cidr: "10.128.0.0/14"
+      service_cidr: "172.30.0.0/16"
+      outbound_type: Loadbalancer
+      preconfigured_nsg: Disabled
+    worker_profiles:
+      - name: worker
+        vm_size: "Standard_D4s_v3"
+        subnet_id: "/subscriptions/xx-xx-xx-xx-xx/resourceGroups/myResourceGroup/Microsoft.Network/virtualNetworks/myVnet/subnets/worker"
+        disk_size: 128
+        count: 3
+        encryption_at_host: Disabled
+    master_profile:
+      vm_size: "Standard_D8s_v3"
+      subnet_id: "/subscriptions/xx-xx-xx-xx-xx/resourceGroups/myResourceGroup/providers/Microsoft.Network/virtualNetworks/myVnet/subnets/master"
+      encryption_at_host: Disabled
 - name: Delete OpenShift Managed Cluster
   azure_rm_openshiftmanagedcluster:
     resource_group: myResourceGroup
@@ -291,6 +360,12 @@ properties:
                     returned: always
                     type: str
                     sample: /subscriptions/xx-xx-xx-xx/resourceGroups/mycluster-eastus-cluster
+                fipsValidatedModules:
+                    description:
+                        - If FIPS validated crypto modules are used
+                    type: str
+                    returned: always
+                    sample: Enabled
         servicePrincipalProfile:
             description:
                 - Service principal.
@@ -320,6 +395,18 @@ properties:
                     type: str
                     returned: always
                     sample: 172.30.0.0/16
+                outboundType:
+                    description:
+                        - The OutboundType used for egress traffic.
+                    type: str
+                    returned: always
+                    sample: Loadbalancer
+                preconfiguredNSG:
+                    description:
+                        - Specifies whether subnets are pre-attached with an NSG
+                    type: str
+                    returned: always
+                    sample: Disabled
         masterProfile:
             description:
                 - Configuration for OpenShift master VMs.
@@ -339,6 +426,18 @@ properties:
                     returned: always
                     sample: /subscriptions/xx-xx-xx-xx/resourceGroups/mycluster-eastus/providers/Microsoft.Network/
                             virtualNetworks/mycluster-vnet/subnets/mycluster-worker
+                encryptionAtHost:
+                    description:
+                        - Whether master virtual machines are encrypted at host.
+                    type: str
+                    returned: always
+                    sample: Disabled
+                disk_encryption_set_id:
+                    description:
+                        - The resource ID of an associated DiskEncryptionSet, if applicable.
+                    type: str
+                    returned: successd
+                    sample: null
         workerProfiles:
             description:
                 - Configuration of OpenShift cluster VMs.
@@ -376,6 +475,12 @@ properties:
                     type: str
                     sample: /subscriptions/xx-xx-xx-xx/resourceGroups/mycluster-eastus/providers/Microsoft.Network/
                             virtualNetworks/mycluster-vnet/subnets/mycluster-worker
+                encryptionAtHost:
+                    description:
+                        - Whether worker virtual machines are encrypted at host.
+                    type: str
+                    returned: always
+                    sample: Disabled
         ingressProfiles:
             description:
                 - Ingress configruation.
@@ -438,7 +543,12 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                     ),
                     version=dict(
                         type='str',
-                    )
+                    ),
+                    fips_validated_modules=dict(
+                        type='str',
+                        choices=['Enabled', 'Disabled'],
+                        default='Enabled'
+                    ),
                 ),
             ),
             service_principal_profile=dict(
@@ -463,6 +573,15 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                     ),
                     service_cidr=dict(
                         type='str',
+                    ),
+                    outbound_type=dict(
+                        type='str',
+                        choices=['Loadbalancer', 'UserDefinedRouting']
+                    ),
+                    preconfigured_nsg=dict(
+                        type='str',
+                        choices=['Disabled', 'Enabled'],
+                        default='Disabled'
                     )
                 ),
                 default=dict(
@@ -474,14 +593,19 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                 type='dict',
                 options=dict(
                     vm_size=dict(
-                        type='str',
-                        choices=['Standard_D8s_v3',
-                                 'Standard_D16s_v3',
-                                 'Standard_D32s_v3'],
+                        type='str'
                     ),
                     subnet_id=dict(
                         type='str',
                         required=True
+                    ),
+                    encryption_at_host=dict(
+                        type='str',
+                        choices=['Disabled', 'Enabled'],
+                        default='Disabled'
+                    ),
+                    disk_encryption_set_id=dict(
+                        type='str'
                     )
                 )
             ),
@@ -498,9 +622,7 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                         type='int',
                     ),
                     vm_size=dict(
-                        type='str',
-                        choices=['Standard_D4s_v3',
-                                 'Standard_D8s_v3'],
+                        type='str'
                     ),
                     subnet_id=dict(
                         type='str',
@@ -508,6 +630,14 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                     ),
                     disk_size=dict(
                         type='int',
+                    ),
+                    encryption_at_host=dict(
+                        type='str',
+                        choices=['Disabled', 'Enabled'],
+                        default='Disabled'
+                    ),
+                    disk_encryption_set_id=dict(
+                        type='str'
                     )
                 )
             ),
@@ -571,7 +701,7 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
         self.query_parameters = {}
         self.header_parameters = {}
 
-        self.query_parameters['api-version'] = '2020-04-30'
+        self.query_parameters['api-version'] = '2023-09-04'
         self.header_parameters['Content-Type'] = 'application/json; charset=utf-8'
 
         super(AzureRMOpenShiftManagedClusters, self).__init__(derived_arg_spec=self.module_arg_spec,
@@ -585,7 +715,9 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
             elif kwargs[key] is not None:
                 if key == 'cluster_profile':
                     self.body['properties']['clusterProfile'] = {}
-                    for item in ['pull_secret', 'cluster_resource_group_id', 'domain', 'version']:
+                    for item in ['pull_secret', 'cluster_resource_group_id', 'domain', 'version', 'fips_validated_modules']:
+                        if not kwargs[key].get(item):
+                            continue
                         if item == 'pull_secret':
                             self.body['properties']['clusterProfile']['pullSecret'] = kwargs[key].get(item)
                         elif item == 'cluster_resource_group_id':
@@ -594,6 +726,8 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                             self.body['properties']['clusterProfile']['domain'] = kwargs[key].get(item)
                         elif item == 'version':
                             self.body['properties']['clusterProfile']['version'] = kwargs[key].get(item)
+                        elif item == 'fips_validated_modules':
+                            self.body['properties']['clusterProfile']['fipsValidatedModules'] = kwargs[key].get(item)
                 elif key == 'service_principal_profile':
                     self.body['properties']['servicePrincipalProfile'] = {}
                     self.body['properties']['servicePrincipalProfile']['ClientId'] = kwargs[key].get('client_id')
@@ -605,10 +739,18 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                             self.body['properties']['networkProfile']['podCidr'] = kwargs[key].get(item)
                         elif item == 'service_cidr':
                             self.body['properties']['networkProfile']['serviceCidr'] = kwargs[key].get(item)
+                        elif item == 'outbound_type':
+                            self.body['properties']['networkProfile']['outboundType'] = kwargs[key].get(item)
+                        elif item == 'preconfigured_nsg':
+                            self.body['properties']['networkProfile']['preconfiguredNSG'] = kwargs[key].get(item)
                 elif key == 'master_profile':
                     self.body['properties']['masterProfile'] = {}
                     if 'subnet_id' in kwargs[key].keys():
                         self.body['properties']['masterProfile']['subnetId'] = kwargs[key].get('subnet_id')
+                    if 'disk_encryption_set_id' in kwargs[key].keys():
+                        self.body['properties']['masterProfile']['encryptionAtHost'] = kwargs[key].get('disk_encryption_set_id')
+                    if 'encryption_at_host' in kwargs[key].keys():
+                        self.body['properties']['masterProfile']['encryptionAtHost'] = kwargs[key].get('encryption_at_host')
                     self.body['properties']['masterProfile']['vmSize'] = kwargs[key].get('vm_size')
                 elif key == 'worker_profiles':
                     self.body['properties']['workerProfiles'] = []
@@ -621,6 +763,8 @@ class AzureRMOpenShiftManagedClusters(AzureRMModuleBaseExt):
                         worker_profile['count'] = item.get('count')
                         worker_profile['vmSize'] = item.get('vm_size')
                         worker_profile['diskSizeGB'] = item.get('disk_size')
+                        worker_profile['encryptionAtHost'] = item.get('encryption_at_host')
+                        worker_profile['DiskEncryptionSetId'] = item.get('disk_encryption_set_id')
 
                         self.body['properties']['workerProfiles'].append(worker_profile)
                 elif key == 'api_server_profile':

@@ -1,6 +1,7 @@
 - name: Prepare random number
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
   run_once: true
 
 - name: Create instance of MariaDB Server -- check mode
@@ -15,7 +16,7 @@
     version: 10.2
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   check_mode: true
   register: output
 - name: Assert the resource instance is well created
@@ -35,7 +36,7 @@
     version: 10.2
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   register: output
 - name: Assert the resource instance is well created
   ansible.builtin.assert:
@@ -55,7 +56,7 @@
     version: 10.2
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   register: output
 - name: Assert the state has not changed
   ansible.builtin.assert:
@@ -75,7 +76,7 @@
     version: 10.2
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
   register: output
 - name: Assert the state has not changed
   ansible.builtin.assert:
@@ -108,7 +109,7 @@
     version: 10.3
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     tags:
       aaa: bbb
 
@@ -124,7 +125,7 @@
     version: 10.3
     enforce_ssl: true
     admin_username: zimxyz
-    admin_password: Password123!
+    admin_password: "{{ password }}"
     tags:
       ccc: ddd
 

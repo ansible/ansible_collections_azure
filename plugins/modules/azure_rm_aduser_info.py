@@ -137,6 +137,12 @@ user_type:
     returned: always
     type: str
     sample: Member
+mobile_phone:
+    description:
+        - The mobile phone number of the user.
+    type: str
+    returned: always
+    sample: '+1234567890123'
 company_name:
     description:
         - The name of the company that the user is associated with.
@@ -262,6 +268,7 @@ class AzureRMADUserInfo(AzureRMModuleBase):
             account_enabled=object.account_enabled,
             user_type=object.user_type,
             company_name=object.company_name,
+            mobile_phone=object.mobile_phone,
             on_premises_extension_attributes=self.on_premises_extension_attributes_to_dict(object.on_premises_extension_attributes)
         )
 
@@ -269,7 +276,7 @@ class AzureRMADUserInfo(AzureRMModuleBase):
         request_configuration = UsersRequestBuilder.UsersRequestBuilderGetRequestConfiguration(
             query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
                 select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName",
-                        "userType", "companyName", "onPremisesExtensionAttributes"]
+                        "userType", "companyName", "mobilePhone", "onPremisesExtensionAttributes"]
             ),
         )
         return await self._client.users.by_user_id(object).get(request_configuration=request_configuration)
@@ -278,7 +285,7 @@ class AzureRMADUserInfo(AzureRMModuleBase):
         request_configuration = UsersRequestBuilder.UsersRequestBuilderGetRequestConfiguration(
             query_parameters=UsersRequestBuilder.UsersRequestBuilderGetQueryParameters(
                 select=["accountEnabled", "displayName", "mail", "mailNickname", "id", "userPrincipalName",
-                        "userType", "companyName", "onPremisesExtensionAttributes"]
+                        "userType", "companyName", "mobilePhone", "onPremisesExtensionAttributes"]
             ),
         )
         users = []

@@ -324,6 +324,26 @@ options:
                 description:
                     - A boolean indicating whether or not the service applies a secondary layer of encryption with platform managed keys for data at rest.
                 type: bool
+    identity:
+        description:
+            - Identity for this resource.
+        type: dict
+        version_added: '2.7.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - 'None'
+                default: 'None'
+                type: str
+            user_assigned_identity:
+                description:
+                    - User Assigned Managed Identity associated to this resource
+                required: false
+                type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -695,8 +715,16 @@ state:
 
 
 import copy
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AZURE_SUCCESS_STATE, AzureRMModuleBase
+import time
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AZURE_SUCCESS_STATE
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 from ansible.module_utils._text import to_native
+
+try:
+    from azure.mgmt.storage.models import (Identity, UserAssignedIdentity)
+except ImportError:
+    # This is handled in azure_rm_common
+    pass
 
 cors_rule_spec = dict(
     allowed_origins=dict(type='list', elements='str', required=True),
@@ -752,7 +780,7 @@ def compare_cors(cors1, cors2):
     return True
 
 
-class AzureRMStorageAccount(AzureRMModuleBase):
+class AzureRMStorageAccount(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -810,7 +838,11 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                     require_infrastructure_encryption=dict(type='bool'),
                     key_source=dict(type='str', choices=["Microsoft.Storage", "Microsoft.Keyvault"], default='Microsoft.Storage')
                 )
-            )
+            ),
+            identity=dict(
+                type="dict",
+                options=self.managed_identity_single_spec
+            ),
         )
 
         self.results = dict(
@@ -843,9 +875,21 @@ class AzureRMStorageAccount(AzureRMModuleBase):
         self.allow_shared_key_access = None
         self.allow_cross_tenant_replication = None
         self.default_to_o_auth_authentication = None
+        self._managed_identity = None
+        self.identity = None
+        self.update_identity = False
 
         super(AzureRMStorageAccount, self).__init__(self.module_arg_spec,
                                                     supports_check_mode=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {
+                "identity": Identity,
+                "user_assigned": UserAssignedIdentity,
+            }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
 
@@ -871,6 +915,14 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             self.fail("Parameter error: Storage account with {0} kind require account type is Premium_LRS or Premium_ZRS".format(self.kind))
         self.account_dict = self.get_account()
 
+        curr_identity = self.account_dict["identity"] if self.account_dict else None
+
+        if self.identity:
+            self.update_identity, identity_result = self.update_single_managed_identity(curr_identity=curr_identity,
+                                                                                        new_identity=self.identity,
+                                                                                        patch_support=True)
+            self.identity = identity_result.as_dict()
+
         if self.state == 'present' and self.account_dict and \
            self.account_dict['provisioning_state'] != AZURE_SUCCESS_STATE:
             self.fail("Error: storage account {0} has not completed provisioning. State is {1}. Expecting state "
@@ -885,7 +937,7 @@ class AzureRMStorageAccount(AzureRMModuleBase):
             if not self.account_dict:
                 self.results['state'] = self.create_account()
             else:
-                self.update_account()
+                self.results['state'] = self.update_account()
         elif self.state == 'absent' and self.account_dict:
             self.delete_account()
             self.results['state'] = dict(Status='Deleted')
@@ -1028,6 +1080,10 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                         account_dict['encryption']['services']['queue'] = dict(enabled=True)
                     if account_obj.encryption.services.blob:
                         account_dict['encryption']['services']['blob'] = dict(enabled=True)
+
+            account_dict['identity'] = dict()
+            if account_obj.identity:
+                account_dict['identity'] = account_obj.identity.as_dict()
 
         return account_dict
 
@@ -1240,6 +1296,14 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                 except Exception as exc:
                     self.fail("Failed to update custom domain: {0}".format(str(exc)))
 
+        if self.update_identity:
+            self.results['changed'] = True
+            parameters = self.storage_models.StorageAccountUpdateParameters(identity=self.identity)
+            try:
+                self.storage_client.storage_accounts.update(self.resource_group, self.name, parameters)
+            except Exception as exc:
+                self.fail("Failed to update access tier: {0}".format(str(exc)))
+
         if self.access_tier:
             if not self.account_dict['access_tier'] or self.account_dict['access_tier'] != self.access_tier:
                 self.results['changed'] = True
@@ -1308,6 +1372,8 @@ class AzureRMStorageAccount(AzureRMModuleBase):
 
             if encryption_changed and not self.check_mode:
                 self.fail("The encryption can't update encryption, encryption info as {0}".format(self.account_dict['encryption']))
+        time.sleep(1)
+        return self.get_account()
 
     def create_account(self):
         self.log("Creating account {0}".format(self.name))
@@ -1341,6 +1407,7 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                 default_to_o_auth_authentication=self.default_to_o_auth_authentication,
                 allow_cross_tenant_replication=self.allow_cross_tenant_replication,
                 allow_shared_key_access=self.allow_shared_key_access,
+                identity=self.identity,
                 tags=dict()
             )
             if self.tags:
@@ -1360,6 +1427,7 @@ class AzureRMStorageAccount(AzureRMModuleBase):
                                                                         kind=self.kind,
                                                                         location=self.location,
                                                                         tags=self.tags,
+                                                                        identity=self.identity,
                                                                         enable_https_traffic_only=self.https_only,
                                                                         minimum_tls_version=self.minimum_tls_version,
                                                                         public_network_access=self.public_network_access,

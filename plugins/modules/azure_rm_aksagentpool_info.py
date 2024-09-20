@@ -147,9 +147,9 @@ aks_agent_pools:
         node_taints:
             description:
                 - Taints added to new nodes during node pool create and scale.
-            type: str
+            type: list
             returned: always
-            sample: null
+            sample: ["CriticalAddonsOnly=false:NoSchedule"]
         orchestrator_version:
             description:
                 - Version of orchestrator specified when creating the managed cluster.
@@ -288,7 +288,7 @@ aks_agent_pools:
                 - The Azure Public IP prefix's ID.
             type: str
             returned: always
-            sample: "/subscriptions/xxx-xxx/resourceGroups/myRG/providers/Microsoft.Network/publicIPPrefixes/pip01"
+            sample: null
         proximity_placement_group_id:
             description:
                 - The ID for Proximity Placement Group.

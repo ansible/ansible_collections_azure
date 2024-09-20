@@ -47,6 +47,42 @@ options:
             - basic
             - premium
         default: standard
+    identity:
+        description:
+            - Identity for this resource.
+        type: dict
+        version_added: '2.7.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - SystemAssigned, UserAssigned
+                    - UserAssigned
+                    - 'None'
+                default: 'None'
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the WebApp
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -75,7 +111,8 @@ id:
 '''
 
 try:
-    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+    from azure.mgmt.servicebus.v2022_10_01_preview.models import (Identity, UserAssignedIdentity)
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -84,7 +121,7 @@ from ansible.module_utils._text import to_native
 from datetime import datetime, timedelta
 
 
-class AzureRMServiceBus(AzureRMModuleBase):
+class AzureRMServiceBus(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -93,7 +130,12 @@ class AzureRMServiceBus(AzureRMModuleBase):
             name=dict(type='str', required=True),
             location=dict(type='str'),
             state=dict(type='str', default='present', choices=['present', 'absent']),
-            sku=dict(type='str', choices=['basic', 'standard', 'premium'], default='standard')
+            sku=dict(type='str', choices=['basic', 'standard', 'premium'], default='standard'),
+            identity=dict(
+                type="dict",
+                options=self.managed_identity_multiple_spec
+            ),
+
         )
 
         self.resource_group = None
@@ -101,6 +143,9 @@ class AzureRMServiceBus(AzureRMModuleBase):
         self.state = None
         self.sku = None
         self.location = None
+        self._managed_identity = None
+        self.identity = None
+        self.update_identity = False
 
         self.results = dict(
             changed=False,
@@ -110,6 +155,15 @@ class AzureRMServiceBus(AzureRMModuleBase):
         super(AzureRMServiceBus, self).__init__(self.module_arg_spec,
                                                 supports_tags=True,
                                                 supports_check_mode=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {
+                "identity": Identity,
+                "user_assigned": UserAssignedIdentity,
+            }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
 
@@ -127,6 +181,13 @@ class AzureRMServiceBus(AzureRMModuleBase):
         if not original:
             self.check_name()
 
+        curr_identity = original.identity.as_dict() if original and original.identity else None
+
+        if self.identity:
+            self.update_identity, identity_result = self.update_managed_identity(curr_identity=curr_identity,
+                                                                                 new_identity=self.identity)
+            self.identity = identity_result.as_dict()
+
         if self.state == 'present':
             if not self.check_mode:
                 if original:
@@ -134,6 +195,9 @@ class AzureRMServiceBus(AzureRMModuleBase):
                     if update_tags:
                         changed = True
                         self.tags = new_tags
+                        original = self.create()
+                    if self.update_identity:
+                        changed = True
                         original = self.create()
                     else:
                         changed = False
@@ -170,10 +234,11 @@ class AzureRMServiceBus(AzureRMModuleBase):
                                                                               self.name,
                                                                               self.servicebus_models.SBNamespace(location=self.location,
                                                                                                                  tags=self.tags,
-                                                                                                                 sku=sku))
+                                                                                                                 sku=sku,
+                                                                                                                 identity=self.identity))
             ns = self.get_poller_result(poller)
         except Exception as exc:
-            self.fail('Error creating namespace {0} - {1}'.format(self.name, str(exc.inner_exception) or str(exc)))
+            self.fail('Error creating namespace {0} - {1}'.format(self.name, str(exc)))
         return ns
 
     def delete(self):
@@ -204,6 +269,8 @@ class AzureRMServiceBus(AzureRMModuleBase):
                 result[attribute] = to_native(value)
             elif attribute == 'max_size_in_megabytes':
                 result['max_size_in_mb'] = value
+            elif isinstance(value, Identity):
+                result['identity'] = value.as_dict()
             else:
                 result[attribute] = value
         return result

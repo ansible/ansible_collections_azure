@@ -771,6 +771,11 @@ options:
                     - Can be the name of the rewrite rule set or full resource ID.
                 type: raw
                 version_added: "1.11.0"
+            priority:
+                description:
+                    - Priority of the request routing rule.
+                type: int
+                required: true
     autoscale_configuration:
         version_added: "1.15.0"
         description:
@@ -872,6 +877,42 @@ options:
                 description:
                     - The version of the rule set type.
                 type: str
+    identity:
+        description:
+            - Identity for the App Gateway
+        type: dict
+        version_added: '2.7.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the App Gateway
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
     gateway_state:
         description:
             - Start or Stop the application gateway. When specified, no updates will occur to the gateway.
@@ -939,6 +980,7 @@ EXAMPLES = '''
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
         name: rule1
+        priority: 100
 
 - name: Create instance of Application Gateway with custom trusted root certificate
   azure_rm_appgateway:
@@ -982,6 +1024,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
@@ -1023,6 +1066,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
@@ -1062,6 +1106,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: path_based_routing
+        priority: 100
         http_listener: sample_http_listener
         name: rule1
         url_path_map: path_mappings
@@ -1090,7 +1135,7 @@ EXAMPLES = '''
       policy_name: "ssl_policy20170401_s"
     ssl_certificates:
       - name: ssl_cert
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', 'certfile') }}"
     gateway_ip_configurations:
       - subnet:
@@ -1157,15 +1202,18 @@ EXAMPLES = '''
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     probes:
@@ -1212,7 +1260,7 @@ EXAMPLES = '''
       policy_name: ssl_policy20170401_s
     ssl_certificates:
       - name: ssl_cert
-        password: your-password
+        password: "{{ password }}"
         data: "{{ lookup('file', ssl_cert) }}"
     gateway_ip_configurations:
       - subnet:
@@ -1279,16 +1327,19 @@ EXAMPLES = '''
     request_routing_rules:
       - name: "app-routing1"
         rule_type: "basic"
+        priority: 100
         http_listener: "inbound-traffic1"
         backend_address_pool: "test_backend_address_pool2"
         backend_http_settings: "http-profile1"
         rewrite_rule_set: "configure-headers"
       - name: "app-routing2"
         rule_type: "path_based_routing"
+        priority: 101
         http_listener: "inbound-traffic2"
         url_path_map: "path_mappings"
       - name: "redirect-routing"
         rule_type: "basic"
+        priority: 102
         http_listener: "inbound-http"
         redirect_configuration: "redirect-http"
     rewrite_rule_sets:
@@ -1385,6 +1436,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
@@ -1424,6 +1476,7 @@ EXAMPLES = '''
         name: sample_http_listener
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: sample_http_listener
@@ -1480,6 +1533,7 @@ EXAMPLES = '''
             - 200
     request_routing_rules:
       - rule_type: basic
+        priority: 100
         backend_address_pool: test_backend_address_pool
         backend_http_settings: sample_appgateway_http_settings
         http_listener: http_listener
@@ -1538,16 +1592,18 @@ provisioning_state:
 '''
 
 import time
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
 from copy import deepcopy
-from ansible.module_utils.common.dict_transformations import (
-    _snake_to_camel, dict_merge, recursive_diff,
-)
+import json
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_rest import GenericRestClient
+from ansible.module_utils.common.dict_transformations import _snake_to_camel
+from ansible.module_utils.six.moves.collections_abc import MutableMapping
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
     from azure.mgmt.core.tools import parse_resource_id, is_valid_resource_id
+    from azure.mgmt.network.models import ManagedServiceIdentity
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -1724,7 +1780,36 @@ trusted_root_certificates_spec = dict(
 )
 
 
-class AzureRMApplicationGateways(AzureRMModuleBase):
+user_assigned_identities_spec = dict(
+    id=dict(
+        type='list',
+        default=[],
+        elements='str'
+    ),
+    append=dict(
+        type='bool',
+        default=True
+    )
+)
+
+managed_identity_spec = dict(
+    type=dict(
+        type='str',
+        choices=['SystemAssigned',
+                 'UserAssigned',
+                 'SystemAssigned, UserAssigned',
+                 'None'],
+        default='None'
+    ),
+    user_assigned_identities=dict(
+        type='dict',
+        options=user_assigned_identities_spec,
+        default={}
+    ),
+)
+
+
+class AzureRMApplicationGateways(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM Application Gateway resource"""
 
     def __init__(self):
@@ -1898,6 +1983,7 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
                 elements='dict',
                 options=dict(
                     rule_type=dict(type='str', choices=['basic', 'path_based_routing']),
+                    priority=dict(type='int', required=True),
                     backend_address_pool=dict(type='raw'),
                     backend_http_settings=dict(type='raw'),
                     http_listener=dict(type='raw'),
@@ -1919,6 +2005,10 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
                 type='bool',
                 default=False
             ),
+            identity=dict(
+                type='dict',
+                options=managed_identity_spec
+            ),
             gateway_state=dict(
                 type='str',
                 choices=['started', 'stopped'],
@@ -1938,10 +2028,20 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
         self.state = None
         self.gateway_state = None
         self.to_do = Actions.NoAction
+        self.identity = None
+        self._managed_identity = None
 
         super(AzureRMApplicationGateways, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                          supports_check_mode=True,
                                                          supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": ManagedServiceIdentity,
+                                      "user_assigned": dict
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -2317,12 +2417,22 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
 
         response = None
 
+        self.mgmt_client = self.get_mgmt_svc_client(GenericRestClient,
+                                                    base_url=self._cloud_environment.endpoints.resource_manager)
+
         resource_group = self.get_resource_group(self.resource_group)
 
         if "location" not in self.parameters:
             self.parameters["location"] = resource_group.location
 
         old_response = self.get_applicationgateway()
+
+        properties = self.get_resource()
+        old_ssl_certs = []
+        if properties:
+            for old_cert in properties.get('properties', {}).get('sslCertificates', []):
+                old_public_cert = old_cert.get('properties', {}).get('publicCertData')
+                old_ssl_certs.append(old_public_cert)
 
         if not old_response:
             self.log("Application Gateway instance doesn't exist")
@@ -2338,6 +2448,13 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
                 self.log("Need to check if Application Gateway instance has to be deleted or may be updated")
                 self.to_do = Actions.Update
 
+        self.results['compare'] = []
+        if self.identity:
+            update_identity, identity = self.update_identities(old_response.get('identity', {}))
+        else:
+            update_identity = False
+            identity = None
+
         if (self.to_do == Actions.Update):
             if (old_response['operational_state'] == 'Stopped' and self.gateway_state == 'started'):
                 self.to_do = Actions.Start
@@ -2346,27 +2463,8 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
             elif ((old_response['operational_state'] == 'Stopped' and self.gateway_state == 'stopped') or
                   (old_response['operational_state'] == 'Running' and self.gateway_state == 'started')):
                 self.to_do = Actions.NoAction
-            elif (self.parameters['location'] != old_response['location'] or
-                    self.parameters['enable_http2'] != old_response.get('enable_http2', False) or
-                    self.parameters['sku']['name'] != old_response['sku']['name'] or
-                    self.parameters['sku']['tier'] != old_response['sku']['tier'] or
-                    self.parameters['sku'].get('capacity', None) != old_response['sku'].get('capacity', None) or
-                    not compare_arrays(old_response, self.parameters, 'authentication_certificates') or
-                    not compare_dicts(old_response, self.parameters, 'ssl_policy') or
-                    not compare_arrays(old_response, self.parameters, 'gateway_ip_configurations') or
-                    not compare_arrays(old_response, self.parameters, 'redirect_configurations') or
-                    not compare_arrays(old_response, self.parameters, 'rewrite_rule_sets') or
-                    not compare_arrays(old_response, self.parameters, 'frontend_ip_configurations') or
-                    not compare_arrays(old_response, self.parameters, 'frontend_ports') or
-                    not compare_arrays(old_response, self.parameters, 'backend_address_pools') or
-                    not compare_arrays(old_response, self.parameters, 'probes') or
-                    not compare_arrays(old_response, self.parameters, 'backend_http_settings_collection') or
-                    not compare_arrays(old_response, self.parameters, 'request_routing_rules') or
-                    not compare_arrays(old_response, self.parameters, 'http_listeners') or
-                    not compare_arrays(old_response, self.parameters, 'url_path_maps') or
-                    not compare_arrays(old_response, self.parameters, 'trusted_root_certificates') or
-                    not compare_dicts(old_response, self.parameters, 'autoscale_configuration') or
-                    not compare_dicts(old_response, self.parameters, 'web_application_firewall_configuration')):
+            elif (not self.idempotency_check(old_response, self.parameters) or
+                  update_identity is True):
                 self.to_do = Actions.Update
             else:
                 self.to_do = Actions.NoAction
@@ -2375,6 +2473,8 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
             if update_tags:
                 self.to_do = Actions.Update
                 self.parameters["tags"] = new_tags
+
+        self.parameters.update({"identity": identity})
 
         if (self.to_do == Actions.Create) or (self.to_do == Actions.Update):
             self.log("Need to Create / Update the Application Gateway instance")
@@ -2386,10 +2486,18 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
 
             response = self.create_update_applicationgateway()
 
+            properties = self.get_resource() or {}
+            new_ssl_certs = []
+            if properties:
+                for new_cert in properties.get('properties', {}).get('sslCertificates', []):
+                    new_public_cert = new_cert.get('properties', {}).get('publicCertData')
+                    new_ssl_certs.append(new_public_cert)
+
             if not old_response:
                 self.results['changed'] = True
             else:
-                self.results['changed'] = old_response.__ne__(response)
+                self.results['changed'] = not compare_dicts(old_response, response) or \
+                    old_ssl_certs.__ne__(new_ssl_certs)
             self.log("Creation / Update done")
         elif (self.to_do == Actions.Start) or (self.to_do == Actions.Stop):
             self.log("Need to Start / Stop the Application Gateway instance")
@@ -2518,6 +2626,37 @@ class AzureRMApplicationGateways(AzureRMModuleBase):
             "provisioning_state": appgw_dict.get("provisioning_state"),
         }
         return d
+
+    def get_resource(self):
+
+        url = '/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Network/' \
+              'applicationGateways/{2}'.format(self.subscription_id, self.resource_group, self.name)
+
+        query_parameters = {}
+        query_parameters['api-version'] = '2022-05-01'
+        header_parameters = {}
+        header_parameters['Content-Type'] = 'application/json; charset=utf-8'
+        status_code = [200, 201, 202]
+
+        found = False
+        try:
+            response = self.mgmt_client.query(url,
+                                              'GET',
+                                              query_parameters,
+                                              header_parameters,
+                                              None,
+                                              status_code,
+                                              600,
+                                              30)
+            response = json.loads(response.body())
+            found = True
+            self.log("Response : {0}".format(response))
+        except Exception as e:
+            self.log('Did not find the AppGateway instance.')
+        if found is True:
+            return response
+
+        return False
 
 
 def public_ip_id(subscription_id, resource_group_name, name):
@@ -2680,36 +2819,18 @@ def trusted_root_certificate_id(subscription_id, resource_group_name, appgateway
     )
 
 
-def compare_dicts(old_params, new_params, param_name):
+def compare_dicts(old_response, new_response):
     """Compare two dictionaries using recursive_diff method and assuming that null values coming from yaml input
     are acting like absent values"""
-    oldd = old_params.get(param_name, {})
-    newd = new_params.get(param_name, {})
 
-    if oldd == {} and newd == {}:
-        return True
-
-    diffs = recursive_diff(oldd, newd)
+    oldd = array_to_dict([old_response])
+    newd = array_to_dict([new_response])
+    diffs = recursive_diff(oldd, newd, skip_keys=['etag'])
     if diffs is None:
         return True
     else:
         actual_diffs = diffs[1]
         return all(value is None or not value for value in actual_diffs.values())
-
-
-def compare_arrays(old_params, new_params, param_name):
-    '''Compare two arrays, including any nested properties on elements.'''
-    old = old_params.get(param_name, [])
-    new = new_params.get(param_name, [])
-
-    if old == [] and new == []:
-        return True
-
-    oldd = array_to_dict(old)
-    newd = array_to_dict(new)
-
-    newd = dict_merge(oldd, newd)
-    return newd == oldd
 
 
 def array_to_dict(array):
@@ -2722,6 +2843,41 @@ def array_to_dict(array):
                 if isinstance(item[nested], list):
                     new[index][nested] = array_to_dict(item[nested])
     return new
+
+
+def recursive_diff(dict1, dict2, skip_keys=None):
+    """Recursively diff two dictionaries
+
+    Raises ``TypeError`` for incorrect argument type.
+
+    :arg dict1: Dictionary to compare against.
+    :arg dict2: Dictionary to compare with ``dict1``.
+    :arg skip_keys: Array of keys to ignore in compare.
+    :return: Tuple of dictionaries of differences or ``None`` if there are no differences.
+    """
+
+    skip_keys = skip_keys or []
+
+    if not all((isinstance(item, MutableMapping) for item in (dict1, dict2))):
+        raise TypeError("Unable to diff 'dict1' %s and 'dict2' %s. "
+                        "Both must be a dictionary." % (type(dict1), type(dict2)))
+
+    left = dict((k, v) for (k, v) in dict1.items() if k not in dict2 and k not in skip_keys)
+    right = dict((k, v) for (k, v) in dict2.items() if k not in dict1 and k not in skip_keys)
+    for k in (set(dict1.keys()) & set(dict2.keys())):
+        if k in skip_keys:
+            continue
+        if isinstance(dict1[k], dict) and isinstance(dict2[k], dict):
+            result = recursive_diff(dict1[k], dict2[k], skip_keys=skip_keys)
+            if result:
+                left[k] = result[0]
+                right[k] = result[1]
+        elif dict1[k] != dict2[k]:
+            left[k] = dict1[k]
+            right[k] = dict2[k]
+    if left or right:
+        return left, right
+    return None
 
 
 def main():

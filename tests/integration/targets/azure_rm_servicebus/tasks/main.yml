@@ -1,7 +1,38 @@
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
 - name: Prepare random number
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
+    location: "{{ __rg_info.resourcegroups.0.location }}"
   run_once: true
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-servicebus-identity"
+    - "ansible-test-servicebus-identity-2"
+    - "ansible-test-servicebus-identity-3"
+
+- name: Set identities base path
+  ansible.builtin.set_fact:
+    identity_base_path: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity"
+
+- name: Set identities IDs to test. Identities ansible-test-servicebus-identity and ansible-test-servicebus-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-servicebus-identity"
+    user_identity_2: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-servicebus-identity-2"
+    user_identity_3: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-servicebus-identity-3"
 
 - name: Create a namespace
   azure_rm_servicebus:
@@ -23,12 +54,101 @@
   azure_rm_servicebus:
     name: "ns{{ rpfx }}"
     resource_group: "{{ resource_group }}"
+    sku: premium
   register: namespace
 
 - name: Assert idempotent
   ansible.builtin.assert:
     that:
       - not namespace.changed
+
+- name: Update namespace - ManagedIdentity SystemAssigned
+  azure_rm_servicebus:
+    name: "ns{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+    sku: premium
+    identity:
+      type: SystemAssigned
+  register: namespace
+
+- name: Assert SystemAssigned
+  ansible.builtin.assert:
+    that:
+      - namespace.changed
+      - namespace.identity.type == "SystemAssigned"
+
+- name: Gather facts
+  azure_rm_servicebus_info:
+    name: "ns{{ rpfx }}"
+    type: namespace
+    resource_group: "{{ resource_group }}"
+  register: facts
+
+- name: Debug
+  ansible.builtin.debug:
+    var: facts
+
+- name: Update namespace - ManagedIdentity UserAssigned
+  azure_rm_servicebus:
+    name: "ns{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+    sku: premium
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+  register: namespace
+
+- name: Assert UserAssigned
+  ansible.builtin.assert:
+    that:
+      - namespace.changed
+      - namespace.identity.type == "UserAssigned"
+      - namespace.identity.user_assigned_identities | length == 1
+      - namespace.identity.user_assigned_identities[user_identity_1] is defined
+
+- name: Update namespace - ManagedIdentity UserAssigned Append
+  azure_rm_servicebus:
+    name: "ns{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+    sku: premium
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_2 }}"
+  register: namespace
+
+- name: Assert UserAssigned
+  ansible.builtin.assert:
+    that:
+      - namespace.changed
+      - namespace.identity.type == "UserAssigned"
+      - namespace.identity.user_assigned_identities | length == 2
+      - namespace.identity.user_assigned_identities[user_identity_1] is defined
+      - namespace.identity.user_assigned_identities[user_identity_2] is defined
+
+- name: Update namespace - ManagedIdentity UserAssigned Append false
+  azure_rm_servicebus:
+    name: "ns{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+    sku: premium
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_3 }}"
+        append: false
+  register: namespace
+
+- name: Assert UserAssigned
+  ansible.builtin.assert:
+    that:
+      - namespace.changed
+      - namespace.identity.type == "UserAssigned"
+      - namespace.identity.user_assigned_identities | length == 1
+      - namespace.identity.user_assigned_identities[user_identity_3] is defined
 
 - name: Create a queue
   azure_rm_servicebusqueue:
@@ -189,3 +309,16 @@
     name: "ns{{ rpfx }}"
     resource_group: "{{ resource_group }}"
     state: absent
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-servicebus-identity"
+    - "ansible-test-servicebus-identity-2"
+    - "ansible-test-servicebus-identity-3"

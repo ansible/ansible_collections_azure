@@ -84,6 +84,7 @@ options:
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_multiple
 
 author:
     - Praveen Ghuge (@praveenghuge)
@@ -157,15 +158,15 @@ state:
 
 try:
     from azure.mgmt.eventhub.models import Eventhub, EHNamespace
-    from azure.mgmt.eventhub.models import Sku
+    from azure.mgmt.eventhub.models import Sku, Identity, UserAssignedIdentity
 except ImportError:
     # This is handled in azure_rm_common
     pass
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 import time
 
 
-class AzureRMEventHub(AzureRMModuleBase):
+class AzureRMEventHub(AzureRMModuleBaseExt):
 
     def __init__(self):
         # define user inputs from playbook
@@ -186,7 +187,11 @@ class AzureRMEventHub(AzureRMModuleBase):
                         default='Active', type='str'),
             state=dict(choices=['present', 'absent'],
                        default='present', type='str'),
-            location=dict(type='str')
+            location=dict(type='str'),
+            identity=dict(
+                type="dict",
+                options=self.managed_identity_multiple_spec
+            )
         )
         required_if = [
             ('state', 'present', [
@@ -207,10 +212,21 @@ class AzureRMEventHub(AzureRMModuleBase):
             state=dict()
         )
         self.state = None
+        self.identity = None
+        self._managed_identity = None
 
         super(AzureRMEventHub, self).__init__(derived_arg_spec=self.module_arg_spec,
                                               supports_check_mode=True,
                                               supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {
+                "identity": Identity,
+                "user_assigned": UserAssignedIdentity,
+            }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         for key in list(self.module_arg_spec.keys()) + ['tags']:
@@ -255,6 +271,14 @@ class AzureRMEventHub(AzureRMModuleBase):
                     if results['sku'] != 'Basic' and self.message_retention_in_days != event_hub_results['message_retention_in_days']:
                         self.sku = results['sku']
                         changed = True
+                if self.identity:
+                    if self.namespace_name and not self.name:
+                        update_identity, self.identity = self.update_managed_identity(curr_identity=results['identity'], new_identity=self.identity)
+                        if update_identity:
+                            changed = True
+                    else:
+                        self.fail("Managed Identity shouldn't be used for event hub update")
+
             elif self.state == 'absent':
                 changed = True
 
@@ -262,6 +286,12 @@ class AzureRMEventHub(AzureRMModuleBase):
             # the event hub does not exist so create it
             if self.state == 'present':
                 changed = True
+                # update the managed identity for first creation
+                if self.identity:
+                    if self.namespace_name and not self.name:
+                        update_identity, self.identity = self.update_managed_identity(new_identity=self.identity)
+                    else:
+                        self.fail("Managed Identity shouldn't be used for event hub creation")
             else:
                 # you can't delete what is not there
                 changed = False
@@ -300,7 +330,8 @@ class AzureRMEventHub(AzureRMModuleBase):
             namespace_params = EHNamespace(
                 location=self.location,
                 sku=Sku(name=self.sku),
-                tags=self.tags
+                tags=self.tags,
+                identity=self.identity
             )
             result = self.event_hub_client.namespaces.begin_create_or_update(
                 self.resource_group,
@@ -332,7 +363,8 @@ class AzureRMEventHub(AzureRMModuleBase):
             params = Eventhub(
                 message_retention_in_days=self.message_retention_in_days,
                 partition_count=self.partition_count,
-                status=self.status
+                status=self.status,
+                identity=self.identity
             )
             result = self.event_hub_client.event_hubs.create_or_update(
                 self.resource_group,
@@ -392,6 +424,7 @@ def event_hub_to_dict(item):
     result['partition_count'] = event_hub.get('partition_count', None)
     result['status'] = event_hub.get('status', None)
     result['tags'] = event_hub.get('tags', None)
+    result['identity'] = event_hub.get('identity', None)
     return result
 
 
@@ -423,7 +456,8 @@ def namespace_to_dict(item):
         is_auto_inflate_enabled=namespace.get(
             'is_auto_inflate_enabled', None),
         maximum_throughput_units=namespace.get(
-            'maximum_throughput_units', None)
+            'maximum_throughput_units', None),
+        identity=namespace.get('identity', None)
     )
     return result
 

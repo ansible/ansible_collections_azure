@@ -1064,7 +1064,7 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
                         differences.append('Identity')
                         changed = True
 
-                update_tags, vmss_dict['tags'] = self.update_tags(vmss_dict.get('tags', dict()))
+                update_tags, self.tags = self.update_tags(vmss_dict.get('tags', dict()))
                 if update_tags:
                     differences.append('Tags')
                     changed = True
@@ -1395,6 +1395,7 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
                     vmss_resource.platform_fault_domain_count = self.platform_fault_domain_count
                     vmss_resource.overprovision = self.overprovision
                     vmss_resource.single_placement_group = self.single_placement_group
+                    vmss_resource.tags = self.tags
 
                     if support_lb_change:
                         if self.load_balancer:

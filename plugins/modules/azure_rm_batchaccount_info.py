@@ -180,7 +180,8 @@ class AzureRMBatchAccountInfo(AzureRMModuleBaseExt):
             'low_priority_core_quota': item['low_priority_core_quota'],
             'pool_quota': item['pool_quota'],
             'active_job_and_job_schedule_quota': item['active_job_and_job_schedule_quota'],
-            'tags': item.get('tags')
+            'tags': item.get('tags'),
+            'identity': item.get('identity')
         }
         return result
 

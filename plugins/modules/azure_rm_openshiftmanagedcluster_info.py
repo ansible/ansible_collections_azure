@@ -106,6 +106,12 @@ properties:
                     returned: always
                     type: str
                     sample: /subscriptions/xx-xx-xx-xx/resourceGroups/mycluster-eastus-cluster
+                fipsValidatedModules:
+                    description:
+                        - If FIPS validated crypto modules are used
+                    type: str
+                    returned: always
+                    sample: Enabled
         servicePrincipalProfile:
             description:
                 - Service principal.
@@ -135,6 +141,18 @@ properties:
                     type: str
                     returned: always
                     sample: 172.30.0.0/16
+                outboundType:
+                    description:
+                        - The OutboundType used for egress traffic.
+                    type: str
+                    returned: always
+                    sample: Loadbalancer
+                preconfiguredNSG:
+                    description:
+                        - Specifies whether subnets are pre-attached with an NSG
+                    type: str
+                    returned: always
+                    sample: Disabled
         masterProfile:
             description:
                 - Configuration for OpenShift master VMs.
@@ -154,6 +172,18 @@ properties:
                     returned: always
                     sample: /subscriptions/xx-xx-xx-xx/resourceGroups/mycluster-eastus/providers/Microsoft.Network/
                             virtualNetworks/mycluster-vnet/subnets/mycluster-worker
+                encryptionAtHost:
+                    description:
+                        - Whether master virtual machines are encrypted at host.
+                    type: str
+                    returned: always
+                    sample: Disabled
+                disk_encryption_set_id:
+                    description:
+                        - The resource ID of an associated DiskEncryptionSet, if applicable.
+                    type: str
+                    returned: successd
+                    sample: null
         workerProfiles:
             description:
                 - Configuration of OpenShift cluster VMs.
@@ -191,6 +221,12 @@ properties:
                     type: str
                     sample: /subscriptions/xx-xx-xx-xx/resourceGroups/mycluster-eastus/providers/Microsoft.Network/
                             virtualNetworks/mycluster-vnet/subnets/mycluster-worker
+                encryptionAtHost:
+                    description:
+                        - Whether worker virtual machines are encrypted at host.
+                    type: str
+                    returned: always
+                    sample: Disabled
         ingressProfiles:
             description:
                 - Ingress configruation.
@@ -241,7 +277,7 @@ class AzureRMOpenShiftManagedClustersInfo(AzureRMModuleBaseExt):
         self.status_code = [200]
 
         self.query_parameters = {}
-        self.query_parameters['api-version'] = '2020-04-30'
+        self.query_parameters['api-version'] = '2023-09-04'
         self.header_parameters = {}
         self.header_parameters['Content-Type'] = 'application/json; charset=utf-8'
 
@@ -325,7 +361,7 @@ class AzureRMOpenShiftManagedClustersInfo(AzureRMModuleBaseExt):
         except Exception as e:
             self.log('Could not get info for @(Model.ModuleOperationNameUpper).')
 
-        return [self.format_item(x) for x in results['value']] if results['value'] else []
+        return [self.format_item(x) for x in results['value']] if results.get('value') else []
 
     def listall(self):
         response = None

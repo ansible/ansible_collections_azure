@@ -262,7 +262,7 @@ class AzureRMImage(AzureRMModuleBase):
             self.fail("source parameter should be in type string or dictionary")
         if tokenize.get('type') == 'disks':
             disk = format_resource_id(tokenize['name'],
-                                      tokenize.get('subscription_id') or self.subscription_id,
+                                      tokenize.get('subscription') or self.subscription_id,
                                       'Microsoft.Compute',
                                       'disks',
                                       tokenize.get('resource_group') or self.resource_group)
@@ -270,7 +270,7 @@ class AzureRMImage(AzureRMModuleBase):
 
         if tokenize.get('type') == 'snapshots':
             snapshot = format_resource_id(tokenize['name'],
-                                          tokenize.get('subscription_id') or self.subscription_id,
+                                          tokenize.get('subscription') or self.subscription_id,
                                           'Microsoft.Compute',
                                           'snapshots',
                                           tokenize.get('resource_group') or self.resource_group)
@@ -337,10 +337,10 @@ class AzureRMImage(AzureRMModuleBase):
         return self.get_vm(resource['resource_group'], resource['name']) if resource['type'] == 'virtualMachines' else None
 
     def get_snapshot(self, resource_group, snapshot_name):
-        return self._get_resource(self.image_client.snapshots.get, resource_group, snapshot_name)
+        return self._get_resource(self.disk_client.snapshots.get, resource_group, snapshot_name)
 
     def get_disk(self, resource_group, disk_name):
-        return self._get_resource(self.image_client.disks.get, resource_group, disk_name)
+        return self._get_resource(self.disk_client.disks.get, resource_group, disk_name)
 
     def get_vm(self, resource_group, vm_name):
         return self._get_resource(self.image_client.virtual_machines.get, resource_group, vm_name, 'instanceview')

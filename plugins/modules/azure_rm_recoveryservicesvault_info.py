@@ -137,7 +137,7 @@ class AzureRMRecoveryServicesVaultInfo(AzureRMModuleBaseExt):
                                                                )
 
     def get_api_version(self):
-        return '2016-06-01'
+        return '2020-02-02'
 
     def get_url(self):
         if self.name is not None:

@@ -241,7 +241,7 @@ class AzureRMGalleryImageVersionsInfo(AzureRMModuleBase):
                 try:
                     response = json.loads(response.body())
                     if isinstance(response, dict):
-                        if response.get('value'):
+                        if 'value' in response:
                             results['response'] = results['response'] + response['value']
                             skiptoken = response.get('nextLink')
                         else:

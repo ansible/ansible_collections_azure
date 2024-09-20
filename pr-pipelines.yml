@@ -35,6 +35,7 @@ parameters:
       - "azure_rm_acs"
       - "azure_rm_adgroup"
       - "azure_rm_aduser"
+      - "azure_rm_afdendpoint"
       - "azure_rm_aks"
       - "azure_rm_aksagentpool"
       - "azure_rm_apimanagement"
@@ -146,6 +147,7 @@ parameters:
       - "azure_rm_sqlmidbshorttermretentionpolicy"
       - "azure_rm_vmssnetworkinterface_info"
       - "azure_rm_sshpublickey"
+      - "azure_rm_snapshot"
       - "azure_rm_networkwatcher"
       - "inventory_azure"
       - "setup_azure"
@@ -164,11 +166,12 @@ jobs:
       - bash: |
           echo "##vso[task.setvariable variable=resource_group;isOutput=true]ansibletest-$(uuidgen)"
           echo "##vso[task.setvariable variable=resource_group_secondary;isOutput=true]ansibletest2-$(uuidgen)"
+          echo "##vso[task.setvariable variable=resource_group_third;isOutput=true]ansibletest3-$(uuidgen)"
           echo "##vso[task.setvariable variable=resource_group_datalake;isOutput=true]ansibletest-$(uuidgen)"
 
         name: setvar
       - bash: |
-          echo "Generate test resource group $(setvar.resource_group), $(setvar.resource_group_secondary), $(setvar.resource_group_datalake)"
+          echo "Generate test resource group $(setvar.resource_group), $(setvar.resource_group_secondary), $(setvar.resoruce_group_third), $(setvar.resource_group_datalake)"
       - task: AzureCLI@2
         inputs:
           azureSubscription: '$(SUBSCRIPTION_FULL_NAME)'
@@ -177,6 +180,7 @@ jobs:
           inlineScript: |
               az group create -l eastus -n $(setvar.resource_group)
               az group create -l eastus -n $(setvar.resource_group_secondary)
+              az group create -l westus2 -n $(setvar.resource_group_third)
               az group create -l eastus2 -n $(setvar.resource_group_datalake)
 
   - job: RunTests
@@ -185,6 +189,7 @@ jobs:
     variables:
       TEST_RESOURCE_GROUP: $[ dependencies.CreateResourceGroups.outputs['setvar.resource_group'] ]
       TEST_RESOURCE_GROUP_SECONDARY: $[ dependencies.CreateResourceGroups.outputs['setvar.resource_group_secondary'] ]
+      TEST_RESOURCE_GROUP_THIRD: $[ dependencies.CreateResourceGroups.outputs['setvar.resource_group_third'] ]
       TEST_RESOURCE_GROUP_DATALAKE: $[ dependencies.CreateResourceGroups.outputs['setvar.resource_group_datalake'] ]
     strategy:
       matrix:
@@ -253,6 +258,7 @@ jobs:
           AZURE_ROLE_DEFINITION_ID: $(AZURE_ROLE_DEFINITION_ID)
           RESOURCE_GROUP: $(TEST_RESOURCE_GROUP)
           RESOURCE_GROUP_SECONDARY: $(TEST_RESOURCE_GROUP_SECONDARY)
+          RESOURCE_GROUP_THIRD: $(TEST_RESOURCE_GROUP_THIRD)
           RESOURCE_GROUP_DATALAKE: $(TEST_RESOURCE_GROUP_DATALAKE)
         displayName: 'Running Tests'
 
@@ -264,6 +270,7 @@ jobs:
     variables:
       TEST_RESOURCE_GROUP: $[ dependencies.CreateResourceGroups.outputs['setvar.resource_group'] ]
       TEST_RESOURCE_GROUP_SECONDARY: $[ dependencies.CreateResourceGroups.outputs['setvar.resource_group_secondary'] ]
+      TEST_RESOURCE_GROUP_THIRD: $[ dependencies.CreateResourceGroups.outputs['setvar.resource_group_third'] ]
       TEST_RESOURCE_GROUP_DATALAKE: $[ dependencies.CreateResourceGroups.outputs['setvar.resource_group_datalake'] ]
     steps:
       - task: AzureCLI@2
@@ -274,4 +281,5 @@ jobs:
           inlineScript: |
               az group delete -n $(TEST_RESOURCE_GROUP) --yes --no-wait
               az group delete -n $(TEST_RESOURCE_GROUP_SECONDARY) --yes --no-wait
+              az group delete -n $(TEST_RESOURCE_GROUP_THIRD) --yes --no-wait
               az group delete -n $(TEST_RESOURCE_GROUP_DATALAKE) --yes --no-wait

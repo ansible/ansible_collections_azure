@@ -247,13 +247,14 @@ class AzureRMCdnprofileInfo(AzureRMModuleBase):
         new_result['sku'] = cdnprofile.sku.name
         new_result['provisioning_state'] = cdnprofile.provisioning_state
         new_result['tags'] = cdnprofile.tags
+        new_result['identity'] = cdnprofile.identity.as_dict() if cdnprofile.identity else None
         return new_result
 
     def get_cdn_client(self):
         if not self.cdn_client:
             self.cdn_client = self.get_mgmt_svc_client(CdnManagementClient,
                                                        base_url=self._cloud_environment.endpoints.resource_manager,
-                                                       api_version='2017-04-02')
+                                                       api_version='2024-02-01')
         return self.cdn_client
 
 

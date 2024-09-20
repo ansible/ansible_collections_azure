@@ -77,6 +77,9 @@ options:
             - '11'
             - '12'
             - '13'
+            - '14'
+            - '15'
+            - '16'
     fully_qualified_domain_name:
         description:
             - The fully qualified domain name of a server.
@@ -257,7 +260,7 @@ EXAMPLES = '''
       name: Standard_B1ms
       tier: Burstable
     administrator_login: azureuser
-    administrator_login_password: Fred@0329
+    administrator_login_password: "{{ password }}"
     version: 12
     storage:
       storage_size_gb: 128
@@ -612,7 +615,7 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBaseExt):
             ),
             version=dict(
                 type='str',
-                choices=['11', '12', '13']
+                choices=['11', '12', '13', '14', '15', '16']
             ),
             fully_qualified_domain_name=dict(
                 type='str',

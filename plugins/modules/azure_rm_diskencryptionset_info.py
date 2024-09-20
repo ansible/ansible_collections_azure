@@ -148,7 +148,7 @@ class AzureRMDiskEncryptionSetInfo(AzureRMModuleBase):
         results = []
         # get specific disk encryption set
         try:
-            item = self.compute_client.disk_encryption_sets.get(self.resource_group, self.name)
+            item = self.diskencryptionset_client.disk_encryption_sets.get(self.resource_group, self.name)
         except ResourceNotFoundError:
             pass
 
@@ -160,7 +160,7 @@ class AzureRMDiskEncryptionSetInfo(AzureRMModuleBase):
     def list_resource_group(self):
         self.log('List all disk encryption sets for resource group - {0}'.format(self.resource_group))
         try:
-            response = self.compute_client.disk_encryption_sets.list_by_resource_group(self.resource_group)
+            response = self.diskencryptionset_client.disk_encryption_sets.list_by_resource_group(self.resource_group)
         except ResourceNotFoundError as exc:
             self.fail("Failed to list for resource group {0} - {1}".format(self.resource_group, str(exc)))
 
@@ -173,7 +173,7 @@ class AzureRMDiskEncryptionSetInfo(AzureRMModuleBase):
     def list_items(self):
         self.log('List all disk encryption sets for a subscription ')
         try:
-            response = self.compute_client.disk_encryption_sets.list()
+            response = self.diskencryptionset_client.disk_encryption_sets.list()
         except ResourceNotFoundError as exc:
             self.fail("Failed to list all items - {0}".format(str(exc)))
 
@@ -194,7 +194,7 @@ class AzureRMDiskEncryptionSetInfo(AzureRMModuleBase):
             tags=diskencryptionset.tags,
             active_key=diskencryptionset.active_key.as_dict(),
             provisioning_state=diskencryptionset.provisioning_state,
-            identity=diskencryptionset.identity.as_dict(),
+            identity=diskencryptionset.identity.as_dict() if diskencryptionset.identity else None,
             type=diskencryptionset.type
         )
         return result

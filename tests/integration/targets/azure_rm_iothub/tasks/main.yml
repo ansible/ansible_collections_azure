@@ -1,6 +1,31 @@
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
 - name: Set variables
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(8, True, '') }}"
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-iothub-identity"
+    - "ansible-test-iothub-identity-2"
+
+- name: Set identities IDs to test. Identities ansible-test-iothub-identity and ansible-test-iothub-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-iothub-identity"
+    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-iothub-identity-2"
 
 - name: Create IoT Hub (check mode)
   azure_rm_iothub:
@@ -40,6 +65,34 @@
     that:
       - iothub.changed
 
+- name: Update IoT Hub (identity)
+  azure_rm_iothub:
+    name: "hub{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+  register: iothub
+
+- name: Assert tht iot hub created
+  ansible.builtin.assert:
+    that:
+      - iothub.changed
+
+- name: Get the IoT Hub facts
+  azure_rm_iothub_info:
+    name: "hub{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+  register: iothub
+
+- name: Assert the IoT Hub facts
+  ansible.builtin.assert:
+    that:
+      - iothub.iothubs[0].identity.type == 'UserAssigned'
+      - user_identity_1 in iothub.iothubs[0].identity.user_assigned_identities
+
 - name: Create IoT Hub (idempontent)
   azure_rm_iothub:
     name: "hub{{ rpfx }}"
@@ -48,12 +101,47 @@
       - name: filter1
         action: reject
         ip_mask: 40.60.80.10
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
   register: iothub
 
 - name: Assert the iot hub created
   ansible.builtin.assert:
     that:
       - not iothub.changed
+
+- name: Update IoT Hub (identity)
+  azure_rm_iothub:
+    name: "hub{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_2 }}"
+        append: false
+  register: iothub
+
+- name: Assert tht iot hub created
+  ansible.builtin.assert:
+    that:
+      - iothub.changed
+
+- name: Get the IoT Hub facts
+  azure_rm_iothub_info:
+    name: "hub{{ rpfx }}"
+    resource_group: "{{ resource_group }}"
+  register: iothub
+
+- name: Assert the IoT Hub facts
+  ansible.builtin.assert:
+    that:
+      - iothub.iothubs[0].identity.type == 'UserAssigned'
+      - iothub.iothubs[0].identity.user_assigned_identities | length == 1
+      - user_identity_2 in iothub.iothubs[0].identity.user_assigned_identities
 
 - name: Query IoT Hub
   azure_rm_iothub_info:
@@ -180,3 +268,15 @@
   ansible.builtin.assert:
     that:
       - iothub.changed
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-iothub-identity"
+    - "ansible-test-iothub-identity-2"

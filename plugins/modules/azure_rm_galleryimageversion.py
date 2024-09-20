@@ -855,9 +855,13 @@ class AzureRMGalleryImageVersions(AzureRMModuleBaseExt):
         else:
             self.fail("Create or Updating fail, no match message return, return info as {0}".format(response))
 
+        i = 0
         while response['properties']['provisioningState'] == 'Creating':
             time.sleep(60)
             response = self.get_resource()
+            i = i + 1
+            if i == 10:
+                self.fail("Create or Updating encountered an exception, wait 10 minutes when the status is still 'creating'")
 
         return response
 

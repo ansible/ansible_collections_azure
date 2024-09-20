@@ -242,6 +242,7 @@ try:
     from azure.mgmt.core.tools import parse_resource_id, resource_id, is_valid_resource_id
     from azure.cli.core import cloud as azure_cloud
     from azure.mgmt.network import NetworkManagementClient
+    from azure.mgmt.network import models as NetworkModels
     from azure.mgmt.resource.resources import ResourceManagementClient
     from azure.mgmt.managementgroups import ManagementGroupsAPI as ManagementGroupsClient
     from azure.mgmt.resource.subscriptions import SubscriptionClient
@@ -351,7 +352,7 @@ AZURE_PKG_VERSIONS = {
     },
     'NetworkManagementClient': {
         'package_name': 'network',
-        'expected_version': '2.3.0'
+        'expected_version': '26.0.0'
     },
     'ResourceManagementClient': {
         'package_name': 'resource',
@@ -426,6 +427,8 @@ class AzureRMModuleBase(object):
         self._management_group_client = None
         self._resource_client = None
         self._compute_client = None
+        self._disk_client = None
+        self._diskencryptionset_client = None
         self._image_client = None
         self._dns_client = None
         self._private_dns_client = None
@@ -606,7 +609,7 @@ class AzureRMModuleBase(object):
         '''
         resource_dict = parse_resource_id(resource) if not isinstance(resource, dict) else resource
         resource_dict['resource_group'] = resource_dict.get('resource_group', self.resource_group)
-        resource_dict['subscription_id'] = resource_dict.get('subscription_id', self.subscription_id)
+        resource_dict['subscription_id'] = resource_dict.get('subscription', self.subscription_id)
         return resource_dict
 
     def serialize_obj(self, obj, class_name, enum_modules=None):
@@ -700,8 +703,8 @@ class AzureRMModuleBase(object):
         try:
             self.log("Getting storage account detail")
             account = self.storage_client.storage_accounts.get_properties(resource_group_name=resource_group_name, account_name=storage_account_name)
-            if auth_mode == 'login' and self.azure_auth.credentials.get('credential'):
-                credential = self.azure_auth.credentials['credential']
+            if auth_mode == 'login' and self.azure_auth.credentials.get('credentials'):
+                credential = self.azure_auth.credentials['credentials']
             elif (auth_mode == 'login' and self.azure_auth.credentials.get('tenant')
                   and self.azure_auth.credentials.get('client_id')
                   and self.azure_auth.credentials.get('secret')):
@@ -1021,12 +1024,12 @@ class AzureRMModuleBase(object):
         if not self._storage_client:
             self._storage_client = self.get_mgmt_svc_client(StorageManagementClient,
                                                             base_url=self._cloud_environment.endpoints.resource_manager,
-                                                            api_version='2021-06-01')
+                                                            api_version='2023-05-01')
         return self._storage_client
 
     @property
     def storage_models(self):
-        return StorageManagementClient.models("2021-06-01")
+        return StorageManagementClient.models("2023-05-01")
 
     @property
     def authorization_client(self):
@@ -1048,12 +1051,12 @@ class AzureRMModuleBase(object):
             self._subscription_client = self.get_mgmt_svc_client(SubscriptionClient,
                                                                  base_url=self._cloud_environment.endpoints.resource_manager,
                                                                  suppress_subscription_id=True,
-                                                                 api_version='2019-11-01')
+                                                                 api_version='2022-12-01')
         return self._subscription_client
 
     @property
     def subscription_models(self):
-        return SubscriptionClient.models("2019-11-01")
+        return SubscriptionClient.models("2022-12-01")
 
     @property
     def management_groups_client(self):
@@ -1071,13 +1074,13 @@ class AzureRMModuleBase(object):
         if not self._network_client:
             self._network_client = self.get_mgmt_svc_client(NetworkManagementClient,
                                                             base_url=self._cloud_environment.endpoints.resource_manager,
-                                                            api_version='2021-03-01')
+                                                            api_version='2024-01-01')
         return self._network_client
 
     @property
     def network_models(self):
         self.log("Getting network models...")
-        return NetworkManagementClient.models("2021-03-01")
+        return NetworkModels
 
     @property
     def rm_client(self):
@@ -1085,13 +1088,13 @@ class AzureRMModuleBase(object):
         if not self._resource_client:
             self._resource_client = self.get_mgmt_svc_client(ResourceManagementClient,
                                                              base_url=self._cloud_environment.endpoints.resource_manager,
-                                                             api_version='2019-10-01')
+                                                             api_version='2022-09-01')
         return self._resource_client
 
     @property
     def rm_models(self):
         self.log("Getting resource manager models")
-        return ResourceManagementClient.models("2019-10-01")
+        return ResourceManagementClient.models("2022-09-01")
 
     @property
     def image_client(self):
@@ -1099,13 +1102,13 @@ class AzureRMModuleBase(object):
         if not self._image_client:
             self._image_client = self.get_mgmt_svc_client(ComputeManagementClient,
                                                           base_url=self._cloud_environment.endpoints.resource_manager,
-                                                          api_version='2021-04-01')
+                                                          api_version='2024-07-01')
         return self._image_client
 
     @property
     def image_models(self):
         self.log("Getting compute image models")
-        return ComputeManagementClient.models("2021-04-01")
+        return ComputeManagementClient.models("2024-07-01")
 
     @property
     def compute_client(self):
@@ -1113,13 +1116,42 @@ class AzureRMModuleBase(object):
         if not self._compute_client:
             self._compute_client = self.get_mgmt_svc_client(ComputeManagementClient,
                                                             base_url=self._cloud_environment.endpoints.resource_manager,
-                                                            api_version='2021-04-01')
+                                                            api_version='2024-07-01')
         return self._compute_client
 
     @property
     def compute_models(self):
         self.log("Getting compute models")
+        return ComputeManagementClient.models("2024-07-01")
+
+    @property
+    def disk_client(self):
+        self.log('Getting disk client')
+        if not self._disk_client:
+            self._disk_client = self.get_mgmt_svc_client(ComputeManagementClient,
+                                                         base_url=self._cloud_environment.endpoints.resource_manager,
+                                                         api_version='2021-04-01')
+        return self._disk_client
+
+    @property
+    def disk_models(self):
+        self.log("Getting disk models")
         return ComputeManagementClient.models("2021-04-01")
+
+    @property
+    def diskencryptionset_client(self):
+        self.log('Getting diskencryptionset client')
+        base_url = self._cloud_environment.endpoints.resource_manager
+        if not self._diskencryptionset_client:
+            self._diskencryptionset_client = self.get_mgmt_svc_client(ComputeManagementClient,
+                                                                      base_url=base_url,
+                                                                      api_version='2024-03-02')
+        return self._diskencryptionset_client
+
+    @property
+    def diskencryptionset_models(self):
+        self.log("Getting compute models")
+        return ComputeManagementClient.models("2024-03-02")
 
     @property
     def dns_client(self):
@@ -1127,13 +1159,13 @@ class AzureRMModuleBase(object):
         if not self._dns_client:
             self._dns_client = self.get_mgmt_svc_client(DnsManagementClient,
                                                         base_url=self._cloud_environment.endpoints.resource_manager,
-                                                        api_version='2018-05-01')
+                                                        api_version='2023-07-01-preview')
         return self._dns_client
 
     @property
     def dns_models(self):
         self.log("Getting dns models...")
-        return DnsManagementClient.models('2018-05-01')
+        return DnsManagementClient.models('2023-07-01-preview')
 
     @property
     def private_dns_client(self):
@@ -1155,7 +1187,7 @@ class AzureRMModuleBase(object):
         if not self._web_client:
             self._web_client = self.get_mgmt_svc_client(WebSiteManagementClient,
                                                         base_url=self._cloud_environment.endpoints.resource_manager,
-                                                        api_version='2021-03-01')
+                                                        api_version='2023-12-01')
         return self._web_client
 
     @property
@@ -1164,13 +1196,13 @@ class AzureRMModuleBase(object):
         if not self._containerservice_client:
             self._containerservice_client = self.get_mgmt_svc_client(ContainerServiceClient,
                                                                      base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                     api_version='2017-07-01')
+                                                                     api_version='2019-04-01')
         return self._containerservice_client
 
     @property
     def managedcluster_models(self):
         self.log("Getting container service models")
-        return ContainerServiceClient.models('2022-02-01')
+        return ContainerServiceClient.models('2024-05-01')
 
     @property
     def managedcluster_client(self):
@@ -1178,7 +1210,7 @@ class AzureRMModuleBase(object):
         if not self._managedcluster_client:
             self._managedcluster_client = self.get_mgmt_svc_client(ContainerServiceClient,
                                                                    base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                   api_version='2022-02-01')
+                                                                   api_version='2024-05-01')
         return self._managedcluster_client
 
     @property
@@ -1237,7 +1269,7 @@ class AzureRMModuleBase(object):
         if not self._containerinstance_client:
             self._containerinstance_client = self.get_mgmt_svc_client(ContainerInstanceManagementClient,
                                                                       base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                      api_version='2018-06-01')
+                                                                      api_version='2023-05-01')
 
         return self._containerinstance_client
 
@@ -1263,7 +1295,7 @@ class AzureRMModuleBase(object):
         if not self._monitor_autoscale_settings_client:
             self._monitor_autoscale_settings_client = self.get_mgmt_svc_client(MonitorManagementClient,
                                                                                base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                               api_version="2015-04-01")
+                                                                               api_version="2022-10-01")
         return self._monitor_autoscale_settings_client
 
     @property
@@ -1302,13 +1334,13 @@ class AzureRMModuleBase(object):
         self.log('Getting servicebus client')
         if not self._servicebus_client:
             self._servicebus_client = self.get_mgmt_svc_client(ServiceBusManagementClient,
-                                                               api_version="2021-06-01-preview",
+                                                               api_version="2022-10-01-preview",
                                                                base_url=self._cloud_environment.endpoints.resource_manager)
         return self._servicebus_client
 
     @property
     def servicebus_models(self):
-        return ServiceBusManagementClient.models("2021-06-01-preview")
+        return ServiceBusManagementClient.models("2022-10-01-preview")
 
     @property
     def automation_client(self):
@@ -1327,7 +1359,7 @@ class AzureRMModuleBase(object):
         self.log('Getting iothub client')
         if not self._IoThub_client:
             self._IoThub_client = self.get_mgmt_svc_client(IotHubClient,
-                                                           api_version='2018-04-01',
+                                                           api_version='2023-06-30-preview',
                                                            base_url=self._cloud_environment.endpoints.resource_manager)
         return self._IoThub_client
 
@@ -1367,7 +1399,7 @@ class AzureRMModuleBase(object):
         if not self._search_client:
             self._search_client = self.get_mgmt_svc_client(SearchManagementClient,
                                                            base_url=self._cloud_environment.endpoints.resource_manager,
-                                                           api_version='2020-08-01')
+                                                           api_version='2024-06-01-preview')
         return self._search_client
 
     @property
@@ -1377,7 +1409,7 @@ class AzureRMModuleBase(object):
             self._notification_hub_client = self.get_mgmt_svc_client(
                 NotificationHubsManagementClient,
                 base_url=self._cloud_environment.endpoints.resource_manager,
-                api_version='2016-03-01')
+                api_version='2017-04-01')
         return self._notification_hub_client
 
     @property
@@ -1387,7 +1419,7 @@ class AzureRMModuleBase(object):
             self._event_hub_client = self.get_mgmt_svc_client(
                 EventHubManagementClient,
                 base_url=self._cloud_environment.endpoints.resource_manager,
-                api_version='2021-11-01')
+                api_version='2024-01-01')
         return self._event_hub_client
 
     @property

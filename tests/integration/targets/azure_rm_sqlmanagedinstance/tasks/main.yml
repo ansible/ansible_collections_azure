@@ -1,6 +1,35 @@
-- name: Prepare random number
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
+- name: Prepare random number and set location based on resource group
   ansible.builtin.set_fact:
     random_postfix: "sqlmi{{ 1000 | random }}{{ resource_group | hash('md5') | truncate(7, True, '') }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=25) }}"
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Delete sql managed instance
+  azure_rm_sqlmanagedinstance:
+    resource_group: "{{ resource_group }}"
+    name: "{{ random_postfix }}"
+    state: absent
+
+- name: Create identity and policy ids arrays
+  ansible.builtin.set_fact:
+    managed_identity_ids: []
+    access_policies_object_ids: []
+
+- name: Create user managed identities
+  ansible.builtin.include_tasks: managedidentity.yml
+  vars:
+    managed_identity_test_unique: 'sqlmanagedinstance'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Create virtual network
   azure_rm_virtualnetwork:
@@ -68,18 +97,23 @@
     name: "{{ random_postfix }}"
     subnet_id: "{{ subnet_output.state.id }}"
     identity:
-      type: SystemAssigned
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ managed_identity_ids[0] }}"
+    primary_user_assigned_identity_id: "{{ managed_identity_ids[0] }}"
     sku:
       name: GP_Gen5
       tier: GeneralPurpose
       family: Gen5
       capacity: 8
     administrator_login: azureuser
-    administrator_login_password: Fredtest@password0329test
+    administrator_login_password: "{{ password }}"
     storage_size_in_gb: 256
     v_cores: 8
     tags:
       key0: value0
+  check_mode: true
   register: output
 
 - name: Assert the resource instance is not exist
@@ -93,14 +127,18 @@
     name: "{{ random_postfix }}"
     subnet_id: "{{ subnet_output.state.id }}"
     identity:
-      type: SystemAssigned
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ managed_identity_ids[0] }}"
+    primary_user_assigned_identity_id: "{{ managed_identity_ids[0] }}"
     sku:
       name: GP_Gen5
       tier: GeneralPurpose
       family: Gen5
       capacity: 8
     administrator_login: azureuser
-    administrator_login_password: Fredtest@password0329test
+    administrator_login_password: "{{ password }}"
     storage_size_in_gb: 256
     v_cores: 8
     tags:
@@ -112,13 +150,26 @@
     that:
       - output.changed
 
+- name: Wait for sql managed instance provisioning to complete
+  azure_rm_sqlmanagedinstance_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ random_postfix }}"
+  register: facts
+  until: facts.sql_managed_instance[0]['state'] == 'Ready'
+  retries: 40
+  delay: 60
+
 - name: Create sql managed instance (Idempotent test)
   azure_rm_sqlmanagedinstance:
     resource_group: "{{ resource_group }}"
     name: "{{ random_postfix }}"
     subnet_id: "{{ subnet_output.state.id }}"
     identity:
-      type: SystemAssigned
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ managed_identity_ids[0] }}"
+    primary_user_assigned_identity_id: "{{ managed_identity_ids[0] }}"
     sku:
       name: GP_Gen5
       tier: GeneralPurpose
@@ -136,20 +187,24 @@
     that:
       - not output.changed
 
-- name: Upgarde sql managed instance with tags
+- name: Upgrade sql managed instance with tags
   azure_rm_sqlmanagedinstance:
     resource_group: "{{ resource_group }}"
     name: "{{ random_postfix }}"
     subnet_id: "{{ subnet_output.state.id }}"
     identity:
-      type: SystemAssigned
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ managed_identity_ids[0] }}"
+    primary_user_assigned_identity_id: "{{ managed_identity_ids[0] }}"
     sku:
       name: GP_Gen5
       tier: GeneralPurpose
       family: Gen5
       capacity: 8
     administrator_login: azureuser
-    administrator_login_password: Fredtest@password0329test
+    administrator_login_password: "{{ password }}"
     storage_size_in_gb: 256
     v_cores: 8
     tags:
@@ -174,9 +229,32 @@
       - output.sql_managed_instance[0].tags | length == 1
       - output.sql_managed_instance[0].storage_size_in_gb == 256
       - output.sql_managed_instance[0].sku.name == 'GP_Gen5'
+      - output.sql_managed_instance[0].identity.type == 'UserAssigned'
+      - output.sql_managed_instance[0].identity.user_assigned_identities | length == 1
+      - output.sql_managed_instance[0].identity.user_assigned_identities[managed_identity_ids[0]] is defined
+
+- name: Wait for sql managed instance provisioning to complete
+  azure_rm_sqlmanagedinstance_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ random_postfix }}"
+  register: facts
+  until: facts.sql_managed_instance[0]['state'] == 'Ready'
+  retries: 40
+  delay: 60
 
 - name: Delete sql managed instance
   azure_rm_sqlmanagedinstance:
     resource_group: "{{ resource_group }}"
     name: "{{ random_postfix }}"
     state: absent
+
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: managedidentity.yml
+  vars:
+    managed_identity_test_unique: 'sqlmanagedinstance'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'

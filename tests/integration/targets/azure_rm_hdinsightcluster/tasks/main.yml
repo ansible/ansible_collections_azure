@@ -1,7 +1,33 @@
 - name: Prepare random number
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
+    password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
   run_once: true
+
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
+- name: Set location based on resource group
+  ansible.builtin.set_fact:
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Create identity and policy ids arrays
+  ansible.builtin.set_fact:
+    managed_identity_ids: []
+    access_policies_object_ids: []
+
+- name: Create user managed identities
+  ansible.builtin.include_tasks: managedidentity.yml
+  vars:
+    managed_identity_test_unique: 'hdinsightcluster'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Create storage account
   azure_rm_storageaccount:
@@ -31,13 +57,19 @@
     resource_group: "{{ resource_group }}"
     name: "cluster{{ rpfx }}"
     location: eastus2
-    cluster_version: 3.6
+    cluster_version: 5.0
     os_type: linux
     tier: standard
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ managed_identity_ids[0] }}"
+          - "{{ managed_identity_ids[1] }}"
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: Password123!
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: storage{{ rpfx }}.blob.core.windows.net
         is_default: true
@@ -49,19 +81,19 @@
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 1
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: zookeepernode
         target_instance_count: 3
         vm_size: Medium
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
   check_mode: true
   register: output
 - name: Assert the resource instance is well created
@@ -74,13 +106,19 @@
     resource_group: "{{ resource_group }}"
     name: "cluster{{ rpfx }}"
     location: eastus2
-    cluster_version: 3.6
+    cluster_version: 5.0
     os_type: linux
     tier: standard
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ managed_identity_ids[0] }}"
+          - "{{ managed_identity_ids[1] }}"
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: Password123!
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: storage{{ rpfx }}.blob.core.windows.net
         is_default: true
@@ -92,19 +130,19 @@
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 1
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: zookeepernode
         target_instance_count: 3
         vm_size: Medium
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
   register: output
 
 - name: Assert the resource instance is well created
@@ -112,18 +150,33 @@
     that:
       - output.changed
 
+- name: Wait for instance of Cluster provisioning to complete
+  azure_rm_hdinsightcluster_info:
+    resource_group: "{{ resource_group }}"
+    name: "cluster{{ rpfx }}"
+  register: facts
+  until: facts.clusters[0]['cluster_state'] == 'Running'
+  retries: 40
+  delay: 60
+
 - name: Create again instance of Cluster -- idempotent
   azure_rm_hdinsightcluster:
     resource_group: "{{ resource_group }}"
     name: "cluster{{ rpfx }}"
     location: eastus2
-    cluster_version: 3.6
+    cluster_version: 5.0
     os_type: linux
     tier: standard
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ managed_identity_ids[0] }}"
+          - "{{ managed_identity_ids[1] }}"
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: Password123!
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: storage{{ rpfx }}.blob.core.windows.net
         is_default: true
@@ -135,19 +188,19 @@
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 1
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: zookeepernode
         target_instance_count: 3
         vm_size: Medium
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
   register: output
 - name: Assert the state has not changed
   ansible.builtin.assert:
@@ -159,13 +212,19 @@
     resource_group: "{{ resource_group }}"
     name: "cluster{{ rpfx }}"
     location: eastus2
-    cluster_version: 3.6
+    cluster_version: 5.0
     os_type: linux
     tier: standard
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ managed_identity_ids[0] }}"
+          - "{{ managed_identity_ids[1] }}"
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: Password123!
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: storage{{ rpfx }}.blob.core.windows.net
         is_default: true
@@ -177,19 +236,19 @@
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 2
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
       - name: zookeepernode
         target_instance_count: 3
         vm_size: Medium
         linux_profile:
           username: sshuser
-          password: Password123!
+          password: "{{ password }}"
     tags:
       aaa: bbb
   register: output
@@ -221,6 +280,11 @@
       - output.clusters[0]['cluster_definition'] != None
       - output.clusters[0]['compute_profile_roles'] != None
       - output.clusters[0]['connectivity_endpoints'] != None
+      - output.clusters[0]['identity'] != None
+      - output.clusters[0]['identity']['type'] == 'UserAssigned'
+      - output.clusters[0]['identity']['user_assigned_identities'] | length == 2
+      - managed_identity_ids[0] | lower in output.clusters[0].identity.user_assigned_identities
+      - managed_identity_ids[1] | lower in output.clusters[0].identity.user_assigned_identities
 
 - name: Delete instance of Cluster -- check mode
   azure_rm_hdinsightcluster:
@@ -244,3 +308,14 @@
   ansible.builtin.assert:
     that:
       - output.changed
+
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: managedidentity.yml
+  vars:
+    managed_identity_test_unique: 'hdinsightcluster'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'

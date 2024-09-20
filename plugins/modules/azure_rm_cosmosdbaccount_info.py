@@ -527,7 +527,9 @@ class AzureRMCosmosDBAccountInfo(AzureRMModuleBase):
             'enable_multiple_write_locations': d.get('enable_multiple_write_locations'),
             'document_endpoint': d.get('document_endpoint'),
             'provisioning_state': d.get('provisioning_state'),
-            'tags': d.get('tags', None)
+            'tags': d.get('tags', None),
+            'identity': d.get('identity', None),
+            'default_identity': d.get('default_identity', None)
         }
 
         if self.retrieve_keys == 'all':

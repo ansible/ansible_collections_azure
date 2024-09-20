@@ -73,7 +73,11 @@ options:
         type: dict
     auto_upgrade_minor_version:
         description:
-            - Whether the extension handler should be automatically upgraded across minor versions.
+            - Whether the extension handler should be automatically upgraded across minor versions during deployment.
+        type: bool
+    enable_automatic_upgrade:
+        description:
+            - Whether the extension handler should be automatically upgraded.
         type: bool
     force_update_tag:
         description:
@@ -150,6 +154,7 @@ def vmextension_to_dict(extension):
         virtual_machine_extension_type=extension.type_properties_type,
         type_handler_version=extension.type_handler_version,
         auto_upgrade_minor_version=extension.auto_upgrade_minor_version,
+        enable_automatic_upgrade=extension.enable_automatic_upgrade,
         settings=extension.settings,
         protected_settings=extension.protected_settings,
     )
@@ -192,6 +197,9 @@ class AzureRMVMExtension(AzureRMModuleBase):
             auto_upgrade_minor_version=dict(
                 type='bool'
             ),
+            enable_automatic_upgrade=dict(
+                type='bool'
+            ),
             settings=dict(
                 type='dict'
             ),
@@ -212,6 +220,7 @@ class AzureRMVMExtension(AzureRMModuleBase):
         self.virtual_machine_extension_type = None
         self.type_handler_version = None
         self.auto_upgrade_minor_version = None
+        self.enable_automatic_upgrade = None
         self.settings = None
         self.protected_settings = None
         self.state = None
@@ -283,6 +292,13 @@ class AzureRMVMExtension(AzureRMModuleBase):
                 else:
                     self.auto_upgrade_minor_version = response['auto_upgrade_minor_version']
 
+                if self.auto_upgrade_minor_version is not None:
+                    if response['enable_automatic_upgrade'] != self.enable_automatic_upgrade:
+                        response['enable_automatic_upgrade'] = self.enable_automatic_upgrade
+                        to_be_updated = True
+                else:
+                    self.enable_automatic_upgrade = response['enable_automatic_upgrade']
+
             if to_be_updated:
                 self.results['changed'] = True
                 self.results['state'] = self.create_or_update_vmextension()
@@ -306,6 +322,7 @@ class AzureRMVMExtension(AzureRMModuleBase):
                 type_properties_type=self.virtual_machine_extension_type,
                 type_handler_version=self.type_handler_version,
                 auto_upgrade_minor_version=self.auto_upgrade_minor_version,
+                enable_automatic_upgrade=self.enable_automatic_upgrade,
                 settings=self.settings,
                 protected_settings=self.protected_settings,
                 force_update_tag=self.force_update_tag,

@@ -133,6 +133,30 @@ registries:
                     returned: when registry exists and C(admin_user_enabled) is set
                     type: str
                     sample: pass2value
+        identity:
+            description:
+                - Identity for the Server.
+            type: complex
+            returned: when available
+            contains:
+                type:
+                    description:
+                        - Type of the managed identity
+                    returned: always
+                    sample: UserAssigned
+                    type: str
+                user_assigned_identities:
+                    description:
+                        - User Assigned Managed Identities and its options
+                    returned: always
+                    type: complex
+                    contains:
+                        id:
+                            description:
+                                - Dict of the user assigned identities IDs associated to the Resource
+                            returned: always
+                            type: dict
+                            elements: dict
         tags:
             description:
                 - Tags assigned to the resource. Dictionary of string:string pairs.
@@ -264,7 +288,8 @@ class AzureRMContainerRegistryInfo(AzureRMModuleBase):
             'login_server': d['login_server'],
             'id': d['id'],
             'tags': d.get('tags', None),
-            'credentials': credentials
+            'credentials': credentials,
+            'identity': d.get('identity', None)
         }
         return d
 

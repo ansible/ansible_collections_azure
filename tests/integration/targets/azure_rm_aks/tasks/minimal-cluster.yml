@@ -1,6 +1,7 @@
 - name: Set varialbles
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(8, True, '') }}"
+    location: westus2
 
 - name: Find available k8s version
   azure_rm_aksversion_info:
@@ -17,10 +18,11 @@
     enable_rbac: true
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -29,8 +31,13 @@
         - "203.0.113.0"
       enable_private_cluster: false
     network_profile:
+      network_plugin_mode: Overlay
+      network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert the AKS instance is well created
@@ -51,6 +58,7 @@
       - "fact.aks | length == 1"
       - fact.aks[0].id == output.id
       - fact.aks[0].aad_profile.managed == true
+      - fact.aks[0].aad_profile.enable_azure_rbac == true
 
 - name: Use minimal parameters and system-assigned identity (idempotent)
   azure_rm_aks:
@@ -64,10 +72,11 @@
       type: "SystemAssigned"
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -76,8 +85,13 @@
         - "203.0.113.0"
       enable_private_cluster: false
     network_profile:
+      network_plugin_mode: Overlay
+      network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert idempotent
@@ -98,10 +112,11 @@
       user_assigned_identities: "{{ user_identity }}"
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -110,8 +125,13 @@
         - "203.0.113.0"
       enable_private_cluster: false
     network_profile:
+      network_plugin_mode: Overlay
       load_balancer_sku: standard
       outbound_type: loadBalancer
+      network_plugin: azure
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert the AKS instance is well created
@@ -132,6 +152,7 @@
       - "fact.aks | length == 1"
       - fact.aks[0].id == output.id
       - fact.aks[0].aad_profile.managed == true
+      - fact.aks[0].network_profile.network_plugin_mode == "overlay"
       - user_identity in fact.aks[0].identity.user_assigned_identities
 
 - name: Use minimal parameters and user-assigned identity (idempotent)
@@ -147,10 +168,11 @@
       user_assigned_identities: "{{ user_identity }}"
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -159,8 +181,13 @@
         - "203.0.113.0"
       enable_private_cluster: false
     network_profile:
+      network_plugin_mode: Overlay
+      network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert idempotent
@@ -181,10 +208,11 @@
       user_assigned_identities: "{{ user_identity_2 }}"
     aad_profile:
       managed: true
+      enable_azure_rbac: true
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -193,8 +221,13 @@
         - "203.0.113.0"
       enable_private_cluster: false
     network_profile:
+      network_plugin_mode: Overlay
+      network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: patch
   register: output
 
 - name: Assert the AKS instance is well created
@@ -217,7 +250,7 @@
       - fact.aks[0].aad_profile.managed == true
       - user_identity_2 in fact.aks[0].identity.user_assigned_identities
 
-- name: Update api_server_access_profile config
+- name: Update api_server_access_profile and auto_upgrade_channel config
   azure_rm_aks:
     name: "minimal{{ rpfx }}"
     location: "{{ location }}"
@@ -228,7 +261,7 @@
     agent_pool_profiles:
       - name: default
         count: 1
-        vm_size: Standard_B2s
+        vm_size: Standard_D2_v2
         mode: System
     api_server_access_profile:
       authorized_ip_ranges:
@@ -238,8 +271,13 @@
         - "203.0.113.0"
       enable_private_cluster: false
     network_profile:
+      network_plugin_mode: Overlay
+      network_plugin: azure
       load_balancer_sku: standard
       outbound_type: loadBalancer
+    auto_upgrade_profile:
+      node_os_upgrade_channel: NodeImage
+      upgrade_channel: stable
   register: output
 
 - name: Assert idempotent

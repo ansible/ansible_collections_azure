@@ -151,7 +151,8 @@ options:
             application_security_groups:
                 description:
                     - List of application security groups in which the IP configuration is included.
-                    - Element of the list could be a resource id of application security group, or dict of I(resource_group) and I(name).
+                    - Element of the list could be a resource id of application security group, or the name of the application
+                      security group located in the current resource group, or a dictionary with resource groups and names.
                 type: list
                 elements: raw
     enable_accelerated_networking:
@@ -479,8 +480,8 @@ except ImportError:
     # This is handled in azure_rm_common
     pass
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import (AzureRMModuleBase,
-                                                                                         azure_id_to_dict,
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import (azure_id_to_dict,
                                                                                          normalize_location_name,
                                                                                          format_resource_id
                                                                                          )
@@ -560,7 +561,7 @@ ip_configuration_spec = dict(
 )
 
 
-class AzureRMNetworkInterface(AzureRMModuleBase):
+class AzureRMNetworkInterface(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -633,27 +634,39 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
         self.security_group = self.parse_resource_to_dict(self.security_group or self.name)
 
         # if application security groups set, convert to resource id format
+        primary_flag = False
         if self.ip_configurations:
             for config in self.ip_configurations:
+                if config.get('primary'):
+                    primary_flag = True
                 if config.get('application_security_groups'):
                     asgs = []
                     for asg in config['application_security_groups']:
                         asg_resource_id = asg
-                        if isinstance(asg, str) and (not is_valid_resource_id(asg)):
-                            asg = self.parse_resource_to_dict(asg)
-                        if isinstance(asg, dict):
-                            asg_resource_id = format_resource_id(val=asg['name'],
-                                                                 subscription_id=self.subscription_id,
-                                                                 namespace='Microsoft.Network',
-                                                                 types='applicationSecurityGroups',
-                                                                 resource_group=asg['resource_group'])
+                        if isinstance(asg, str):
+                            if is_valid_resource_id(asg):
+                                asg = self.parse_resource_to_dict(asg)
+                            else:
+                                asg = dict(name=asg)
+                        else:
+                            if asg.get('name') is None:
+                                self.fail("If the element of application_security_groups is a dictionary, you must define 'name'.")
+                        asg_resource_id = format_resource_id(val=asg['name'],
+                                                             subscription_id=asg.get('subscription_id', self.subscription_id),
+                                                             namespace='Microsoft.Network',
+                                                             types='applicationSecurityGroups',
+                                                             resource_group=asg.get('resource_group', self.resource_group))
                         asgs.append(asg_resource_id)
                     if len(asgs) > 0:
                         config['application_security_groups'] = asgs
+            if not primary_flag:
+                self.ip_configurations[0]['primary'] = True
 
         # If ip_confiurations is not specified then provide the default
         # private interface
+        skip_compare = False
         if self.state == 'present' and not self.ip_configurations:
+            skip_compare = True
             self.ip_configurations = [
                 dict(
                     name='default',
@@ -728,18 +741,19 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
                 # name, private_ip_address, public_ip_address_name, private_ip_allocation_method, subnet_name
                 ip_configuration_result = self.construct_ip_configuration_set(results['ip_configurations'])
                 ip_configuration_request = self.construct_ip_configuration_set(self.ip_configurations)
-                ip_configuration_result_name = [item['name'] for item in ip_configuration_result]
-                for item_request in ip_configuration_request:
-                    if item_request['name'] not in ip_configuration_result_name:
+                if skip_compare:
+                    self.ip_configurations = results['ip_configurations']
+                else:
+                    if not primary_flag:
+                        self.ip_configurations[0]['primary'] = False
+                    if not self.default_compare({}, ip_configuration_request, ip_configuration_result, '', dict(compare=[])):
                         changed = True
-                        break
-                    else:
-                        for item_result in ip_configuration_result:
-                            if len(ip_configuration_request) == 1 and len(ip_configuration_result) == 1:
-                                item_request['primary'] = True
-                            if item_request['name'] == item_result['name'] and item_request != item_result:
-                                changed = True
-                                break
+                        ip_configuration_request_name = [item['name'] for item in ip_configuration_request]
+                        for item_result in results['ip_configurations']:
+                            if item_result['name'] not in ip_configuration_request_name:
+                                if primary_flag and item_result.get('primary'):
+                                    self.fail("Both the service and playbook  ip configuration have primary keys. Please confirm which primary key is used")
+                                self.ip_configurations.append(item_result)
 
             elif self.state == 'absent':
                 self.log("CHANGED: network interface {0} exists but requested state is 'absent'".format(self.name))
@@ -898,7 +912,6 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
             private_ip_allocation_method=to_native(item.get('private_ip_allocation_method')),
             public_ip_address_name=(to_native(item.get('public_ip_address').get('name'))
                                     if item.get('public_ip_address') else to_native(item.get('public_ip_address_name'))),
-            primary=item.get('primary'),
             load_balancer_backend_address_pools=(set([to_native(self.backend_addr_pool_id(id))
                                                       for id in item.get('load_balancer_backend_address_pools')])
                                                  if item.get('load_balancer_backend_address_pools') else None),
@@ -907,7 +920,10 @@ class AzureRMNetworkInterface(AzureRMModuleBase):
                                                        if item.get('application_gateway_backend_address_pools') else None),
             application_security_groups=(set([to_native(asg_id) for asg_id in item.get('application_security_groups')])
                                          if item.get('application_security_groups') else None),
-            name=to_native(item.get('name'))
+            name=to_native(item.get('name')),
+            private_ip_address_version=to_native(item.get('private_ip_address_version')),
+            public_ip_allocation_method=to_native(item.get('public_ip_allocation_method', 'Dynamic')),
+            primary=bool(item.get('primary'))
         ) for item in raw]
         return configurations
 

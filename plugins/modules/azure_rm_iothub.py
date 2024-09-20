@@ -78,6 +78,41 @@ options:
         description:
             - File upload notifications are enabled if set to C(True).
         type: bool
+    identity:
+        description:
+            - Identity for this resource.
+        type: dict
+        version_added: '2.7.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - 'None'
+                default: 'None'
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned IDs associated to this resource
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
     ip_filters:
         description:
             - Configure rules for rejecting or accepting traffic from specific IPv4 addresses.
@@ -507,9 +542,16 @@ routes:
             sample: "true"
 '''  # NOQA
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 from ansible.module_utils.common.dict_transformations import _snake_to_camel, _camel_to_snake
 import re
+
+try:
+    from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
+    from azure.mgmt.iothub.v2023_06_30_preview import models as IotHubModels
+except ImportError:
+    # This is handled in azure_rm_common
+    pass
 
 
 ip_filter_spec = dict(
@@ -553,7 +595,36 @@ event_endpoint_spec = dict(
 )
 
 
-class AzureRMIoTHub(AzureRMModuleBase):
+user_assigned_identities_spec = dict(
+    id=dict(
+        type='list',
+        default=[],
+        elements='str'
+    ),
+    append=dict(
+        type='bool',
+        default=True
+    )
+)
+
+
+managed_identity_spec = dict(
+    type=dict(
+        type='str',
+        choices=['SystemAssigned',
+                 'UserAssigned',
+                 'None'],
+        default='None'
+    ),
+    user_assigned_identities=dict(
+        type='dict',
+        options=user_assigned_identities_spec,
+        default={}
+    ),
+)
+
+
+class AzureRMIoTHub(AzureRMModuleBaseExt):
 
     def __init__(self):
 
@@ -568,7 +639,11 @@ class AzureRMIoTHub(AzureRMModuleBase):
             enable_file_upload_notifications=dict(type='bool'),
             ip_filters=dict(type='list', elements='dict', options=ip_filter_spec),
             routing_endpoints=dict(type='list', elements='dict', options=routing_endpoints_spec),
-            routes=dict(type='list', elements='dict', options=routes_spec)
+            routes=dict(type='list', elements='dict', options=routes_spec),
+            identity=dict(
+                type='dict',
+                options=managed_identity_spec
+            ),
         )
 
         self.results = dict(
@@ -588,8 +663,17 @@ class AzureRMIoTHub(AzureRMModuleBase):
         self.ip_filters = None
         self.routing_endpoints = None
         self.routes = None
+        self._managed_identity = None
 
         super(AzureRMIoTHub, self).__init__(self.module_arg_spec, supports_check_mode=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": IotHubModels.ArmIdentity,
+                                      "user_assigned": IotHubModels.ManagedIdentity
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
 
@@ -629,10 +713,12 @@ class AzureRMIoTHub(AzureRMModuleBase):
                     routing_property = self.IoThub_models.RoutingProperties(endpoints=routing_endpoints,
                                                                             routes=routes)
                     iothub_property.routing = routing_property
+                identities_changed, updated_identities = self.update_identities()
                 iothub = self.IoThub_models.IotHubDescription(location=self.location,
                                                               sku=self.IoThub_models.IotHubSkuInfo(name=self.sku, capacity=self.unit),
                                                               properties=iothub_property,
-                                                              tags=self.tags)
+                                                              tags=self.tags,
+                                                              identity=updated_identities)
                 if not self.check_mode:
                     iothub = self.create_or_update_hub(iothub)
             else:
@@ -713,7 +799,12 @@ class AzureRMIoTHub(AzureRMModuleBase):
                 # compare tags
                 tag_changed, updated_tags = self.update_tags(iothub.tags)
                 iothub.tags = updated_tags
-                if changed and not self.check_mode:
+
+                # compare identity
+                identity_changed, iothub.identity = self.update_identities(iothub.identity.as_dict())
+
+                if (changed or identity_changed) and not self.check_mode:
+                    changed = True
                     iothub = self.create_or_update_hub(iothub)
                 # only tags changed
                 if not changed and tag_changed:
@@ -875,6 +966,8 @@ class AzureRMIoTHub(AzureRMModuleBase):
             result['fallback_route'] = self.route_to_dict(properties.routing.fallback_route)
         result['status'] = properties.state
         result['storage_endpoints'] = self.instance_dict_to_dict(properties.storage_endpoints)
+        if hasattr(hub, 'identity'):
+            result['identity'] = hub.identity.as_dict() if hub.identity else None
         return result
 
 

@@ -1,7 +1,36 @@
-- name: Set Storage Account Names
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
+- name: Set location based on resource group and Storage Account Names
   ansible.builtin.set_fact:
+    location: "{{ __rg_info.resourcegroups.0.location }}"
     storage_account_name_default: "sa{{ resource_group | hash('md5') | truncate(20, True, '') }}"
     storage_account_name_explicit: "sa{{ resource_group | hash('sha1') | truncate(20, True, '') }}"
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-storageaccount-identity"
+    - "ansible-test-storageaccount-identity-2"
+
+- name: Set identities base path
+  ansible.builtin.set_fact:
+    identity_base_path: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity"
+
+- name: Set identities IDs to test. Identities ansible-test-storageaccount-identity and ansible-test-storageaccount-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-storageaccount-identity"
+    user_identity_2: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-storageaccount-identity-2"
 
 - name: Test invalid account name
   azure_rm_storageaccount:
@@ -170,6 +199,9 @@
     static_website:
       enabled: true
       index_document: "abc.htm"
+    identity:
+      type: UserAssigned
+      user_assigned_identity: "{{ user_identity_1 }}"
   register: output
 - name: Assert output
   ansible.builtin.assert:
@@ -179,6 +211,9 @@
       - output.state.static_website.enabled
       - output.state.static_website.index_document == "abc.htm"
       - output.state.static_website.error_document404_path == None
+      - output.state.identity.type == "UserAssigned"
+      - output.state.identity.user_assigned_identities | length == 1
+      - output.state.identity.user_assigned_identities[user_identity_1] is defined
 
 - name: Create storage account with static website enabled (idempotency test)
   azure_rm_storageaccount:
@@ -189,11 +224,61 @@
     static_website:
       enabled: true
       index_document: "abc.htm"
+    identity:
+      type: UserAssigned
+      user_assigned_identity: "{{ user_identity_1 }}"
   register: output
 - name: Assert not changed
   ansible.builtin.assert:
     that:
       - not output.changed
+
+- name: Update storage account with different identity
+  azure_rm_storageaccount:
+    resource_group: "{{ resource_group }}"
+    name: "{{ storage_account_name_default }}04"
+    account_type: Standard_LRS
+    kind: StorageV2
+    static_website:
+      enabled: true
+      index_document: "abc.htm"
+    identity:
+      type: UserAssigned
+      user_assigned_identity: "{{ user_identity_2 }}"
+  register: output
+
+- name: Gather facts to validate Managed identity
+  azure_rm_storageaccount_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ storage_account_name_default }}04"
+  register: output
+
+- name: Assert the storage account facts
+  ansible.builtin.assert:
+    that:
+      - "output.storageaccounts | length == 1"
+      - output.storageaccounts[0].identity.type == "UserAssigned"
+      - output.storageaccounts[0].identity.user_assigned_identities | length == 1
+      - output.storageaccounts[0].identity.user_assigned_identities[user_identity_2] is defined
+
+- name: Update storage account with system identity
+  azure_rm_storageaccount:
+    resource_group: "{{ resource_group }}"
+    name: "{{ storage_account_name_default }}04"
+    account_type: Standard_LRS
+    kind: StorageV2
+    static_website:
+      enabled: true
+      index_document: "abc.htm"
+    identity:
+      type: SystemAssigned
+  register: output
+
+- name: Assert output
+  ansible.builtin.assert:
+    that:
+      - output.changed
+      - output.state.identity.type == "SystemAssigned"
 
 - name: Disable storage account static website
   azure_rm_storageaccount:
@@ -664,3 +749,15 @@
     - "{{ storage_account_name_default }}05"
     - "{{ storage_account_name_default }}06"
     - "{{ storage_account_name_default }}07"
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-storageaccount-identity"
+    - "ansible-test-storageaccount-identity-2"

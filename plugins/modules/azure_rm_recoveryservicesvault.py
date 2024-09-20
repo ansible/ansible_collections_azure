@@ -31,6 +31,42 @@ options:
             - Azure Resource location.
         required: true
         type: str
+    identity:
+        description:
+            - Identity for Azure Recovery Service Vault.
+        type: dict
+        version_added: '2.7.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the Recovery Service Vault.
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
     state:
         description:
             - Assert the state of the protection item.
@@ -122,6 +158,13 @@ response:
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_rest import GenericRestClient
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 import json
+import time
+
+try:
+    from azure.mgmt.recoveryservices.models import (IdentityData, UserIdentity)
+except ImportError:
+    # This is handled in azure_rm_common
+    pass
 
 
 class AzureRMRecoveryServicesVault(AzureRMModuleBaseExt):
@@ -139,6 +182,10 @@ class AzureRMRecoveryServicesVault(AzureRMModuleBaseExt):
                 type='str',
                 required=True
             ),
+            identity=dict(
+                type='dict',
+                options=self.managed_identity_multiple_spec
+            ),
             state=dict(
                 type='str',
                 default='present',
@@ -150,6 +197,7 @@ class AzureRMRecoveryServicesVault(AzureRMModuleBaseExt):
         self.name = None
         self.location = None
         self.state = None
+        self.identity = None
 
         self.results = dict(changed=False)
         self.mgmt_client = None
@@ -162,13 +210,23 @@ class AzureRMRecoveryServicesVault(AzureRMModuleBaseExt):
         self.header_parameters = {}
         self.header_parameters['Content-Type'] = 'application/json; charset=utf-8'
 
+        self._managed_identity = None
+
         super(AzureRMRecoveryServicesVault, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                            supports_check_mode=True,
                                                            supports_tags=True
                                                            )
 
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": IdentityData,
+                                      "user_assigned": UserIdentity
+                                      }
+        return self._managed_identity
+
     def get_api_version(self):
-        return '2016-06-01'
+        return '2020-02-02'
 
     def get_url(self):
         if self.state == 'present' or self.state == 'absent':
@@ -187,10 +245,23 @@ class AzureRMRecoveryServicesVault(AzureRMModuleBaseExt):
                 "sku": {
                     "name": "Standard"
                 },
+                "identity": self.identity,
                 "location": self.location
             }
         else:
             return {}
+
+    def format_for_body(self, identity):
+        if identity:
+            identity = identity.as_dict()
+            if identity.get("user_assigned_identities", None):
+                identity["userAssignedIdentities"] = identity.pop("user_assigned_identities")
+        return identity
+
+    def format_for_helper(self, identity):
+        if identity and identity.get("userAssignedIdentities"):
+            identity["user_assigned_identities"] = identity.pop("userAssignedIdentities")
+        return identity
 
     def exec_module(self, **kwargs):
         for key in list(self.module_arg_spec.keys()):
@@ -203,7 +274,6 @@ class AzureRMRecoveryServicesVault(AzureRMModuleBaseExt):
 
         self.query_parameters['api-version'] = self.get_api_version()
         self.url = self.get_url()
-        self.body = self.get_body()
         old_response = None
         response = None
 
@@ -212,14 +282,27 @@ class AzureRMRecoveryServicesVault(AzureRMModuleBaseExt):
 
         old_response = self.get_resource()
 
+        update_identity = False
+        if self.identity:
+            old_identity = old_response and old_response.get('identity', None)
+            old_identity = self.format_for_helper(old_identity)
+            update_identity, identity = self.update_managed_identity(curr_identity=old_identity,
+                                                                     new_identity=self.identity)
+            self.identity = self.format_for_body(identity)
+
+        self.body = self.get_body()
+
         changed = False
         if self.state == 'present':
             if old_response is False:
                 changed = True
-                response = self.create_recovery_service_vault()
+                self.create_recovery_service_vault()
+            elif update_identity is True:
+                changed = True
+                self.create_recovery_service_vault()
             else:
                 changed = False
-                response = old_response
+            response = self.get_resource()
         if self.state == 'absent':
             changed = True
             response = self.delete_recovery_service_vault()
@@ -275,22 +358,38 @@ class AzureRMRecoveryServicesVault(AzureRMModuleBaseExt):
     def get_resource(self):
         # self.log('Get Recovery Service Vault Name {0}'.format(self.))
         found = False
+        retries = 0
+        retry_limit = 60
+        sleep_time = 2
         try:
-            response = self.mgmt_client.query(
-                self.url,
-                'GET',
-                self.query_parameters,
-                self.header_parameters,
-                None,
-                self.status_code,
-                600,
-                30,
-            )
+            # Some operations of Recovery Service Vault can take a while to
+            #  Provision.  Check that the resource has provisioned and warn
+            #  if we timeout waiting for it.
+            provisioning = True
+            while provisioning is True and retries < retry_limit:
+                response = self.mgmt_client.query(
+                    self.url,
+                    'GET',
+                    self.query_parameters,
+                    self.header_parameters,
+                    None,
+                    self.status_code,
+                    600,
+                    30,
+                )
+                response = json.loads(response.body())
+                provisioning_status = response['properties']['provisioningState']
+                provisioning = provisioning_status != 'Succeeded' and True or False
+                retries += 1
+                time.sleep(sleep_time)
             found = True
+            if retries >= retry_limit:
+                self.module.warn(
+                    'Retry limit {0} exceeded while waiting for resource to provision'.format(retry_limit)
+                )
         except Exception as e:
             self.log('Recovery Service Vault Does not exist.')
         if found is True:
-            response = json.loads(response.body())
             return response
         else:
             return False

@@ -83,7 +83,7 @@ options:
                 choices:
                     - 'headnode'
                     - 'workernode'
-                    - 'zookepernode'
+                    - 'zookeepernode'
             min_instance_count:
                 description:
                     - The minimum instance count of the cluster.
@@ -109,6 +109,42 @@ options:
                         description:
                             - SSH password.
                         type: str
+    identity:
+        description:
+            - Identity for the HDInsight Cluster.
+        type: dict
+        version_added: '3.0.0'
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the HDInsight Cluster
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
     storage_accounts:
         description:
             - The list of storage accounts in the cluster.
@@ -162,7 +198,7 @@ EXAMPLES = '''
     cluster_definition:
       kind: spark
       gateway_rest_username: http-user
-      gateway_rest_password: MuABCPassword!!@123
+      gateway_rest_password: "{{ password }}"
     storage_accounts:
       - name: myStorageAccount.blob.core.windows.net
         is_default: true
@@ -174,13 +210,13 @@ EXAMPLES = '''
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: MuABCPassword!!@123
+          password: "{{ password }}"
       - name: workernode
         target_instance_count: 2
         vm_size: Standard_D3
         linux_profile:
           username: sshuser
-          password: MuABCPassword!!@123
+          password: "{{ password }}"
 '''
 
 RETURN = '''
@@ -192,12 +228,13 @@ id:
     sample: /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.HDInsight/clusters/myCluster
 '''
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 
 try:
     from azure.core.polling import LROPoller
     from azure.core.exceptions import ResourceNotFoundError
     from azure.mgmt.hdinsight import HDInsightManagementClient
+    from azure.mgmt.hdinsight.models import ClusterIdentity, UserAssignedIdentity
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -207,7 +244,7 @@ class Actions:
     NoAction, Create, Update, Delete = range(4)
 
 
-class AzureRMClusters(AzureRMModuleBase):
+class AzureRMClusters(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM Cluster resource"""
 
     def __init__(self):
@@ -226,6 +263,10 @@ class AzureRMClusters(AzureRMModuleBase):
             cluster_version=dict(
                 type='str'
             ),
+            identity=dict(
+                type='dict',
+                options=self.managed_identity_multiple_spec
+            ),
             os_type=dict(
                 type='str',
                 choices=['linux']
@@ -242,7 +283,7 @@ class AzureRMClusters(AzureRMModuleBase):
                 type='list',
                 elements='dict',
                 options=dict(
-                    name=dict(type='str', choices=['headnode', 'workernode', 'zookepernode']),
+                    name=dict(type='str', choices=['headnode', 'workernode', 'zookeepernode']),
                     min_instance_count=dict(type='int'),
                     target_instance_count=dict(type='int'),
                     vm_size=dict(type='str'),
@@ -282,10 +323,20 @@ class AzureRMClusters(AzureRMModuleBase):
         self.to_do = Actions.NoAction
         self.tags_changed = False
         self.new_instance_count = None
+        self.identity = None
+        self._managed_identity = None
 
         super(AzureRMClusters, self).__init__(derived_arg_spec=self.module_arg_spec,
                                               supports_check_mode=True,
                                               supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": ClusterIdentity,
+                                      "user_assigned": UserAssignedIdentity
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -330,6 +381,14 @@ class AzureRMClusters(AzureRMModuleBase):
             self.parameters["location"] = resource_group.location
 
         old_response = self.get_cluster()
+
+        curr_identity = old_response.get('identity') if old_response else None
+
+        self.parameters['identity'] = None
+        if self.identity:
+            self.update_identity, identity_result = self.update_managed_identity(curr_identity=curr_identity,
+                                                                                 new_identity=self.identity)
+            self.parameters['identity'] = identity_result.as_dict()
 
         if not old_response:
             self.log("Cluster instance doesn't exist")

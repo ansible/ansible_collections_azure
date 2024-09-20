@@ -291,6 +291,22 @@ vms:
             returned: always
             type: str
             sample: running
+        idenity:
+            description:
+                - The identity of the virtual machine.
+            type: dict
+            returned: always
+            sample: {
+                    "principal_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                    "tenant_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                    "type": "SystemAssigned, UserAssigned",
+                    "user_assigned_identities": {
+                        "/subscriptions/xxx/resourceGroups/testRG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test": {
+                            "client_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+                            "principal_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                        }
+                    }
+        }
         security_profile:
             description:
                 - Specifies the Security related profile settings for the virtual machine.
@@ -508,6 +524,7 @@ class AzureRMVirtualMachineInfo(AzureRMModuleBase):
         new_result['proximityPlacementGroup'] = result.get('proximity_placement_group')
         new_result['zones'] = result.get('zones', None)
         new_result['additional_capabilities'] = result.get('additional_capabilities')
+        new_result['idenity'] = result.get('identity')
         new_result['capacity_reservation'] = dict()
         if result.get('capacity_reservation') is not None:
             new_result['capacity_reservation']['capacity_reservation_group'] = result.get('capacity_reservation').as_dict()

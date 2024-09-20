@@ -4,6 +4,37 @@
     endpointname: "endpoint{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
   run_once: true
 
+- name: Set identities base path
+  ansible.builtin.set_fact:
+    identity_base_path: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity"
+
+- name: Set identities IDs to test. Identities ansible-test-cdnprofile-identity and ansible-test-cdnprofile-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-cdnprofile-identity"
+    user_identity_2: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-cdnprofile-identity-2"
+
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
+- name: Set location based on resource group
+  ansible.builtin.set_fact:
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-cdnprofile-identity"
+    - "ansible-test-cdnprofile-identity-2"
 
 - name: Create a CDN profile(check mode)
   azure_rm_cdnprofile:
@@ -14,7 +45,13 @@
       testing: testing
       delete: on-exit
       foo: bar
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
   check_mode: true
+  register: output
 
 - name: Check there is no CDN profile created
   azure_rm_cdnprofile_info:
@@ -36,6 +73,11 @@
       testing: testing
       delete: on-exit
       foo: bar
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
   register: output
 
 - name: Assert the CDN profile is well created
@@ -53,9 +95,12 @@
 - name: Assert fact returns the created one
   ansible.builtin.assert:
     that:
-      - "fact.cdnprofiles | length == 1"
+      - fact.cdnprofiles | length == 1
       - fact.cdnprofiles[0].sku == 'Standard_Verizon'
       - fact.cdnprofiles[0].tags.foo == 'bar'
+      - fact.cdnprofiles[0].identity.type == 'UserAssigned'
+      - fact.cdnprofiles[0].identity.user_assigned_identities | length == 1
+      - fact.cdnprofiles[0].identity.user_assigned_identities['{{ user_identity_1 }}'] is defined
 
 - name: Create a CDN profile (idempotent)
   azure_rm_cdnprofile:
@@ -66,6 +111,11 @@
       testing: testing
       delete: on-exit
       foo: bar
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
   register: output
 
 - name: Assert idempotent
@@ -73,7 +123,7 @@
     that:
       - not output.changed
 
-- name: Update the CDN profile
+- name: Update the CDN profile - replace user identity
   azure_rm_cdnprofile:
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
@@ -83,12 +133,107 @@
       delete: on-exit
       foo: bar
       baz: qux
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_2 }}"
+        append: false
   register: output
 
 - name: Assert the CDN profile is updated
   ansible.builtin.assert:
     that:
       - output.changed
+
+- name: Gather CDN profile facts
+  azure_rm_cdnprofile_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ cdnprofilename }}"
+  register: fact
+
+- name: Assert fact returns the created one
+  ansible.builtin.assert:
+    that:
+      - fact.cdnprofiles | length == 1
+      - fact.cdnprofiles[0].sku == 'Standard_Verizon'
+      - fact.cdnprofiles[0].tags.foo == 'bar'
+      - fact.cdnprofiles[0].identity.type == 'UserAssigned'
+      - fact.cdnprofiles[0].identity.user_assigned_identities | length == 1
+      - fact.cdnprofiles[0].identity.user_assigned_identities['{{ user_identity_2 }}'] is defined
+
+- name: Update the CDN profile - append user identity
+  azure_rm_cdnprofile:
+    resource_group: "{{ resource_group }}"
+    name: "{{ cdnprofilename }}"
+    sku: standard_verizon
+    tags:
+      testing: testing
+      delete: on-exit
+      foo: bar
+      baz: qux
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+  register: output
+
+- name: Assert the CDN profile is updated
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Gather CDN profile facts
+  azure_rm_cdnprofile_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ cdnprofilename }}"
+  register: fact
+
+- name: Assert fact returns the created one
+  ansible.builtin.assert:
+    that:
+      - fact.cdnprofiles | length == 1
+      - fact.cdnprofiles[0].sku == 'Standard_Verizon'
+      - fact.cdnprofiles[0].tags.foo == 'bar'
+      - fact.cdnprofiles[0].identity.type == 'UserAssigned'
+      - fact.cdnprofiles[0].identity.user_assigned_identities | length == 2
+      - fact.cdnprofiles[0].identity.user_assigned_identities['{{ user_identity_1 }}'] is defined
+      - fact.cdnprofiles[0].identity.user_assigned_identities['{{ user_identity_2 }}'] is defined
+
+- name: Update the CDN profile - change to SystemAssigned identity
+  azure_rm_cdnprofile:
+    resource_group: "{{ resource_group }}"
+    name: "{{ cdnprofilename }}"
+    sku: standard_verizon
+    tags:
+      testing: testing
+      delete: on-exit
+      foo: bar
+      baz: qux
+    identity:
+      type: SystemAssigned
+  register: output
+
+- name: Assert the CDN profile is updated
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Gather CDN profile facts
+  azure_rm_cdnprofile_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ cdnprofilename }}"
+  register: fact
+
+- name: Assert fact returns the created one
+  ansible.builtin.assert:
+    that:
+      - fact.cdnprofiles | length == 1
+      - fact.cdnprofiles[0].sku == 'Standard_Verizon'
+      - fact.cdnprofiles[0].tags.foo == 'bar'
+      - fact.cdnprofiles[0].identity.type == 'SystemAssigned'
+      - fact.cdnprofiles[0].identity.user_assigned_identities is not defined
 
 - name: Delete the CDN profile(check mode)
   azure_rm_cdnprofile:
@@ -276,3 +421,15 @@
   ansible.builtin.assert:
     that:
       - "fact.cdnprofiles | length == 0"
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-cdnprofile-identity"
+    - "ansible-test-cdnprofile-identity-2"

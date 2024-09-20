@@ -809,6 +809,11 @@ class AzureRMStorageAccountInfo(AzureRMModuleBase):
                     account_dict['encryption']['services']['queue'] = dict(enabled=True)
                 if account_obj.encryption.services.blob:
                     account_dict['encryption']['services']['blob'] = dict(enabled=True)
+
+        account_dict['identity'] = dict()
+        if account_obj.identity:
+            account_dict['identity'] = account_obj.identity.as_dict()
+
         return account_dict
 
     def format_endpoint_dict(self, name, key, endpoint, storagetype, protocol='https'):

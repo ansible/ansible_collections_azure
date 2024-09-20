@@ -42,6 +42,8 @@ options:
             - standard_akamai
             - standard_chinacdn
             - standard_microsoft
+            - standard_azurefrontdoor
+            - premium_azurefrontdoor
     state:
         description:
             - Assert the state of the CDN profile. Use C(present) to create or update a CDN profile and C(absent) to delete it.
@@ -54,6 +56,7 @@ options:
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_multiple
 
 author:
     - Hai Cao (@caohai)
@@ -83,11 +86,11 @@ id:
     example:
             id: /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourcegroups/myResourceGroup/providers/Microsoft.Cdn/profiles/myCDN
 '''
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 import uuid
 
 try:
-    from azure.mgmt.cdn.models import Profile, Sku
+    from azure.mgmt.cdn.models import Profile, Sku, ManagedServiceIdentity, UserAssignedIdentity, ProfileUpdateParameters
     from azure.mgmt.cdn import CdnManagementClient
 except ImportError as ec:
     # This is handled in azure_rm_common
@@ -103,11 +106,12 @@ def cdnprofile_to_dict(cdnprofile):
         sku=cdnprofile.sku.name,
         resource_state=cdnprofile.resource_state,
         provisioning_state=cdnprofile.provisioning_state,
-        tags=cdnprofile.tags
+        tags=cdnprofile.tags,
+        identity=cdnprofile.identity.as_dict() if cdnprofile.identity else None
     )
 
 
-class AzureRMCdnprofile(AzureRMModuleBase):
+class AzureRMCdnprofile(AzureRMModuleBaseExt):
 
     def __init__(self):
         self.module_arg_spec = dict(
@@ -129,7 +133,15 @@ class AzureRMCdnprofile(AzureRMModuleBase):
             ),
             sku=dict(
                 type='str',
-                choices=['standard_verizon', 'premium_verizon', 'custom_verizon', 'standard_akamai', 'standard_chinacdn', 'standard_microsoft']
+                choices=[
+                    'standard_verizon', 'premium_verizon', 'custom_verizon', 'standard_akamai',
+                    'standard_chinacdn', 'standard_microsoft',
+                    'standard_azurefrontdoor', 'premium_azurefrontdoor'
+                ]
+            ),
+            identity=dict(
+                type="dict",
+                options=self.managed_identity_multiple_spec
             )
         )
 
@@ -139,6 +151,8 @@ class AzureRMCdnprofile(AzureRMModuleBase):
         self.state = None
         self.tags = None
         self.sku = None
+        self.identity = None
+        self._managed_identity = None
 
         self.cdn_client = None
 
@@ -152,6 +166,15 @@ class AzureRMCdnprofile(AzureRMModuleBase):
                                                 supports_check_mode=True,
                                                 supports_tags=True,
                                                 required_if=required_if)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {
+                "identity": ManagedServiceIdentity,
+                "user_assigned": UserAssignedIdentity,
+            }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -171,6 +194,11 @@ class AzureRMCdnprofile(AzureRMModuleBase):
 
         if self.state == 'present':
 
+            curr_identity = response["identity"] if response else None
+            update_identity = False
+            if self.identity:
+                update_identity, self.identity = self.update_managed_identity(curr_identity=curr_identity, new_identity=self.identity, patch_support=True)
+
             if not response:
                 self.log("Need to create the CDN profile")
 
@@ -185,7 +213,7 @@ class AzureRMCdnprofile(AzureRMModuleBase):
                 update_tags, response['tags'] = self.update_tags(response['tags'])
 
                 if response['provisioning_state'] == "Succeeded":
-                    if update_tags:
+                    if update_tags or update_identity:
                         to_be_updated = True
 
                 if to_be_updated:
@@ -221,7 +249,8 @@ class AzureRMCdnprofile(AzureRMModuleBase):
         parameters = Profile(
             location=self.location,
             sku=Sku(name=self.sku),
-            tags=self.tags
+            tags=self.tags,
+            identity=self.identity
         )
 
         xid = str(uuid.uuid1())
@@ -245,7 +274,15 @@ class AzureRMCdnprofile(AzureRMModuleBase):
         self.log("Updating the Azure CDN profile instance {0}".format(self.name))
 
         try:
-            poller = self.cdn_client.profiles.begin_update(self.resource_group, self.name, {'tags': self.tags})
+            parameters = ProfileUpdateParameters(
+                tags=self.tags,
+                identity=self.identity
+            )
+            poller = self.cdn_client.profiles.begin_update(
+                self.resource_group,
+                self.name,
+                parameters
+            )
             response = self.get_poller_result(poller)
             return cdnprofile_to_dict(response)
         except Exception as exc:
@@ -290,7 +327,7 @@ class AzureRMCdnprofile(AzureRMModuleBase):
         if not self.cdn_client:
             self.cdn_client = self.get_mgmt_svc_client(CdnManagementClient,
                                                        base_url=self._cloud_environment.endpoints.resource_manager,
-                                                       api_version='2017-04-02')
+                                                       api_version='2024-02-01')
         return self.cdn_client
 
 

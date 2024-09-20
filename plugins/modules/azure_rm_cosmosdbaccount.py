@@ -165,6 +165,48 @@ options:
         description:
             - Enables the account to write in multiple locations
         type: bool
+    identity:
+        description:
+            - Identity for the Object
+        type: dict
+        suboptions:
+            type:
+                description:
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
+                type: str
+            user_assigned_identities:
+                description:
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the Object
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
+                    append:
+                        description:
+                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
+                        required: false
+                        type: bool
+                        default: True
+    default_identity:
+        description:
+            - The primary identity to access key vault in CMK related features.
+              e.g. 'FirstPartyIdentity', 'SystemAssignedIdentity' and more.
+              User-assigned identities are specified in format
+              'UserAssignedIdentity=<resource ID of the user-assigned identity>'.
+        type: str
     state:
         description:
             - Assert the state of the Database Account.
@@ -227,13 +269,14 @@ id:
              baseAccount"
 '''
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 from ansible.module_utils.common.dict_transformations import _snake_to_camel
 
 try:
     from azure.core.polling import LROPoller
     from azure.core.exceptions import ResourceNotFoundError
     from azure.mgmt.cosmosdb import CosmosDBManagementClient
+    from azure.mgmt.cosmosdb.models import ManagedServiceIdentity, ManagedServiceIdentityUserAssignedIdentity
     from ansible.module_utils.six import string_types
 except ImportError:
     # This is handled in azure_rm_common
@@ -244,7 +287,7 @@ class Actions:
     NoAction, Create, Update, Delete = range(4)
 
 
-class AzureRMCosmosDBAccount(AzureRMModuleBase):
+class AzureRMCosmosDBAccount(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM Database Account resource"""
 
     def __init__(self):
@@ -352,6 +395,13 @@ class AzureRMCosmosDBAccount(AzureRMModuleBase):
             enable_multiple_write_locations=dict(
                 type='bool'
             ),
+            identity=dict(
+                type="dict",
+                options=self.managed_identity_multiple_spec
+            ),
+            default_identity=dict(
+                type='str'
+            ),
             state=dict(
                 type='str',
                 default='present',
@@ -367,10 +417,21 @@ class AzureRMCosmosDBAccount(AzureRMModuleBase):
         self.mgmt_client = None
         self.state = None
         self.to_do = Actions.NoAction
+        self.identity = None
+        self._managed_identity = None
 
         super(AzureRMCosmosDBAccount, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                      supports_check_mode=True,
                                                      supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {
+                "identity": ManagedServiceIdentity,
+                "user_assigned": ManagedServiceIdentityUserAssignedIdentity,
+            }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
         """Main module execution method"""
@@ -435,6 +496,12 @@ class AzureRMCosmosDBAccount(AzureRMModuleBase):
 
         old_response = self.get_databaseaccount()
 
+        if self.identity:
+            curr_identity = old_response['identity'] if old_response else None
+            update_identity, new_identity = self.update_managed_identity(curr_identity=curr_identity, new_identity=self.identity, patch_support=True)
+            if update_identity:
+                self.parameters['identity'] = new_identity
+
         if not old_response:
             self.log("Database Account instance doesn't exist")
             if self.state == 'absent':
@@ -450,17 +517,28 @@ class AzureRMCosmosDBAccount(AzureRMModuleBase):
                 if not default_compare(self.parameters, old_response, '', self.results):
                     self.to_do = Actions.Update
 
-        if (self.to_do == Actions.Create) or (self.to_do == Actions.Update):
-            self.log("Need to Create / Update the Database Account instance")
+        if self.to_do == Actions.Create:
+            self.log("Need to Create the Database Account instance")
 
             if self.check_mode:
                 self.results['changed'] = True
                 return self.results
 
-            response = self.create_update_databaseaccount()
+            response = self.create_databaseaccount()
 
             self.results['changed'] = True
-            self.log("Creation / Update done")
+            self.log("Creation done")
+        elif self.to_do == Actions.Update:
+            self.log("Need to Update the Database Account instance")
+
+            if self.check_mode:
+                self.results['changed'] = True
+                return self.results
+
+            response = self.update_databaseaccount()
+
+            self.results['changed'] = True
+            self.log("Update done")
         elif self.to_do == Actions.Delete:
             self.log("Database Account instance deleted")
             self.results['changed'] = True
@@ -478,13 +556,13 @@ class AzureRMCosmosDBAccount(AzureRMModuleBase):
             self.results.update({'id': response.get('id', None)})
         return self.results
 
-    def create_update_databaseaccount(self):
+    def create_databaseaccount(self):
         '''
-        Creates or updates Database Account with the specified configuration.
+        Creates Database Account with the specified configuration.
 
         :return: deserialized Database Account instance state dictionary
         '''
-        self.log("Creating / Updating the Database Account instance {0}".format(self.name))
+        self.log("Creating the Database Account instance {0}".format(self.name))
 
         try:
             response = self.mgmt_client.database_accounts.begin_create_or_update(resource_group_name=self.resource_group,
@@ -496,6 +574,26 @@ class AzureRMCosmosDBAccount(AzureRMModuleBase):
         except Exception as exc:
             self.log('Error attempting to create the Database Account instance.')
             self.fail("Error creating the Database Account instance: {0}".format(str(exc)))
+        return response.as_dict()
+
+    def update_databaseaccount(self):
+        '''
+        Updates Database Account with the specified configuration.
+
+        :return: deserialized Database Account instance state dictionary
+        '''
+        self.log("Updating the Database Account instance {0}".format(self.name))
+
+        try:
+            response = self.mgmt_client.database_accounts.begin_update(resource_group_name=self.resource_group,
+                                                                       account_name=self.name,
+                                                                       update_parameters=self.parameters)
+            if isinstance(response, LROPoller):
+                response = self.get_poller_result(response)
+
+        except Exception as exc:
+            self.log('Error attempting to update the Database Account instance.')
+            self.fail("Error updating the Database Account instance: {0}".format(str(exc)))
         return response.as_dict()
 
     def delete_databaseaccount(self):

@@ -491,7 +491,7 @@ EXAMPLES = '''
       name: ansible/ubuntu1404
       registry_server_url: myregistry.io
       registry_server_user: user
-      registry_server_password: pass
+      registry_server_password: "{{ password }}"
 
 - name: Create a multi-container web app
   azure_rm_webapp:

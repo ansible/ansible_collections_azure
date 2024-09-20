@@ -211,7 +211,8 @@ class AzureRMEventHubInfo(AzureRMModuleBase):
             is_auto_inflate_enabled=namespace.get(
                 'is_auto_inflate_enabled', None),
             maximum_throughput_units=namespace.get(
-                'maximum_throughput_units', None)
+                'maximum_throughput_units', None),
+            identity=namespace.get('identity', None)
         )
         return result
 
@@ -230,6 +231,7 @@ class AzureRMEventHubInfo(AzureRMModuleBase):
         result['partition_count'] = event_hub.get('partition_count', None)
         result['status'] = event_hub.get('status', None)
         result['tags'] = event_hub.get('tags', None)
+        result['identity'] = event_hub.get('identity', None)
         return result
 
 

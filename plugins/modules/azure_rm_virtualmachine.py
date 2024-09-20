@@ -1090,6 +1090,7 @@ try:
     from azure.core.exceptions import ResourceNotFoundError
     from azure.core.polling import LROPoller
     from azure.mgmt.core.tools import parse_resource_id
+    from datetime import datetime
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -2461,7 +2462,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
 
         try:
             os_disk = {}
-            response = self.compute_client.disks.get(resource_group_name, os_disk_name)
+            response = self.disk_client.disks.get(resource_group_name, os_disk_name)
             os_disk['name'] = response.name
             os_disk['managed_disk'] = dict(id=response.id)
             os_disk['create_option'] = response.creation_data.create_option
@@ -2789,9 +2790,38 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                                                                       self.image['offer'],
                                                                       self.image['sku'],
                                                                       str(exc)))
+
         if versions and len(versions) > 0:
             if self.image['version'] == 'latest':
-                return versions[len(versions) - 1]
+                version = versions[len(versions) - 1]
+
+                def image_timestamp_to_datetime(version_string):
+                    version_len = len(version_string)
+                    if version_len == 8:
+                        t_format = "%Y%m%d"
+                    elif version_len <= 10:
+                        t_format = "%Y%m%d%H"
+                    elif version_len <= 12:
+                        t_format = "%Y%m%d%H%M"
+                    elif version_len <= 14:
+                        t_format = "%Y%m%d%H%M%S"
+                    return datetime.strptime(version_string, t_format)
+
+                if 8 <= len(version.name.split('.')[-1]) and len(version.name.split('.')[-1]) <= 14:
+                    version_date = image_timestamp_to_datetime(version.name.split('.')[-1])
+                    for item in versions:
+                        item_date = image_timestamp_to_datetime(item.name.split('.')[-1])
+                        if item_date > version_date:
+                            version = item
+                            version_date = item_date
+                else:
+                    version_name = version.name.split('.')[-1]
+                    for item in versions:
+                        item_name = item.name.split('.')[-1]
+                        if item_name > version_name:
+                            version = item
+                            version_name = item_name
+                return version
             for version in versions:
                 if version.name == self.image['version']:
                     return version

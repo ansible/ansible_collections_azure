@@ -139,6 +139,8 @@ options:
         description:
             - A container's level of public access. By default containers are private.
             - Can only be set at time of container creation.
+            - The I(public_access) parameter should not be set for private access.
+            - If I(public_access) is not configured, access level is by default private. It can not be set explicitely to private.
         type: str
         choices:
             - container

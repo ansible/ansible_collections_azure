@@ -19,6 +19,8 @@
     virtual_network: "{{ network_name }}-identity"
     subnet: "{{ subnet_name }}"
     location: westeurope
+    open_ports:
+      - 33
 
 - name: Create User Managed Identities
   azure_rm_resource:
@@ -53,6 +55,8 @@
     ssh_password_enabled: false
     public_ip_allocation_method: Disabled
     location: westeurope
+    open_ports:
+      - 33
     network_interface_names:
       - name: "{{ interface_name }}-identity"
         resource_group: "{{ resource_group }}"

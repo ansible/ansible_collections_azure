@@ -139,7 +139,7 @@ publicipaddresses:
             sample: {
                     "domain_name_label": "ansible-b57dc95985712e45eb8b9c2e",
                     "fqdn": "ansible-b57dc95985712e45eb8b9c2e.eastus.cloudapp.azure.com",
-                    "reverse_fqdn": null
+                    "reverse_fqdn": "ansible-b57dc95985712e45eb8b9c2f.eastus.cloudapp.azure.com"
                     }
         ip_tags:
             description:

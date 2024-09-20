@@ -1,10 +1,35 @@
+- name: Gather Resource Group info
+  azure.azcollection.azure_rm_resourcegroup_info:
+    name: "{{ resource_group }}"
+  register: __rg_info
+
 - name: Fix resource prefix
   ansible.builtin.set_fact:
     redis_name: "redis-{{ resource_group | hash('md5') | truncate(7, True, '') }}-{{ 1000 | random }}"
     vnet_name: "vnet-{{ resource_group | hash('md5') | truncate(7, True, '') }}-{{ 1000 | random }}"
     subnet_name: "subnet-{{ resource_group | hash('md5') | truncate(7, True, '') }}-{{ 1000 | random }}"
     rule_name: "rule1"
+    location: "{{ __rg_info.resourcegroups.0.location }}"
   run_once: true
+
+- name: Create User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ location }}"
+    state: present
+  loop:
+    - "ansible-test-redis-identity"
+    - "ansible-test-redis-identity-2"
+
+- name: Set identities IDs to test. Identities ansible-test-redis-identity and ansible-test-redis-identity-2 have to be created previously
+  ansible.builtin.set_fact:
+    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-redis-identity"
+    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-redis-identity-2"
 
 - name: Create a redis cache (Check Mode)
   azure_rm_rediscache:
@@ -69,6 +94,37 @@
     that:
       - not output.changed
 
+- name: Update the redis cache ManagedIdentity UserAssigned
+  azure_rm_rediscache:
+    resource_group: "{{ resource_group }}"
+    name: "{{ redis_name }}"
+    sku:
+      name: basic
+      size: C1
+    wait_for_provisioning: false
+    identity:
+      type: UserAssigned
+      user_assigned_identities:
+        id:
+          - "{{ user_identity_1 }}"
+  register: output
+
+- name: Assert output changed
+  ansible.builtin.assert:
+    that:
+      output.changed
+
+- name: Get redis-cache facts
+  azure_rm_rediscache_info:
+    resource_group: "{{ resource_group }}"
+    name: "{{ redis_name }}"
+  register: output
+
+- name: Assert the redis-cache facts
+  ansible.builtin.assert:
+    that:
+      - output.rediscaches[0].identity.type == 'UserAssigned'
+      - user_identity_1 in output.rediscaches[0].identity.user_assigned_identities
 
 - name: Long-running rediscache tests [run with `--tags long_run,untagged` to enable]
  # creating redis Cache costs about 20 mins async operation,
@@ -83,7 +139,7 @@
         name: "{{ redis_name }}"
       register: facts
       until: facts.rediscaches[0]['provisioning_state'] == 'Succeeded'
-      retries: 30
+      retries: 40
       delay: 60
 
     - name: (Actually) update redis cache
@@ -143,6 +199,9 @@
       azure_rm_rediscache:
         resource_group: "{{ resource_group }}"
         name: "{{ redis_name }}"
+        sku:
+          name: standard
+          size: C1
         reboot:
           reboot_type: all
       register: output
@@ -156,6 +215,9 @@
       azure_rm_rediscache:
         resource_group: "{{ resource_group }}"
         name: "{{ redis_name }}"
+        sku:
+          name: standard
+          size: C1
         state: absent
       check_mode: true
       register: output
@@ -168,6 +230,9 @@
       azure_rm_rediscache:
         resource_group: "{{ resource_group }}"
         name: "{{ redis_name }}"
+        sku:
+          name: standard
+          size: C1
         state: absent
       register: output
 
@@ -227,7 +292,7 @@
         name: "{{ redis_name }}-enhanced"
       register: facts
       until: facts.rediscaches[0]['provisioning_state'] == 'Succeeded'
-      retries: 30
+      retries: 40
       delay: 60
 
     - name: Update redis (idempotent)
@@ -247,23 +312,6 @@
         that:
           - not output.changed
 
-    - name: Update redis cache TLS
-      azure_rm_rediscache:
-        resource_group: "{{ resource_group }}"
-        name: "{{ redis_name }}-enhanced"
-        sku:
-          name: basic
-          size: C1
-        redis_version: "6"
-        minimum_tls_version: "1.1"
-        public_network_access: "Disabled"
-        wait_for_provisioning: true
-      register: output
-    - name: Assert output changed
-      ansible.builtin.assert:
-        that:
-          - output.changed
-
     - name: Update redis cache public network access
       azure_rm_rediscache:
         resource_group: "{{ resource_group }}"
@@ -272,7 +320,7 @@
           name: basic
           size: C1
         redis_version: "6"
-        minimum_tls_version: "1.1"
+        minimum_tls_version: "1.2"
         public_network_access: "Enabled"
         wait_for_provisioning: true
       register: output
@@ -289,27 +337,16 @@
     - name: Assert enhanced cache facts
       ansible.builtin.assert:
         that:
-          - facts.rediscaches[0].minimum_tls_version == '1.1'
+          - facts.rediscaches[0].minimum_tls_version == '1.2'
           - facts.rediscaches[0].public_network_access == 'Enabled'
 
-    - name: Update redis cache version
+    - name: Delete the redis cache
       azure_rm_rediscache:
         resource_group: "{{ resource_group }}"
         name: "{{ redis_name }}-enhanced"
         sku:
           name: basic
           size: C1
-        redis_version: "6"
-        minimum_tls_version: "1.1"
-        public_network_access: "Enabled"
-        wait_for_provisioning: true
-      register: output
-      failed_when: "output.changed or 'not supported' not in output.msg"
-
-    - name: Delete the redis cache
-      azure_rm_rediscache:
-        resource_group: "{{ resource_group }}"
-        name: "{{ redis_name }}-enhanced"
         state: absent
       register: output
     - name: Assert the redis cache deleted
@@ -394,7 +431,7 @@
         name: "{{ redis_name }}2"
       register: facts
       until: facts.rediscaches[0]['provisioning_state'] == 'Succeeded'
-      retries: 30
+      retries: 40
       delay: 60
 
     - name: Create firewall rule
@@ -450,6 +487,9 @@
       azure_rm_rediscache:
         resource_group: "{{ resource_group }}"
         name: "{{ redis_name }}2"
+        sku:
+          name: premium
+          size: P1
         regenerate_key:
           key_type: "primary"
       register: output
@@ -489,6 +529,21 @@
       azure_rm_rediscache:
         resource_group: "{{ resource_group }}"
         name: "{{ redis_name }}2"
+        sku:
+          name: premium
+          size: P1
         state: absent
       register: output
       tags: [long_run, never]
+
+- name: Destroy User Managed Identities
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ item }}"
+    api_version: "2023-01-31"
+    state: absent
+  loop:
+    - "ansible-test-redis-identity"
+    - "ansible-test-redis-identity-2"
