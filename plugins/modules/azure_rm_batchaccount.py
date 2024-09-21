@@ -70,7 +70,7 @@ options:
         description:
             - Identity for this resource.
         type: dict
-        version_added: '2.5.0'
+        version_added: '2.7.0'
         suboptions:
             type:
                 description:

@@ -170,6 +170,10 @@ options:
                 description:
                     - DNS prefix specified when creating the managed cluster.
                 type: str
+            tags:
+                description:
+                    - The tags to be persisted on the agent pool virtual machine scale set.
+                type: dict
     service_principal:
         description:
             - The service principal suboptions.
@@ -253,14 +257,6 @@ options:
                 description:
                     - An IP address assigned to the Kubernetes DNS service.
                     - It must be within the Kubernetes service address range specified in serviceCidr.
-                type: str
-            docker_bridge_cidr:
-                description:
-                    - (deprecated) The docker bridge cidr.
-                    - A CIDR notation IP range assigned to the Docker bridge network.
-                    - It must not overlap with any Subnet IP ranges or the Kubernetes service address range.
-                    - API version is higher than 23.0.0, Model ContainerServiceNetworkProfile no longer has parameter (docker_bridge_cidr).
-                    - This parameter will be abandoned in the next version.
                 type: str
             load_balancer_sku:
                 description:
@@ -504,6 +500,8 @@ EXAMPLES = '''
         max_count: 3
         min_count: 1
         enable_rbac: true
+        tags:
+          key1: value1
       - name: user
         count: 1
         vm_size: Standard_D2_v2
@@ -562,7 +560,6 @@ EXAMPLES = '''
       outbound_type: userDefinedRouting
       service_cidr: "10.41.0.0/16"
       dns_service_ip: "10.41.0.10"
-      docker_bridge_cidr: "172.17.0.1/16"
     api_server_access_profile:
       authorized_ip_ranges:
         - "20.106.246.252/32"
@@ -744,7 +741,6 @@ def create_network_profiles_dict(network):
         pod_cidr=network.pod_cidr,
         service_cidr=network.service_cidr,
         dns_service_ip=network.dns_service_ip,
-        docker_bridge_cidr=network.docker_bridge_cidr if hasattr(network, 'docker_bridge_cidr') else None,
         load_balancer_sku=network.load_balancer_sku,
         outbound_type=network.outbound_type
     ) if network else dict()
@@ -817,7 +813,8 @@ def create_agent_pool_profiles_dict(agentpoolprofiles):
         max_count=profile.max_count,
         node_labels=profile.node_labels,
         min_count=profile.min_count,
-        max_pods=profile.max_pods
+        max_pods=profile.max_pods,
+        tags=profile.tags
     ) for profile in agentpoolprofiles] if agentpoolprofiles else None
 
 
@@ -876,7 +873,8 @@ agent_pool_profile_spec = dict(
     max_count=dict(type='int'),
     node_labels=dict(type='dict'),
     min_count=dict(type='int'),
-    max_pods=dict(type='int')
+    max_pods=dict(type='int'),
+    tags=dict(type='dict')
 )
 
 
@@ -887,7 +885,6 @@ network_profile_spec = dict(
     pod_cidr=dict(type='str'),
     service_cidr=dict(type='str'),
     dns_service_ip=dict(type='str'),
-    docker_bridge_cidr=dict(type='str', removed_in_version='3.0.0', removed_from_collection='azure.azcollection'),
     load_balancer_sku=dict(type='str', choices=['standard', 'basic']),
     outbound_type=dict(type='str', default='loadBalancer', choices=['userDefinedRouting', 'loadBalancer', 'userAssignedNATGateway', 'managedNATGateway'])
 )
@@ -1162,7 +1159,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     if self.network_profile:
                         for key in self.network_profile.keys():
                             original = response['network_profile'].get(key) or ''
-                            if key != 'docker_bridge_cidr' and self.network_profile[key] and self.network_profile[key].lower() != original.lower():
+                            if self.network_profile[key] and self.network_profile[key].lower() != original.lower():
                                 to_be_updated = True
 
                     def compare_addon(origin, patch, config):
@@ -1205,6 +1202,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                                 node_labels = profile_self['node_labels']
                                 min_count = profile_self['min_count']
                                 max_pods = profile_self['max_pods']
+                                tags = profile_self['tags']
 
                                 if max_pods is not None and profile_result['max_pods'] != max_pods:
                                     self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(str(profile_result), str(profile_self))))
@@ -1241,6 +1239,10 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                                 elif node_labels is not None and profile_result['node_labels'] != node_labels:
                                     self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(str(profile_result), str(profile_self))))
                                     to_be_updated = True
+                                elif not self.default_compare({}, tags, profile_result['tags'], '', dict(compare=[])):
+                                    self.log("Agent Profile Diff - Origin {0} / Update {1}".format(profile_result['tags'], tags))
+                                    to_be_updated = True
+
                         if not matched:
                             self.log("Agent Pool not found")
                             to_be_updated = True
@@ -1403,7 +1405,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     max_pods=profile["max_pods"],
                     enable_auto_scaling=profile["enable_auto_scaling"],
                     agent_pool_type=profile["type"],
-                    mode=profile["mode"]
+                    mode=profile["mode"],
+                    tags=profile['tags']
                 )
                 try:
                     poller = self.managedcluster_client.agent_pools.begin_create_or_update(self.resource_group, self.name, profile["name"], parameters)

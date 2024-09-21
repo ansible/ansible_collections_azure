@@ -1,0 +1,57 @@
+- name: Set user managed identity name
+  ansible.builtin.set_fact:
+    identity_name: "ansible-test-{{ managed_identity_test_unique }}-identity-{{ managed_identity_unique }}"
+
+- name: Set user managed identity ID base path
+  ansible.builtin.set_fact:
+    base_path: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}"
+
+- name: Set user managed identity ID
+  ansible.builtin.set_fact:
+    identity_id: "{{ base_path }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{{ identity_name }}"
+
+- name: Set managed identity ID into the ids list.
+  ansible.builtin.set_fact:
+    managed_identity_ids: "{{ managed_identity_ids + [identity_id] }}"
+  when: managed_identity_action == 'create'
+
+- name: Create the user managed identity - {{ identity_name }}
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ identity_name }}"
+    api_version: "2023-01-31"
+    body:
+      location: "{{ managed_identity_location }}"
+    state: present
+  when: managed_identity_action == 'create'
+
+- name: Lookup service principal object id for identity {{ identity_name }}
+  azure_rm_resource_info:
+    api_version: "2023-01-31"
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ identity_name }}"
+  register: output
+  when:
+    - access_policies_object_ids is defined
+    - managed_identity_action == 'create'
+
+- name: Set object ID for identity {{ identity_name }}
+  ansible.builtin.set_fact:
+    access_policies_object_ids: "{{ access_policies_object_ids + [output.response[0].properties.principalId] }}"
+  when:
+    - access_policies_object_ids is defined
+    - managed_identity_action == 'create'
+
+- name: Destroy the user managed identity - {{ identity_name }}
+  azure_rm_resource:
+    resource_group: "{{ resource_group }}"
+    provider: ManagedIdentity
+    resource_type: userAssignedIdentities
+    resource_name: "{{ identity_name }}"
+    api_version: "2023-01-31"
+    state: absent
+  when: managed_identity_action == 'delete'

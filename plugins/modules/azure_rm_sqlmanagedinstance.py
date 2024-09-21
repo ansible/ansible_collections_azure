@@ -65,23 +65,30 @@ options:
             - Azure Active Directory identity configuration for a resource.
         type: dict
         suboptions:
-            user_assigned_identities:
-                description:
-                    - The resource ids of the user assigned identities to use.
-                type: str
-            principal_id:
-                description:
-                    - The Azure Active Directory principal ID.
-                type: str
             type:
                 description:
-                    - The identity type.
-                    - Set this to C(SystemAssigned) in order to automatically create and assign an Azure Active Directory principal for the resource.
+                    - Type of the managed identity
+                choices:
+                    - SystemAssigned
+                    - UserAssigned
+                    - SystemAssigned, UserAssigned
+                    - None
+                default: None
                 type: str
-            tenant_id:
+            user_assigned_identities:
                 description:
-                    - The Azure Active Directory tenant id.
-                type: str
+                    - User Assigned Managed Identities and its options
+                required: false
+                type: dict
+                default: {}
+                suboptions:
+                    id:
+                        description:
+                            - List of the user assigned identities IDs associated to the WebApp
+                        required: false
+                        type: list
+                        elements: str
+                        default: []
     managed_instance_create_mode:
         description:
             - Specifies the mode of database creation.
@@ -513,6 +520,7 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
+    from azure.mgmt.sql.models import (ResourceIdentity, UserIdentity)
 except ImportError:
     pass
 
@@ -526,11 +534,28 @@ sku_spec = dict(
 )
 
 
-identity_spec = dict(
-    user_assigned_identities=dict(type='str'),
-    principal_id=dict(type='str'),
-    type=dict(type='str'),
-    tenant_id=dict(type='str')
+user_assigned_identities_spec = dict(
+    id=dict(
+        type='list',
+        default=[],
+        elements='str'
+    )
+)
+
+managed_identity_spec = dict(
+    type=dict(
+        type='str',
+        choices=['SystemAssigned',
+                 'UserAssigned',
+                 'SystemAssigned, UserAssigned',
+                 'None'],
+        default='None'
+    ),
+    user_assigned_identities=dict(
+        type='dict',
+        options=user_assigned_identities_spec,
+        default={}
+    ),
 )
 
 
@@ -555,7 +580,7 @@ class AzureRMSqlManagedInstance(AzureRMModuleBaseExt):
             ),
             identity=dict(
                 type='dict',
-                options=identity_spec
+                options=managed_identity_spec
             ),
             sku=dict(
                 type='dict',
@@ -648,9 +673,19 @@ class AzureRMSqlManagedInstance(AzureRMModuleBaseExt):
         self.name = None
         self.location = None
         self.state = None
+        self.identity = None
         self.body = dict()
+        self._managed_identity = None
 
         super(AzureRMSqlManagedInstance, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=True)
+
+    @property
+    def managed_identity(self):
+        if not self._managed_identity:
+            self._managed_identity = {"identity": ResourceIdentity,
+                                      "user_assigned": UserIdentity
+                                      }
+        return self._managed_identity
 
     def exec_module(self, **kwargs):
 
@@ -668,6 +703,13 @@ class AzureRMSqlManagedInstance(AzureRMModuleBaseExt):
         self.body['location'] = self.location
 
         sql_managed_instance = self.get()
+
+        update_identity, identity = self.update_managed_identity(sql_managed_instance and
+                                                                 sql_managed_instance.get('identity'),
+                                                                 self.identity)
+        if update_identity:
+            self.body["identity"] = identity.as_dict()
+
         changed = False
         if self.state == 'present':
             if sql_managed_instance:
@@ -678,7 +720,7 @@ class AzureRMSqlManagedInstance(AzureRMModuleBaseExt):
                 if not self.default_compare(modifiers, self.body, sql_managed_instance, '', self.results):
                     changed = True
 
-                if changed:
+                if changed or update_identity:
                     if not self.check_mode:
                         # sql_managed_instance = self.update_sql_managed_instance(self.body)
                         sql_managed_instance = self.create_or_update(self.body)

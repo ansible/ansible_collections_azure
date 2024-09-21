@@ -911,7 +911,7 @@ options:
         description:
             - Identity for the App Gateway
         type: dict
-        version_added: '2.5.0'
+        version_added: '2.7.0'
         suboptions:
             type:
                 description:

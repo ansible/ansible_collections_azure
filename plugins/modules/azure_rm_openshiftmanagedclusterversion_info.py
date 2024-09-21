@@ -11,7 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: azure_rm_openshiftmanagedclusterversion_info
-version_added: '2.5.0'
+version_added: '2.7.0'
 short_description: Fetch available versions of Azure Red Hat OpenShift Managed Cluster
 description:
     - fetch available version of Azure Red Hat OpenShift Managed Cluster instance.

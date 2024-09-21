@@ -52,6 +52,8 @@ action_groups:
     - azure.azcollection.azure_rm_bastionhost_info
     - azure.azcollection.azure_rm_batchaccount
     - azure.azcollection.azure_rm_batchaccount_info
+    - azure.azcollection.azure_rm_capacityreservationgroup
+    - azure.azcollection.azure_rm_capacityreservationgroup_info
     - azure.azcollection.azure_rm_cdnendpoint
     - azure.azcollection.azure_rm_cdnendpoint_info
     - azure.azcollection.azure_rm_cdnprofile
@@ -136,6 +138,8 @@ action_groups:
     - azure.azcollection.azure_rm_keyvaultsecret_info
     - azure.azcollection.azure_rm_loadbalancer
     - azure.azcollection.azure_rm_loadbalancer_info
+    - azure.azcollection.azure_rm_localnetworkgateway
+    - azure.azcollection.azure_rm_localnetworkgateway_info
     - azure.azcollection.azure_rm_lock
     - azure.azcollection.azure_rm_lock_info
     - azure.azcollection.azure_rm_loganalyticsworkspace
@@ -166,13 +170,18 @@ action_groups:
     - azure.azcollection.azure_rm_mysqlserver_info
     - azure.azcollection.azure_rm_natgateway
     - azure.azcollection.azure_rm_natgateway_info
+    - azure.azcollection.azure_rm_networkflowlog
+    - azure.azcollection.azure_rm_networkflowlog_info
     - azure.azcollection.azure_rm_networkinterface
     - azure.azcollection.azure_rm_networkinterface_info
+    - azure.azcollection.azure_rm_networkwatcher
+    - azure.azcollection.azure_rm_networkwatcher_info
     - azure.azcollection.azure_rm_notificationhub
     - azure.azcollection.azure_rm_notificationhub_info
     - azure.azcollection.azure_rm_openshiftmanagedcluster
     - azure.azcollection.azure_rm_openshiftmanagedcluster_info
     - azure.azcollection.azure_rm_openshiftmanagedclusterkubeconfig_info
+    - azure.azcollection.azure_rm_openshiftmanagedclusterversion_info
     - azure.azcollection.azure_rm_postgresqlconfiguration
     - azure.azcollection.azure_rm_postgresqlconfiguration_info
     - azure.azcollection.azure_rm_postgresqldatabase
@@ -238,6 +247,7 @@ action_groups:
     - azure.azcollection.azure_rm_servicebustopic
     - azure.azcollection.azure_rm_servicebustopicsubscription
     - azure.azcollection.azure_rm_snapshot
+    - azure.azcollection.azure_rm_snapshot_info
     - azure.azcollection.azure_rm_sqldatabase
     - azure.azcollection.azure_rm_sqldatabase_info
     - azure.azcollection.azure_rm_sqlelasticpool
@@ -246,12 +256,20 @@ action_groups:
     - azure.azcollection.azure_rm_sqlfirewallrule_info
     - azure.azcollection.azure_rm_sqlmanagedinstance
     - azure.azcollection.azure_rm_sqlmanagedinstance_info
+    - azure.azcollection.azure_rm_sqlmidatabase
+    - azure.azcollection.azure_rm_sqlmidatabase_info
+    - azure.azcollection.azure_rm_sqlmidblongtermretentionpolicy
+    - azure.azcollection.azure_rm_sqlmidblongtermretentionpolicy_info
+    - azure.azcollection.azure_rm_sqlmidbshorttermretentionpolicy
+    - azure.azcollection.azure_rm_sqlmidbshorttermretentionpolicy_info
     - azure.azcollection.azure_rm_sqlserver
     - azure.azcollection.azure_rm_sqlserver_info
     - azure.azcollection.azure_rm_sshpublickey
     - azure.azcollection.azure_rm_sshpublickey_info
     - azure.azcollection.azure_rm_storageaccount
     - azure.azcollection.azure_rm_storageaccount_info
+    - azure.azcollection.azure_rm_storageaccountmanagementpolicy
+    - azure.azcollection.azure_rm_storageaccountmanagementpolicy_info
     - azure.azcollection.azure_rm_storageblob
     - azure.azcollection.azure_rm_storageshare
     - azure.azcollection.azure_rm_storageshare_info
@@ -282,12 +300,15 @@ action_groups:
     - azure.azcollection.azure_rm_virtualnetwork
     - azure.azcollection.azure_rm_virtualnetwork_info
     - azure.azcollection.azure_rm_virtualnetworkgateway
+    - azure.azcollection.azure_rm_virtualnetworkgatewaynatrule
+    - azure.azcollection.azure_rm_virtualnetworkgatewaynatrule_info
     - azure.azcollection.azure_rm_virtualnetworkpeering
     - azure.azcollection.azure_rm_virtualnetworkpeering_info
     - azure.azcollection.azure_rm_virtualwan
     - azure.azcollection.azure_rm_virtualwan_info
     - azure.azcollection.azure_rm_vmbackuppolicy
     - azure.azcollection.azure_rm_vmbackuppolicy_info
+    - azure.azcollection.azure_rm_vmsku_info
     - azure.azcollection.azure_rm_vmssnetworkinterface_info
     - azure.azcollection.azure_rm_vpnsite
     - azure.azcollection.azure_rm_vpnsite_info
@@ -305,3 +326,5 @@ action_groups:
     - azure.azcollection.azure_rm_networkflowlog_info
     - azure.azcollection.azure_rm_capacityreservationgroup
     - azure.azcollection.azure_rm_capacityreservationgroup_info
+    - azure.azcollection.azure_rm_virtualnetworkgatewayconnection
+    - azure.azcollection.azure_rm_virtualnetworkgatewayconnection_info

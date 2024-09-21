@@ -11,7 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: azure_rm_afdendpoint_info
-version_added: "2.4.0"
+version_added: "2.7.0"
 short_description: Get Azure Front Door Endpoint facts to be used with Standard or Premium Frontdoor Service
 description:
     - Get facts for a specific Azure Front Door (AFD) Endpoint or all AFD Endpoints.

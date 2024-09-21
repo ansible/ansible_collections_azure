@@ -46,6 +46,12 @@ options:
         type: str
         aliases:
             - domain_name_label
+    reverse_fqdn:
+        description:
+            - The reverse FQDN.
+            - A user-visible, fully qualified domain name that resolves to this public IP address.
+            - If the reverseFqdn is specified, then a PTR DNS record is created pointing from the IP address in the in-addr.arpa domain to the reverse FQDN.
+        type: str
     name:
         description:
             - Name of the Public IP.
@@ -152,7 +158,7 @@ state:
             sample: {
             "domain_name_label": "ansible-b57dc95985712e45eb8b9c2e",
             "fqdn": "ansible-b57dc95985712e45eb8b9c2e.eastus.cloudapp.azure.com",
-            "reverse_fqdn": null
+            "reverse_fqdn": "ansible-b57dc95985712e45eb8b9c2f.eastus.cloudapp.azure.com"
         }
         etag:
             description:
@@ -284,6 +290,7 @@ class AzureRMPublicIPAddress(AzureRMModuleBase):
             version=dict(type='str', default='ipv4', choices=['ipv4', 'ipv6']),
             allocation_method=dict(type='str', default='dynamic', choices=['Dynamic', 'Static', 'dynamic', 'static']),
             domain_name=dict(type='str', aliases=['domain_name_label']),
+            reverse_fqdn=dict(type='str'),
             sku=dict(type='str', choices=['Basic', 'Standard', 'basic', 'standard']),
             ip_tags=dict(type='list', elements='dict', options=ip_tag_spec),
             idle_timeout=dict(type='int'),
@@ -298,6 +305,7 @@ class AzureRMPublicIPAddress(AzureRMModuleBase):
         self.zones = None
         self.allocation_method = None
         self.domain_name = None
+        self.reverse_fqdn = None
         self.sku = None
         self.version = None
         self.ip_tags = None
@@ -342,6 +350,12 @@ class AzureRMPublicIPAddress(AzureRMModuleBase):
                     self.log('CHANGED: domain_name_label')
                     changed = True
                     results['dns_settings']['domain_name_label'] = self.domain_name
+
+                if self.reverse_fqdn is not None and self.reverse_fqdn != results['dns_settings'].get('reverse_fqdn'):
+                    changed = True
+                    self.log('CHANGED: reverse_fqdn')
+                else:
+                    self.reverse_fqdn = results['dns_settings'].get('reverse_fqdn')
 
                 if self.allocation_method.lower() != results['public_ip_allocation_method'].lower():
                     self.log("CHANGED: allocation_method")
@@ -408,9 +422,10 @@ class AzureRMPublicIPAddress(AzureRMModuleBase):
                         pip.ip_tags = [self.network_models.IpTag(ip_tag_type=x['type'], tag=x['value']) for x in self.ip_tags]
                     if self.tags:
                         pip.tags = self.tags
-                    if self.domain_name:
+                    if self.domain_name or self.reverse_fqdn:
                         pip.dns_settings = self.network_models.PublicIPAddressDnsSettings(
-                            domain_name_label=self.domain_name
+                            domain_name_label=self.domain_name,
+                            reverse_fqdn=self.reverse_fqdn
                         )
                 else:
                     self.log("Update Public IP {0}".format(self.name))
@@ -421,9 +436,10 @@ class AzureRMPublicIPAddress(AzureRMModuleBase):
                         tags=results['tags'],
                         zones=results['zones']
                     )
-                    if self.domain_name:
+                    if self.domain_name or self.reverse_fqdn:
                         pip.dns_settings = self.network_models.PublicIPAddressDnsSettings(
-                            domain_name_label=self.domain_name
+                            domain_name_label=self.domain_name,
+                            reverse_fqdn=self.reverse_fqdn
                         )
                 self.results['state'] = self.create_or_update_pip(pip)
             elif self.state == 'absent':
