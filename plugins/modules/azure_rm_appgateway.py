@@ -800,7 +800,9 @@ options:
         version_added: "1.15.0"
         description:
             - Web application firewall configuration of the application gateway resource.
-            - Note that as of version 2.8.0, I(firewall_policy) is required instead of deprecated options. See https://github.com/ansible-collections/azure/pull/1697.
+            - >
+              Note that as of version 2.8.0, I(firewall_policy) is required instead of deprecated options.
+              See https://github.com/ansible-collections/azure/pull/1697.
         type: dict
         suboptions:
             disabled_rule_groups:
