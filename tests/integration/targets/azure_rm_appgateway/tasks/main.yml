@@ -8,9 +8,9 @@
   ansible.builtin.set_fact:
     rpfx: "{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
     cert1_file: "cert1.txt"
-    cert1_password: "your-password"
+    cert1_password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
     cert2_file: "cert2.txt"
-    cert2_password: "your-password"
+    cert2_password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
     cert3b64_file: "cert3b64.txt"
     location: "{{ __rg_info.resourcegroups.0.location }}"
   run_once: true
