@@ -10,7 +10,7 @@
 
 - name: Fix resource prefix
   ansible.builtin.set_fact:
-    linux_app_plan_resource_group: "{{ resource_group_third }}"
+    linux_app_plan_resource_group: "{{ resource_group_secondary }}"
     win_app_name: "{{ (resource_prefix | replace('-', 'x'))[-8:] }}{{ 1000 | random }}winapp"
     linux_app_name: "{{ (resource_prefix | replace('-', 'x'))[-8:] }}{{ 1000 | random }}linuxapp"
     win_plan_name: "{{ (resource_prefix | replace('-', 'x'))[-8:] }}winplan"
@@ -214,7 +214,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}6"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -233,7 +233,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}7"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -252,7 +252,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -265,7 +265,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -282,7 +282,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -299,7 +299,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}10"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -341,7 +341,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ linux_plan_name }}12"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -357,7 +357,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}13"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -389,7 +389,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -415,7 +415,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -454,7 +454,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -493,7 +493,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -520,7 +520,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -560,7 +560,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -800,7 +800,7 @@
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
-    location: westus2
+    location: "{{ location }}"
     configuration_source: "{{ win_app_name }}13"
     app_settings:
       testkey: testvalue
@@ -817,7 +817,7 @@
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
-    location: westus2
+    location: "{{ location }}"
     configuration_source: "{{ win_app_name }}13"
     app_settings:
       testkey: testvalueslot
@@ -832,7 +832,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
-    location: westus2
+    location: "{{ location }}"
     name: "{{ slot1_name }}"
     app_settings:
       testkey: testvalueslot
@@ -847,7 +847,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
-    location: westus2
+    location: "{{ location }}"
     name: "{{ slot1_name }}"
     frameworks:
       - name: "node"
@@ -865,7 +865,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
-    location: westus2
+    location: "{{ location }}"
     name: "{{ slot1_name }}"
     swap:
       action: swap
@@ -879,7 +879,7 @@
 - name: Stop webapp slot
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
-    location: westus2
+    location: "{{ location }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
     app_state: stopped
