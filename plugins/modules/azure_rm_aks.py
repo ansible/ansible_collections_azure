@@ -698,7 +698,7 @@ def create_aks_dict(aks):
         kubernetes_version=aks.kubernetes_version,
         tags=aks.tags,
         linux_profile=create_linux_profile_dict(aks.linux_profile),
-        identity=aks.identity.as_dict() if aks.identity else None,
+        identity=aks.identity.as_dict() if aks.identity else {},
         service_principal_profile=create_service_principal_profile_dict(
             aks.service_principal_profile),
         provisioning_state=aks.provisioning_state,
