@@ -16,25 +16,20 @@
     plan_name: "ap{{ fixed_resource_prefix }}"
     location: "{{ __rg_info.resourcegroups.0.location }}"
 
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-functionapp-identity"
-    - "ansible-test-functionapp-identity-2"
-
-- name: Set identities IDs to test. Identities ansible-test-functionapp-identity and ansible-test-functionapp-identity-2 have to be created previously
+- name: Create identities array
   ansible.builtin.set_fact:
-    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-functionapp-identity"
-    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-functionapp-identity-2"
+    managed_identity_ids: []
 
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'functionapp'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Create storage account for function apps
   azure_rm_storageaccount:
@@ -93,7 +88,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: List facts for function
@@ -109,7 +104,7 @@
       - results.ansible_info.azure_functionapps[0].name == "{{ funcapp_name_basic }}"
       - results.ansible_info.azure_functionapps[0].identity.type == 'UserAssigned'
       - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities | length == 1
-      - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities["{{ user_identity_1 }}"] is defined
+      - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities[managed_identity_ids[0]] is defined
 
 - name: Append basic function app identity
   azure_rm_functionapp:
@@ -121,7 +116,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[1] }}"
         append: true
   register: output
 
@@ -138,8 +133,8 @@
       - results.ansible_info.azure_functionapps[0].name == "{{ funcapp_name_basic }}"
       - results.ansible_info.azure_functionapps[0].identity.type == 'UserAssigned'
       - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities | length == 2
-      - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities["{{ user_identity_1 }}"] is defined
-      - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities["{{ user_identity_2 }}"] is defined
+      - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities[managed_identity_ids[0]] is defined
+      - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities[managed_identity_ids[1]] is defined
 
 - name: Replace basic function app identity and type
   azure_rm_functionapp:
@@ -151,7 +146,7 @@
       type: SystemAssigned, UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[1] }}"
         append: false
   register: output
 
@@ -168,7 +163,7 @@
       - results.ansible_info.azure_functionapps[0].name == "{{ funcapp_name_basic }}"
       - results.ansible_info.azure_functionapps[0].identity.type == 'SystemAssigned, UserAssigned'
       - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities | length == 1
-      - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities["{{ user_identity_2 }}"] is defined
+      - results.ansible_info.azure_functionapps[0].identity.user_assigned_identities[managed_identity_ids[1]] is defined
 
 - name: Delete basic function app
   azure_rm_functionapp:
@@ -214,7 +209,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: Assert the function was changed
@@ -236,7 +231,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[1] }}"
         append: true
   register: output
 
@@ -298,7 +293,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: Assert the function was changed
@@ -317,14 +312,13 @@
     name: "{{ storage_account_name }}"
     state: absent
 
-- name: Delete User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-functionapp-identity"
-    - "ansible-test-functionapp-identity-2"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'functionapp'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'

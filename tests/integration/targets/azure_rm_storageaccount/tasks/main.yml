@@ -9,28 +9,20 @@
     storage_account_name_default: "sa{{ resource_group | hash('md5') | truncate(20, True, '') }}"
     storage_account_name_explicit: "sa{{ resource_group | hash('sha1') | truncate(20, True, '') }}"
 
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-storageaccount-identity"
-    - "ansible-test-storageaccount-identity-2"
-
-- name: Set identities base path
+- name: Create identities array
   ansible.builtin.set_fact:
-    identity_base_path: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity"
+    managed_identity_ids: []
 
-- name: Set identities IDs to test. Identities ansible-test-storageaccount-identity and ansible-test-storageaccount-identity-2 have to be created previously
-  ansible.builtin.set_fact:
-    user_identity_1: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-storageaccount-identity"
-    user_identity_2: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-storageaccount-identity-2"
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'storageaccount'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Test invalid account name
   azure_rm_storageaccount:
@@ -201,7 +193,7 @@
       index_document: "abc.htm"
     identity:
       type: UserAssigned
-      user_assigned_identity: "{{ user_identity_1 }}"
+      user_assigned_identity: "{{ managed_identity_ids[0] }}"
   register: output
 - name: Assert output
   ansible.builtin.assert:
@@ -213,7 +205,7 @@
       - output.state.static_website.error_document404_path == None
       - output.state.identity.type == "UserAssigned"
       - output.state.identity.user_assigned_identities | length == 1
-      - output.state.identity.user_assigned_identities[user_identity_1] is defined
+      - output.state.identity.user_assigned_identities[managed_identity_ids[0]] is defined
 
 - name: Create storage account with static website enabled (idempotency test)
   azure_rm_storageaccount:
@@ -226,7 +218,7 @@
       index_document: "abc.htm"
     identity:
       type: UserAssigned
-      user_assigned_identity: "{{ user_identity_1 }}"
+      user_assigned_identity: "{{ managed_identity_ids[0] }}"
   register: output
 - name: Assert not changed
   ansible.builtin.assert:
@@ -244,7 +236,7 @@
       index_document: "abc.htm"
     identity:
       type: UserAssigned
-      user_assigned_identity: "{{ user_identity_2 }}"
+      user_assigned_identity: "{{ managed_identity_ids[1] }}"
   register: output
 
 - name: Gather facts to validate Managed identity
@@ -259,7 +251,7 @@
       - "output.storageaccounts | length == 1"
       - output.storageaccounts[0].identity.type == "UserAssigned"
       - output.storageaccounts[0].identity.user_assigned_identities | length == 1
-      - output.storageaccounts[0].identity.user_assigned_identities[user_identity_2] is defined
+      - output.storageaccounts[0].identity.user_assigned_identities[managed_identity_ids[1]] is defined
 
 - name: Update storage account with system identity
   azure_rm_storageaccount:
@@ -332,7 +324,7 @@
         max_age_in_seconds: 200
     https_only: false
     kind: StorageV2
-    location: eastus
+    location: "{{ location }}"
     minimum_tls_version: 'TLS1_2'
     name: "{{ storage_account_name_explicit }}"
     network_acls:
@@ -380,7 +372,7 @@
         max_age_in_seconds: 200
     https_only: false
     kind: StorageV2
-    location: eastus
+    location: "{{ location }}"
     minimum_tls_version: 'TLS1_2'
     name: "{{ storage_account_name_explicit }}"
     network_acls:
@@ -750,14 +742,13 @@
     - "{{ storage_account_name_default }}06"
     - "{{ storage_account_name_default }}07"
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-storageaccount-identity"
-    - "ansible-test-storageaccount-identity-2"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'storageaccount'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'

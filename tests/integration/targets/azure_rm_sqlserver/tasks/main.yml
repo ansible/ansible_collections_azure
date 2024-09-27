@@ -10,34 +10,27 @@
     run_azuread_tests: false
     azuread_group_name: "Test Security Group"
     azuread_group_id: "00000000-0000-0000-0000-000000000000"
-    location: "{{ __rg_info.resourcegroups.0.location }}"
     password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
   run_once: true
 
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-sqlsvr-identity"
-    - "ansible-test-sqlsvr-identity-2"
-
-- name: Set identities IDs to test. Identities ansible-test-webapp-identity and ansible-test-webapp-identity-2 have to be created previously
+- name: Set location and managed_identity_ids
   ansible.builtin.set_fact:
-    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-sqlsvr-identity"
-    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-sqlsvr-identity-2"
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+    managed_identity_ids: []
+
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'sqlserver'
+    managed_identity_unique: '1'
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
 
 - name: Create instance of SQL Server -- check mode
   azure_rm_sqlserver:
     resource_group: "{{ resource_group }}"
     name: "sqlsrv{{ random_postfix }}"
-    location: eastus
+    location: "{{ location }}"
     admin_username: mylogin
     admin_password: "{{ password }}"
     identity: SystemAssigned
@@ -52,7 +45,7 @@
   azure_rm_sqlserver:
     resource_group: "{{ resource_group }}"
     name: "sqlsrv{{ random_postfix }}"
-    location: eastus
+    location: "{{ location }}"
     admin_username: mylogin
     admin_password: "{{ password }}"
     identity: SystemAssigned
@@ -79,7 +72,7 @@
   azure_rm_sqlserver:
     resource_group: "{{ resource_group }}"
     name: "sqlsrv{{ random_postfix }}"
-    location: eastus
+    location: "{{ location }}"
     admin_username: mylogin
     admin_password: "{{ password }}"
     identity: SystemAssigned
@@ -94,18 +87,18 @@
   azure_rm_sqlserver:
     resource_group: "{{ resource_group }}"
     name: "sqlsrv-extended-{{ random_postfix }}"
-    location: eastus
+    location: "{{ location }}"
     admin_username: mylogin2
     admin_password: "{{ password }}"
     minimal_tls_version: '1.2'
     public_network_access: Disabled
     restrict_outbound_network_access: Enabled
-    primary_user_assigned_identity_id: "{{ user_identity_1 }}"
+    primary_user_assigned_identity_id: "{{ managed_identity_ids[0] }}"
     identity:
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
     tags:
       aaa: bbb
   register: output
@@ -120,28 +113,28 @@
     resource_group: "{{ resource_group }}"
     server_name: "sqlsrv-extended-{{ random_postfix }}"
   register: output
-- name: Assert that user_identity_1 in SQL Server
+- name: Assert that managed_identity_ids[0] in SQL Server
   ansible.builtin.assert:
     that:
       - output.servers["sqlsrv-extended-" + random_postfix ].identity.type == "UserAssigned"
-      - user_identity_1 in output.servers["sqlsrv-extended-" + random_postfix ].identity.user_assigned_identities
+      - managed_identity_ids[0] in output.servers["sqlsrv-extended-" + random_postfix ].identity.user_assigned_identities
 
 - name: Create extended instance of SQL Server - idempotent
   azure_rm_sqlserver:
     resource_group: "{{ resource_group }}"
     name: "sqlsrv-extended-{{ random_postfix }}"
-    location: eastus
+    location: "{{ location }}"
     admin_username: mylogin2
     admin_password: "{{ password }}"
     minimal_tls_version: '1.2'
     public_network_access: Disabled
     restrict_outbound_network_access: Enabled
-    primary_user_assigned_identity_id: "{{ user_identity_1 }}"
+    primary_user_assigned_identity_id: "{{ managed_identity_ids[0] }}"
     identity:
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
     tags:
       aaa: bbb
   register: output
@@ -155,7 +148,7 @@
   azure_rm_sqlserver:
     resource_group: "{{ resource_group }}"
     name: "sqlsrv-extended-{{ random_postfix }}"
-    location: eastus
+    location: "{{ location }}"
     admin_password: "{{ password }}321!"
     change_admin_password: true
   register: output
@@ -168,7 +161,7 @@
   azure_rm_sqlserver:
     resource_group: "{{ resource_group }}"
     name: "sqlsrv-azuread-{{ random_postfix }}"
-    location: eastus
+    location: "{{ location }}"
     admin_username: sqllogin
     admin_password: "{{ password }}"
     administrators:
@@ -190,7 +183,7 @@
   azure_rm_sqlserver:
     resource_group: "{{ resource_group }}"
     name: "sqlsrv-azuread-{{ random_postfix }}"
-    location: eastus
+    location: "{{ location }}"
     admin_username: sqllogin
     admin_password: "{{ password }}"
     administrators:
@@ -318,7 +311,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}
-    location: eastus
+    location: "{{ location }}"
   check_mode: true
   register: output
 - name: Assert the resource instance is well created
@@ -331,7 +324,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}
-    location: eastus
+    location: "{{ location }}"
     edition: premium
     tags:
       aaa: bbb
@@ -347,7 +340,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}
-    location: eastus
+    location: "{{ location }}"
     edition: premium
     tags:
       aaa: bbb
@@ -382,7 +375,7 @@
     source_database_id: "{{ output.databases[0].id }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}PITR
-    location: eastus
+    location: "{{ location }}"
   register: output
 - name: Assert the state has changed
   ansible.builtin.assert:
@@ -407,7 +400,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}second
-    location: eastus
+    location: "{{ location }}"
 
 - name: Gather facts SQL Database
   azure_rm_sqldatabase_info:
@@ -505,7 +498,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}2
-    location: eastus
+    location: "{{ location }}"
     sku:
       name: S0
       tier: Standard
@@ -521,7 +514,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}2
-    location: eastus
+    location: "{{ location }}"
     tags:
       aaa: bbb
     sku:
@@ -558,7 +551,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}2
-    location: eastus
+    location: "{{ location }}"
     tags:
       aaa: bbb
     sku:
@@ -576,7 +569,7 @@
     resource_group: "{{ resource_group }}"
     server_name: sqlsrv{{ random_postfix }}
     name: database{{ random_postfix }}2
-    location: eastus
+    location: "{{ location }}"
     tags:
       aaa: bbb
     sku:
@@ -901,14 +894,10 @@
     state: absent
   when: run_azuread_tests | bool
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-sqlsvr-identity"
-    - "ansible-test-sqlsvr-identity-2"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'sqlserver'
+    managed_identity_unique: '1'
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"

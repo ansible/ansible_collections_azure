@@ -19,24 +19,17 @@
     query: "[?ends_with(name, `{{ rpfx }}`)]"
   run_once: true
 
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-appgw-identity"
-    - "ansible-test-appgw-identity-2"
-
-- name: Set identities IDs to test. Identities ansible-test-appgw-identity and ansible-test-appgw-identity-2 have to be created previously
+- name: Create managed_identity_ids list
   ansible.builtin.set_fact:
-    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-appgw-identity"
-    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-appgw-identity-2"
+    managed_identity_ids: []
+
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'appgw'
+    managed_identity_unique: '1'
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
 
 - name: Load app gateways
   azure_rm_appgateway_info:
@@ -708,7 +701,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 - name: Assert the resource instance is updated
   ansible.builtin.assert:
@@ -874,7 +867,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 - name: Assert the resource instance is updated
   ansible.builtin.assert:
@@ -1955,14 +1948,10 @@
     resource_group: "{{ resource_group }}"
     state: absent
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-appgw-identity"
-    - "ansible-test-appgw-identity-2"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'appgw'
+    managed_identity_unique: '1'
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"

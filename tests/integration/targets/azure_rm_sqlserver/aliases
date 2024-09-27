@@ -6,3 +6,4 @@ azure_rm_sqldatabase
 azure_rm_sqldatabase_facts
 azure_rm_sqlfirewallrule
 azure_rm_sqlfirewallrule_facts
+needs/file/tests/integration_common_tasks/managed_identity.yml

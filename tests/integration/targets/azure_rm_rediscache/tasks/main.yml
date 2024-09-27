@@ -12,24 +12,18 @@
     location: "{{ __rg_info.resourcegroups.0.location }}"
   run_once: true
 
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-redis-identity"
-    - "ansible-test-redis-identity-2"
-
-- name: Set identities IDs to test. Identities ansible-test-redis-identity and ansible-test-redis-identity-2 have to be created previously
+- name: Set location and managed_identity_ids
   ansible.builtin.set_fact:
-    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-redis-identity"
-    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-redis-identity-2"
+    location: "{{ __rg_info.resourcegroups.0.location }}"
+    managed_identity_ids: []
+
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'redis'
+    managed_identity_unique: '1'
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
 
 - name: Create a redis cache (Check Mode)
   azure_rm_rediscache:
@@ -106,7 +100,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: Assert output changed
@@ -124,7 +118,7 @@
   ansible.builtin.assert:
     that:
       - output.rediscaches[0].identity.type == 'UserAssigned'
-      - user_identity_1 in output.rediscaches[0].identity.user_assigned_identities
+      - managed_identity_ids[0] in output.rediscaches[0].identity.user_assigned_identities
 
 - name: Long-running rediscache tests [run with `--tags long_run,untagged` to enable]
  # creating redis Cache costs about 20 mins async operation,
@@ -536,14 +530,10 @@
       register: output
       tags: [long_run, never]
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-redis-identity"
-    - "ansible-test-redis-identity-2"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'redis'
+    managed_identity_unique: '1'
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"

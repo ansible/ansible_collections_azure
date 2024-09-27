@@ -16,26 +16,22 @@
     win_plan_name: "{{ (resource_prefix | replace('-', 'x'))[-8:] }}winplan"
     linux_plan_name: "{{ (resource_group_secondary | replace('-', 'x'))[-8:] }}linplan"
     slot1_name: "stage1"
-    location: "{{ __rg_info.resourcegroups.0.location }}"
 
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-webapp-identity"
-    - "ansible-test-webapp-identity-2"
-
-- name: Set identities IDs to test. Identities ansible-test-webapp-identity and ansible-test-webapp-identity-2 have to be created previously
+- name: Set location and managed_identity_ids
   ansible.builtin.set_fact:
-    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-webapp-identity"
-    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-webapp-identity-2"
+    location: westus2
+    managed_identity_ids: []
+
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'webapp'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ __rg_info.resourcegroups.0.location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Create a windows web app with non-exist app service plan
   azure_rm_webapp:
@@ -214,7 +210,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}6"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -233,7 +229,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}7"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -252,7 +248,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -265,7 +261,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -282,7 +278,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}8"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -299,7 +295,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}10"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -341,7 +337,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ linux_plan_name }}12"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -357,7 +353,7 @@
   azure_rm_webapp:
     resource_group: "{{ resource_group }}"
     name: "{{ win_app_name }}13"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_plan_name }}"
@@ -389,7 +385,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -415,7 +411,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -454,7 +450,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-siteconfig"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-siteconfig-plan"
@@ -493,7 +489,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -520,7 +516,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -560,7 +556,7 @@
   azure_rm_webapp:
     resource_group: "{{ linux_app_plan_resource_group }}"
     name: "{{ linux_app_name }}-http20"
-    location: westus2
+    location: "{{ location }}"
     plan:
       resource_group: "{{ linux_app_plan_resource_group }}"
       name: "{{ linux_app_name }}-http20-plan"
@@ -677,7 +673,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: Assert the web app is well updated
@@ -695,7 +691,7 @@
   ansible.builtin.assert:
     that:
       - output.webapps[0].identity.type == 'UserAssigned'
-      - user_identity_1 in output.webapps[0].identity.user_assigned_identities
+      - managed_identity_ids[0] in output.webapps[0].identity.user_assigned_identities
 
 - name: Update web app with SystemAssigned and UserAssigned Identity
   azure_rm_webapp:
@@ -710,7 +706,7 @@
       type: "SystemAssigned, UserAssigned"
       user_assigned_identities:
         id:
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[1] }}"
   register: output
 
 - name: Assert the web app is well updated
@@ -728,8 +724,8 @@
   ansible.builtin.assert:
     that:
       - output.webapps[0].identity.type == 'SystemAssigned, UserAssigned'
-      - user_identity_1 in output.webapps[0].identity.user_assigned_identities
-      - user_identity_2 in output.webapps[0].identity.user_assigned_identities
+      - managed_identity_ids[0] in output.webapps[0].identity.user_assigned_identities
+      - managed_identity_ids[1] in output.webapps[0].identity.user_assigned_identities
 
 - name: Update web app with SystemAssigned and UserAssigned Identity - idempotent
   azure_rm_webapp:
@@ -744,7 +740,7 @@
       type: "SystemAssigned, UserAssigned"
       user_assigned_identities:
         id:
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[1] }}"
   register: output
 
 - name: Assert the web app is not updated
@@ -762,8 +758,8 @@
   ansible.builtin.assert:
     that:
       - output.webapps[0].identity.type == 'SystemAssigned, UserAssigned'
-      - user_identity_1 in output.webapps[0].identity.user_assigned_identities
-      - user_identity_2 in output.webapps[0].identity.user_assigned_identities
+      - managed_identity_ids[0] in output.webapps[0].identity.user_assigned_identities
+      - managed_identity_ids[1] in output.webapps[0].identity.user_assigned_identities
 
 - name: Update web app with SystemAssigned
   azure_rm_webapp:
@@ -800,7 +796,7 @@
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
-    location: westus2
+    location: "{{ location }}"
     configuration_source: "{{ win_app_name }}13"
     app_settings:
       testkey: testvalue
@@ -817,7 +813,7 @@
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
-    location: westus2
+    location: "{{ location }}"
     configuration_source: "{{ win_app_name }}13"
     app_settings:
       testkey: testvalueslot
@@ -832,7 +828,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
-    location: westus2
+    location: "{{ location }}"
     name: "{{ slot1_name }}"
     app_settings:
       testkey: testvalueslot
@@ -847,7 +843,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
-    location: westus2
+    location: "{{ location }}"
     name: "{{ slot1_name }}"
     frameworks:
       - name: "node"
@@ -865,7 +861,7 @@
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
     webapp_name: "{{ win_app_name }}13"
-    location: westus2
+    location: "{{ location }}"
     name: "{{ slot1_name }}"
     swap:
       action: swap
@@ -879,7 +875,7 @@
 - name: Stop webapp slot
   azure_rm_webappslot:
     resource_group: "{{ resource_group }}"
-    location: westus2
+    location: "{{ location }}"
     webapp_name: "{{ win_app_name }}13"
     name: "{{ slot1_name }}"
     app_state: stopped
@@ -890,14 +886,13 @@
     that:
       - output.changed
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-webapp-identity"
-    - "ansible-test-webapp-identity-2"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'webapp'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'

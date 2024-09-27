@@ -41,6 +41,31 @@ class AzureRMModuleBaseExt(AzureRMModuleBase):
         ),
     )
 
+    managed_identity_multiple_user_assigned_spec = dict(
+        type=dict(
+            type='str',
+            choices=['SystemAssigned',
+                     'UserAssigned',
+                     'None'],
+            default='None'
+        ),
+        user_assigned_identities=dict(
+            type='dict',
+            options=dict(
+                id=dict(
+                    type='list',
+                    default=[],
+                    elements='str'
+                ),
+                append=dict(
+                    type='bool',
+                    default=True
+                )
+            ),
+            default={}
+        ),
+    )
+
     managed_identity_single_required_spec = dict(
         type=dict(
             type='str',
@@ -281,17 +306,13 @@ class AzureRMModuleBaseExt(AzureRMModuleBase):
             new_identity_converted['user_assigned_identities'] = {
                 'id': [user_assigned_identity]
             }
-        return self.update_managed_identity(curr_identity=curr_identity,
-                                            new_identity=new_identity_converted,
+        return self.update_managed_identity(new_identity=new_identity_converted,
+                                            curr_identity=curr_identity,
                                             allow_identities_append=False, patch_support=patch_support)
 
-    def update_managed_identity(self, curr_identity=None, new_identity=None,
+    def update_managed_identity(self, new_identity, curr_identity=None,
                                 allow_identities_append=True, patch_support=False):
         curr_identity = curr_identity or dict()
-        # TODO need to remove self.module.params.get('identity', {})
-        # after changing all modules to provide the "new_identity" parameter
-        # curr_identity and new_identity need to be mandatory parameters
-        new_identity = new_identity or self.module.params.get('identity', {}) or dict()
         curr_managed_type = curr_identity.get('type', 'None')
         new_managed_type = new_identity.get('type', 'None')
         # If type set to None, and Resource has None, nothing to do
@@ -335,6 +356,3 @@ class AzureRMModuleBaseExt(AzureRMModuleBase):
                 result_identity.user_assigned_identities[identity] = self.managed_identity['user_assigned']()
 
         return changed, result_identity
-
-    # TODO need to be removed after all modules changed to use the new name
-    update_identities = update_managed_identity

@@ -728,7 +728,7 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBaseExt):
             if self.state == 'present':
                 if not self.check_mode:
                     if self.identity:
-                        update_identity, new_identity = self.update_identities({})
+                        update_identity, new_identity = self.update_managed_identity(new_identity=self.identity)
                         if update_identity:
                             self.parameters['identity'] = new_identity
                     response = self.create_postgresqlflexibleserver(self.parameters)
@@ -781,7 +781,8 @@ class AzureRMPostgreSqlFlexibleServers(AzureRMModuleBaseExt):
                             self.update_parameters['maintenance_window'][key] = old_response['maintenance_window'].get(key)
 
                 if self.identity:
-                    update_identity, new_identity = self.update_identities(old_response.get('identity', {}))
+                    update_identity, new_identity = self.update_managed_identity(new_identity=self.identity,
+                                                                                 curr_identity=old_response.get('identity', {}))
                     if update_identity:
                         self.update_parameters['identity'] = new_identity
                         update_flag = True

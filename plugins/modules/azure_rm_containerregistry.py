@@ -52,45 +52,11 @@ options:
             - Basic
             - Standard
             - Premium
-    identity:
-        description:
-            - Identity for the Container Registry.
-        type: dict
-        version_added: '2.4.0'
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - None
-                default: None
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned identities IDs associated to the Container Registry
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
-                    append:
-                        description:
-                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
-                        required: false
-                        type: bool
-                        default: True
 
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_multiple_user
 
 author:
     - Yawei Wang (@yaweiw)
@@ -200,35 +166,6 @@ except ImportError as exc:
     pass
 
 
-user_assigned_identities_spec = dict(
-    id=dict(
-        type='list',
-        default=[],
-        elements='str'
-    ),
-    append=dict(
-        type='bool',
-        default=True
-    )
-)
-
-
-managed_identity_spec = dict(
-    type=dict(
-        type='str',
-        choices=['SystemAssigned',
-                 'UserAssigned',
-                 'None'],
-        default='None'
-    ),
-    user_assigned_identities=dict(
-        type='dict',
-        options=user_assigned_identities_spec,
-        default={}
-    ),
-)
-
-
 def create_containerregistry_dict(registry, credentials):
     '''
     Helper method to deserialize a ContainerRegistry to a dict
@@ -288,7 +225,7 @@ class AzureRMContainerRegistry(AzureRMModuleBaseExt):
             ),
             identity=dict(
                 type='dict',
-                options=managed_identity_spec
+                options=self.managed_identity_multiple_user_assigned_spec
             ),
             sku=dict(
                 type='str',
@@ -340,14 +277,14 @@ class AzureRMContainerRegistry(AzureRMModuleBaseExt):
         if self.state == 'present':
             if not response:
                 if self.identity:
-                    update_identity, self.identity = self.update_identities({})
+                    update_identity, self.identity = self.update_managed_identity(new_identity=self.identity)
                 to_do = Actions.Create
             else:
                 self.log('Results : {0}'.format(response))
                 self.results.update(response)
                 if response['provisioning_state'] == "Succeeded":
                     if self.identity:
-                        update_identity, self.identity = self.update_identities(response.get('identity', None))
+                        update_identity, self.identity = self.update_managed_identity(new_identity=self.identity, curr_identity=response.get('identity', None))
                     to_do = Actions.NoAction
                     if (self.location is not None) and self.location != response['location']:
                         to_do = Actions.Update

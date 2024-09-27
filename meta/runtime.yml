@@ -168,6 +168,14 @@ action_groups:
     - azure.azcollection.azure_rm_mysqlfirewallrule_info
     - azure.azcollection.azure_rm_mysqlserver
     - azure.azcollection.azure_rm_mysqlserver_info
+    - azure.azcollection.azure_rm_mysqlflexibleconfiguration
+    - azure.azcollection.azure_rm_mysqlflexibleconfiguration_info
+    - azure.azcollection.azure_rm_mysqlflexibledatabase
+    - azure.azcollection.azure_rm_mysqlflexibledatabase_info
+    - azure.azcollection.azure_rm_mysqlflexiblefirewallrule
+    - azure.azcollection.azure_rm_mysqlflexiblefirewallrule_info
+    - azure.azcollection.azure_rm_mysqlflexibleserver
+    - azure.azcollection.azure_rm_mysqlflexibleserver_info
     - azure.azcollection.azure_rm_natgateway
     - azure.azcollection.azure_rm_natgateway_info
     - azure.azcollection.azure_rm_networkflowlog

@@ -12,36 +12,27 @@
     location_secondary: westus
   when: location_secondary is undefined
 
-- name: Set identities base path
+- name: Create identities array
   ansible.builtin.set_fact:
-    identity_base_path: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity"
+    managed_identity_ids: []
 
-- name: Set identities IDs to test. Identities ansible-test-cosmosdbaccount-identity and ansible-test-cosmosdbaccount-identity-2 have to be created previously
-  ansible.builtin.set_fact:
-    user_identity_1: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-cosmosdbaccount-identity"
-    user_identity_2: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-cosmosdbaccount-identity-2"
-    user_identity_3: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-cosmosdbaccount-identity-3"
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'cosmosdbaccount'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
+    - '3'
 
 - name: Set default user identities options
   ansible.builtin.set_fact:
-    default_identity_1: 'UserAssignedIdentity={{ user_identity_1 }}'
-    default_identity_2: 'UserAssignedIdentity={{ user_identity_2 }}'
-    default_identity_3: 'UserAssignedIdentity={{ user_identity_3 }}'
-
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-cosmosdbaccount-identity"
-    - "ansible-test-cosmosdbaccount-identity-2"
-    - "ansible-test-cosmosdbaccount-identity-3"
+    default_identity_1: 'UserAssignedIdentity={{ managed_identity_ids[0] }}'
+    default_identity_2: 'UserAssignedIdentity={{ managed_identity_ids[1] }}'
+    default_identity_3: 'UserAssignedIdentity={{ managed_identity_ids[2] }}'
 
 - name: Prepare random number
   ansible.builtin.set_fact:
@@ -110,7 +101,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
     default_identity: '{{ default_identity_1 }}'
   register: output
 
@@ -142,7 +133,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
     default_identity: '{{ default_identity_1 }}'
   register: output
 
@@ -179,7 +170,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[1] }}"
     default_identity: '{{ default_identity_1 }}'
   register: output
 
@@ -211,8 +202,8 @@
       type: SystemAssigned, UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[0] }}"
+          - "{{ managed_identity_ids[1] }}"
     default_identity: '{{ default_identity_1 }}'
   register: output
 
@@ -244,8 +235,8 @@
       type: SystemAssigned, UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
-          - "{{ user_identity_3 }}"
+          - "{{ managed_identity_ids[0] }}"
+          - "{{ managed_identity_ids[2] }}"
         append: false
     default_identity: '{{ default_identity_1 }}'
   register: output
@@ -292,8 +283,8 @@
       - output.accounts[0]['public_network_access'] == 'Enabled'
       - output.accounts[0]['identity']['type'] == 'UserAssigned'
       - output.accounts[0]['identity']['user_assigned_identities'] | length == 2
-      - output.accounts[0]['identity']['user_assigned_identities']['{{ user_identity_1 }}'] is defined
-      - output.accounts[0]['identity']['user_assigned_identities']['{{ user_identity_2 }}'] is defined
+      - output.accounts[0]['identity']['user_assigned_identities'][managed_identity_ids[0]] is defined
+      - output.accounts[0]['identity']['user_assigned_identities'][managed_identity_ids[1]] is defined
       - output.accounts[0]['default_identity'] == default_identity_1
 
 - name: Get facts of second account
@@ -307,8 +298,8 @@
     that:
       - output.accounts[0]['identity']['type'] == 'SystemAssigned,UserAssigned'
       - output.accounts[0]['identity']['user_assigned_identities'] | length == 2
-      - output.accounts[0]['identity']['user_assigned_identities']['{{ user_identity_1 }}'] is defined
-      - output.accounts[0]['identity']['user_assigned_identities']['{{ user_identity_3 }}'] is defined
+      - output.accounts[0]['identity']['user_assigned_identities'][managed_identity_ids[0]] is defined
+      - output.accounts[0]['identity']['user_assigned_identities'][managed_identity_ids[2]] is defined
       - output.accounts[0]['default_identity'] == default_identity_1
 
 - name: Get facts with keys
@@ -378,8 +369,8 @@
       - output.accounts[0]['public_network_access'] == 'Enabled'
       - output.accounts[0]['identity']['type'] == 'UserAssigned'
       - output.accounts[0]['identity']['user_assigned_identities'] | length == 2
-      - output.accounts[0]['identity']['user_assigned_identities']['{{ user_identity_1 }}'] is defined
-      - output.accounts[0]['identity']['user_assigned_identities']['{{ user_identity_2 }}'] is defined
+      - output.accounts[0]['identity']['user_assigned_identities'][managed_identity_ids[0]] is defined
+      - output.accounts[0]['identity']['user_assigned_identities'][managed_identity_ids[1]] is defined
       - output.accounts[0]['default_identity'] == default_identity_1
 
 - name: List all accounts
@@ -503,15 +494,14 @@
     name: "{{ vnname }}"
     state: absent
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-cosmosdbaccount-identity"
-    - "ansible-test-cosmosdbaccount-identity-2"
-    - "ansible-test-cosmosdbaccount-identity-3"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'cosmosdbaccount'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
+    - '3'

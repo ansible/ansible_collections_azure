@@ -324,30 +324,11 @@ options:
                 description:
                     - A boolean indicating whether or not the service applies a secondary layer of encryption with platform managed keys for data at rest.
                 type: bool
-    identity:
-        description:
-            - Identity for this resource.
-        type: dict
-        version_added: '2.7.0'
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - 'None'
-                default: 'None'
-                type: str
-            user_assigned_identity:
-                description:
-                    - User Assigned Managed Identity associated to this resource
-                required: false
-                type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_single
 
 author:
     - Chris Houseknecht (@chouseknecht)

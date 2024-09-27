@@ -1,0 +1,100 @@
+- name: Set variables
+  ansible.builtin.include_tasks: setup.yml
+
+- name: Set variables
+  ansible.builtin.set_fact:
+    network: 10.42.0.0/24
+    subnet: 10.42.0.0/28
+    vm_name: "vm{{ resource_group | hash('md5') | truncate(6, True, '') }}"
+    network_name: "vnet{{ resource_group | hash('md5') | truncate(6, True, '') }}"
+    subnet_name: "subnet{{ resource_group | hash('md5') | truncate(6, True, '') }}"
+    location: eastus
+    offer: 0001-com-ubuntu-server-focal
+    publisher: Canonical
+
+- name: List available Image SKUs for 0001-com-ubuntu-server-focal
+  azure_rm_imagesku_info:
+    location: "{{ location }}"
+    offer: "{{ offer }}"
+    publisher: "{{ publisher }}"
+  register: available_image_skus_results
+
+- name: Set specific 0001-com-ubuntu-server-focal image version
+  ansible.builtin.set_fact:
+    specific_image_name: "16.04.202104140"
+
+- name: Get the first sku from the available skus list
+  ansible.builtin.set_fact:
+    first_image_sku_option: "{{ available_image_skus_results.available_skus[0] }}"
+
+- name: SETUP | Create virtual network
+  azure_rm_virtualnetwork:
+    resource_group: "{{ resource_group }}"
+    name: "{{ network_name }}"
+    location: "{{ location }}"
+    address_prefixes: "{{ network }}"
+
+- name: SETUP | Create subnet
+  azure_rm_subnet:
+    resource_group: "{{ resource_group }}"
+    name: "{{ subnet_name }}"
+    address_prefix: "{{ subnet }}"
+    virtual_network: "{{ network_name }}"
+
+- name: Create VM with first Image SKU result
+  azure_rm_virtualmachine:
+    resource_group: "{{ resource_group }}"
+    name: "{{ vm_name }}"
+    admin_username: "testuser"
+    ssh_password_enabled: false
+    open_ports:
+      - 33
+    ssh_public_keys:
+      - path: /home/testuser/.ssh/authorized_keys
+        key_data: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDfoYlIV4lTPZTv7hXaVwQQuqBgGs4yeNRX0SPo2+HQt9u4X7IGwrtXc0nEUm6LfaCikMH58bOL8f20NTGz285kxdFHZRcBXtqmnMz2rXwhK9gwq5h1khc+GzHtdcJXsGA4y0xuaNcidcg04jxAlN/06fwb/VYwwWTVbypNC0gpGEpWckCNm8vlDlA55sU5et0SZ+J0RKVvEaweUOeNbFZqckGPA384imfeYlADppK/7eAxqfBVadVvZG8IJk4yvATgaIENIFj2cXxqu2mQ/Bp5Wr45uApvJsFXmi+v/nkiOEV1QpLOnEwAZo6EfFS4CCQtsymxJCl1PxdJ5LD4ZOtP xiuxi.sun@qq.com"
+    vm_size: Standard_B1ms
+    virtual_network: "{{ network_name }}"
+    image:
+      offer: "{{ offer }}"
+      publisher: "{{ publisher }}"
+      sku: "{{ first_image_sku_option.name }}"
+      version: "latest"
+  register: vm_output
+
+- name: Ensure VM was created using the specific image sku
+  ansible.builtin.assert:
+    that:
+      - vm_output.ansible_facts.azure_vm.storage_profile.image_reference.sku == first_image_sku_option.name
+
+- name: Delete VM
+  azure_rm_virtualmachine:
+    resource_group: "{{ resource_group }}"
+    name: "{{ vm_name }}"
+    remove_on_absent: all_autocreated
+    state: absent
+
+- name: Destroy subnet
+  azure_rm_subnet:
+    resource_group: "{{ resource_group }}"
+    virtual_network: "{{ network_name }}"
+    name: "{{ subnet_name }}"
+    state: absent
+
+- name: Destroy availability set
+  azure_rm_availabilityset:
+    resource_group: "{{ resource_group }}"
+    name: "{{ availability_set }}"
+    state: absent
+
+- name: Destroy storage account
+  azure_rm_storageaccount:
+    resource_group: "{{ resource_group }}"
+    name: "{{ storage_account }}"
+    force_delete_nonempty: true
+    state: absent
+
+- name: Destroy virtual network
+  azure_rm_virtualnetwork:
+    resource_group: "{{ resource_group }}"
+    name: "{{ network_name }}"
+    state: absent

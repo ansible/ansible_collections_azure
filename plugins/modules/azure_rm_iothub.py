@@ -78,41 +78,6 @@ options:
         description:
             - File upload notifications are enabled if set to C(True).
         type: bool
-    identity:
-        description:
-            - Identity for this resource.
-        type: dict
-        version_added: '2.7.0'
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - 'None'
-                default: 'None'
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned IDs associated to this resource
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
-                    append:
-                        description:
-                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
-                        required: false
-                        type: bool
-                        default: True
     ip_filters:
         description:
             - Configure rules for rejecting or accepting traffic from specific IPv4 addresses.
@@ -223,6 +188,7 @@ options:
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_multiple_user
 
 author:
     - Yuwei Zhou (@yuwzho)
@@ -595,35 +561,6 @@ event_endpoint_spec = dict(
 )
 
 
-user_assigned_identities_spec = dict(
-    id=dict(
-        type='list',
-        default=[],
-        elements='str'
-    ),
-    append=dict(
-        type='bool',
-        default=True
-    )
-)
-
-
-managed_identity_spec = dict(
-    type=dict(
-        type='str',
-        choices=['SystemAssigned',
-                 'UserAssigned',
-                 'None'],
-        default='None'
-    ),
-    user_assigned_identities=dict(
-        type='dict',
-        options=user_assigned_identities_spec,
-        default={}
-    ),
-)
-
-
 class AzureRMIoTHub(AzureRMModuleBaseExt):
 
     def __init__(self):
@@ -642,7 +579,7 @@ class AzureRMIoTHub(AzureRMModuleBaseExt):
             routes=dict(type='list', elements='dict', options=routes_spec),
             identity=dict(
                 type='dict',
-                options=managed_identity_spec
+                options=self.managed_identity_multiple_user_assigned_spec
             ),
         )
 
@@ -663,6 +600,7 @@ class AzureRMIoTHub(AzureRMModuleBaseExt):
         self.ip_filters = None
         self.routing_endpoints = None
         self.routes = None
+        self.identity = None
         self._managed_identity = None
 
         super(AzureRMIoTHub, self).__init__(self.module_arg_spec, supports_check_mode=True)
@@ -713,12 +651,13 @@ class AzureRMIoTHub(AzureRMModuleBaseExt):
                     routing_property = self.IoThub_models.RoutingProperties(endpoints=routing_endpoints,
                                                                             routes=routes)
                     iothub_property.routing = routing_property
-                identities_changed, updated_identities = self.update_identities()
+                if self.identity:
+                    identities_changed, self.identity = self.update_managed_identity(new_identity=self.identity)
                 iothub = self.IoThub_models.IotHubDescription(location=self.location,
                                                               sku=self.IoThub_models.IotHubSkuInfo(name=self.sku, capacity=self.unit),
                                                               properties=iothub_property,
                                                               tags=self.tags,
-                                                              identity=updated_identities)
+                                                              identity=self.identity)
                 if not self.check_mode:
                     iothub = self.create_or_update_hub(iothub)
             else:
@@ -801,7 +740,9 @@ class AzureRMIoTHub(AzureRMModuleBaseExt):
                 iothub.tags = updated_tags
 
                 # compare identity
-                identity_changed, iothub.identity = self.update_identities(iothub.identity.as_dict())
+                identity_changed = False
+                if self.identity:
+                    identity_changed, iothub.identity = self.update_managed_identity(new_identity=self.identity, curr_identity=iothub.identity.as_dict())
 
                 if (changed or identity_changed) and not self.check_mode:
                     changed = True

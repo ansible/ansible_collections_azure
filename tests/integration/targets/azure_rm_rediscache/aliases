@@ -4,3 +4,4 @@ unsupported
 destructive
 azure_rm_rediscache_facts
 azure_rm_rediscachefirewallrule
+needs/file/tests/integration_common_tasks/managed_identity.yml

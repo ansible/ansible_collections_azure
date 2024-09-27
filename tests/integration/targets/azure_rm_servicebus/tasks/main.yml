@@ -9,30 +9,21 @@
     location: "{{ __rg_info.resourcegroups.0.location }}"
   run_once: true
 
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-servicebus-identity"
-    - "ansible-test-servicebus-identity-2"
-    - "ansible-test-servicebus-identity-3"
-
-- name: Set identities base path
+- name: Create identities array
   ansible.builtin.set_fact:
-    identity_base_path: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity"
+    managed_identity_ids: []
 
-- name: Set identities IDs to test. Identities ansible-test-servicebus-identity and ansible-test-servicebus-identity-2 have to be created previously
-  ansible.builtin.set_fact:
-    user_identity_1: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-servicebus-identity"
-    user_identity_2: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-servicebus-identity-2"
-    user_identity_3: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-servicebus-identity-3"
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'servicebus'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
+    - '3'
 
 - name: Create a namespace
   azure_rm_servicebus:
@@ -97,7 +88,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: namespace
 
 - name: Assert UserAssigned
@@ -106,7 +97,7 @@
       - namespace.changed
       - namespace.identity.type == "UserAssigned"
       - namespace.identity.user_assigned_identities | length == 1
-      - namespace.identity.user_assigned_identities[user_identity_1] is defined
+      - namespace.identity.user_assigned_identities[managed_identity_ids[0]] is defined
 
 - name: Update namespace - ManagedIdentity UserAssigned Append
   azure_rm_servicebus:
@@ -117,7 +108,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[1] }}"
   register: namespace
 
 - name: Assert UserAssigned
@@ -126,8 +117,8 @@
       - namespace.changed
       - namespace.identity.type == "UserAssigned"
       - namespace.identity.user_assigned_identities | length == 2
-      - namespace.identity.user_assigned_identities[user_identity_1] is defined
-      - namespace.identity.user_assigned_identities[user_identity_2] is defined
+      - namespace.identity.user_assigned_identities[managed_identity_ids[0]] is defined
+      - namespace.identity.user_assigned_identities[managed_identity_ids[1]] is defined
 
 - name: Update namespace - ManagedIdentity UserAssigned Append false
   azure_rm_servicebus:
@@ -138,7 +129,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_3 }}"
+          - "{{ managed_identity_ids[2] }}"
         append: false
   register: namespace
 
@@ -148,7 +139,7 @@
       - namespace.changed
       - namespace.identity.type == "UserAssigned"
       - namespace.identity.user_assigned_identities | length == 1
-      - namespace.identity.user_assigned_identities[user_identity_3] is defined
+      - namespace.identity.user_assigned_identities[managed_identity_ids[2]] is defined
 
 - name: Create a queue
   azure_rm_servicebusqueue:
@@ -310,15 +301,14 @@
     resource_group: "{{ resource_group }}"
     state: absent
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-servicebus-identity"
-    - "ansible-test-servicebus-identity-2"
-    - "ansible-test-servicebus-identity-3"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'servicebus'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
+    - '3'

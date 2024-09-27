@@ -7,28 +7,21 @@
     name: "{{ resource_group }}"
   register: __rg_info
 
-- name: Set Azure Region based on resource group location
+- name: Set location and managed_identity_ids
   ansible.builtin.set_fact:
     location: "{{ __rg_info.resourcegroups.0.location }}"
+    managed_identity_ids: []
 
-- name: Create User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-aci-identity"
-    - "ansible-test-aci-identity-2"
-
-- name: Set identities IDs to test. Identities ansible-test-aci-identity and ansible-test-aci-identity-2 have to be created previously
-  ansible.builtin.set_fact:
-    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-aci-identity"
-    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-aci-identity-2"
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'aci'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Create sample container instance
   azure_rm_containerinstance:
@@ -36,7 +29,7 @@
     name: "aci{{ rpfx }}"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -64,7 +57,7 @@
     name: "aci{{ rpfx }}"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -87,7 +80,7 @@
     name: "aci{{ rpfx }}"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -119,7 +112,7 @@
     os_type: linux
     ip_address: public
     dns_name_label: mydnslabel{{ resource_group | hash('md5') | truncate(7, True, '') }}
-    location: eastus
+    location: "{{ location }}"
     restart_policy: on_failure
     ports:
       - 80
@@ -162,7 +155,7 @@
     name: "aci{{ rpfx }}thi"
     os_type: linux
     ip_address: private
-    location: eastus
+    location: "{{ location }}"
     subnet_ids:
       - "{{ subnet_output.state.id }}"
     ports:
@@ -235,7 +228,7 @@
     name: "aci{{ rpfx }}fourth"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -249,8 +242,8 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[0] }}"
+          - "{{ managed_identity_ids[1] }}"
   register: output
 
 - name: Gather facts for single Container Instance
@@ -267,8 +260,8 @@
   ansible.builtin.assert:
     that:
       - output.changed == False
-      - user_identity_1 in output.containerinstances[0].identity.user_assigned_identities
-      - user_identity_2 in output.containerinstances[0].identity.user_assigned_identities
+      - managed_identity_ids[0] in output.containerinstances[0].identity.user_assigned_identities
+      - managed_identity_ids[1] in output.containerinstances[0].identity.user_assigned_identities
 
 - name: Remove container instance -- User Identity
   azure_rm_containerinstance:
@@ -276,7 +269,7 @@
     name: "aci{{ rpfx }}fourth"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -290,8 +283,8 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[0] }}"
+          - "{{ managed_identity_ids[1] }}"
     state: absent
   register: output
 
@@ -301,7 +294,7 @@
     name: "aci{{ rpfx }}thi"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -374,7 +367,7 @@
     name: "aci{{ rpfx }}thi"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -403,7 +396,7 @@
     name: "aci{{ rpfx }}"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -427,7 +420,7 @@
     name: "aci{{ rpfx }}sec"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -445,7 +438,7 @@
     name: "aci{{ rpfx }}"
     os_type: linux
     ip_address: public
-    location: eastus
+    location: "{{ location }}"
     ports:
       - 80
     containers:
@@ -463,14 +456,13 @@
     that:
       - output.changed == False
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-aci-identity"
-    - "ansible-test-aci-identity-2"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'aci'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'

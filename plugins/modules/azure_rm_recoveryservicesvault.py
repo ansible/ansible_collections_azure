@@ -31,42 +31,6 @@ options:
             - Azure Resource location.
         required: true
         type: str
-    identity:
-        description:
-            - Identity for Azure Recovery Service Vault.
-        type: dict
-        version_added: '2.7.0'
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - SystemAssigned, UserAssigned
-                    - None
-                default: None
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned identities IDs associated to the Recovery Service Vault.
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
-                    append:
-                        description:
-                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
-                        required: false
-                        type: bool
-                        default: True
     state:
         description:
             - Assert the state of the protection item.
@@ -80,6 +44,7 @@ options:
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_multiple
 author:
     - Suyeb Ansari (@suyeb786)
 '''

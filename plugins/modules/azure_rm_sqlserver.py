@@ -372,8 +372,8 @@ class AzureRMSqlServer(AzureRMModuleBaseExt):
 
         if self.identity and isinstance(self.identity, dict):
             self.validate_identity_parameter()
-            update_identity, identity = self.update_managed_identity(old_response and old_response.get('identity'),
-                                                                     self.identity)
+            update_identity, identity = self.update_managed_identity(new_identity=self.identity,
+                                                                     curr_identity=old_response.get('identity') if old_response else None)
             if update_identity:
                 self.parameters.update({"identity": identity.as_dict()})
         elif self.identity and isinstance(self.identity, str):

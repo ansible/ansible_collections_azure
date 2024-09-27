@@ -165,41 +165,6 @@ options:
         description:
             - Enables the account to write in multiple locations
         type: bool
-    identity:
-        description:
-            - Identity for the Object
-        type: dict
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - SystemAssigned, UserAssigned
-                    - None
-                default: None
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned identities IDs associated to the Object
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
-                    append:
-                        description:
-                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
-                        required: false
-                        type: bool
-                        default: True
     default_identity:
         description:
             - The primary identity to access key vault in CMK related features.
@@ -220,6 +185,7 @@ options:
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_multiple
 
 author:
     - Zim Kalinowski (@zikalino)

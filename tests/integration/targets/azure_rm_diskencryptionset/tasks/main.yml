@@ -28,12 +28,12 @@
     access_policies_object_ids: ["{{ object_id }}"]
 
 - name: Create user managed identities
-  ansible.builtin.include_tasks: managedidentity.yml
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
   vars:
     managed_identity_test_unique: 'diskencryptionsets'
     managed_identity_unique: "{{ item }}"
     managed_identity_action: 'create'
-    managed_identity_location: 'eastus'
+    managed_identity_location: "{{ location }}"
   with_items:
     - '1'
     - '2'
@@ -307,12 +307,12 @@
     state: absent
 
 - name: Delete user managed identities
-  ansible.builtin.include_tasks: managedidentity.yml
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
   vars:
     managed_identity_test_unique: 'diskencryptionsets'
     managed_identity_unique: "{{ item }}"
     managed_identity_action: 'delete'
-    managed_identity_location: 'eastus'
+    managed_identity_location: "{{ location }}"
   with_items:
     - '1'
     - '2'

@@ -76,42 +76,6 @@ options:
         description:
             - Dictionary containing application settings.
         type: dict
-    identity:
-        description:
-            - Identity for the FunctionApp.
-        type: dict
-        version_added: '2.5.0'
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - SystemAssigned, UserAssigned
-                    - None
-                default: None
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned identities IDs associated to the FunctionApp
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
-                    append:
-                        description:
-                            - If the list of identities has to be appended to current identities (true) or if it has to replace current identities (false)
-                        required: false
-                        type: bool
-                        default: True
     state:
         description:
             - Assert the state of the Function App. Use C(present) to create or update a Function App and C(absent) to delete.
@@ -124,6 +88,7 @@ options:
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_multiple
 
 author:
     - Thomas Stringer (@trstringer)
@@ -223,33 +188,6 @@ container_settings_spec = dict(
     registry_server_user=dict(type='str'),
     registry_server_password=dict(type='str', no_log=True)
 )
-user_assigned_identities_spec = dict(
-    id=dict(
-        type='list',
-        default=[],
-        elements='str'
-    ),
-    append=dict(
-        type='bool',
-        default=True
-    )
-)
-
-managed_identity_spec = dict(
-    type=dict(
-        type='str',
-        choices=['SystemAssigned',
-                 'UserAssigned',
-                 'SystemAssigned, UserAssigned',
-                 'None'],
-        default='None'
-    ),
-    user_assigned_identities=dict(
-        type='dict',
-        options=user_assigned_identities_spec,
-        default={}
-    ),
-)
 
 
 class AzureRMFunctionApp(AzureRMModuleBaseExt):
@@ -271,7 +209,7 @@ class AzureRMFunctionApp(AzureRMModuleBaseExt):
             ),
             identity=dict(
                 type='dict',
-                options=managed_identity_spec
+                options=self.managed_identity_multiple_spec
             ),
             container_settings=dict(
                 type='dict',

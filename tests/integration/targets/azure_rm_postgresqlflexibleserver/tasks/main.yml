@@ -10,33 +10,27 @@
     password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_letters', 'digits', 'punctuation'], length=12) }}"
   run_once: true
 
-- name: Set Azure Region based on resource group location
+- name: Set location and managed_identity_ids
   ansible.builtin.set_fact:
     location: "{{ __rg_info.resourcegroups.0.location }}"
+    managed_identity_ids: []
 
 - name: Create a new resource group
   azure_rm_resourcegroup:
     name: "{{ new_resource_group }}"
     location: "{{ location }}"
 
-- name: Create User Managed Identities
-  azure_rm_resource:
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
     resource_group: "{{ new_resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-pgsql-identity"
-    - "ansible-test-pgsql-identity-2"
-
-- name: Set identities IDs to test. Identities ansible-test-psql-identity and ansible-test-psql-identity-2 have to be created previously
-  ansible.builtin.set_fact:
-    user_identity_1: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ new_resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-pgsql-identity"
-    user_identity_2: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ new_resource_group }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ansible-test-pgsql-identity-2"
+    managed_identity_test_unique: 'eventhub'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Create postgresql flexible server (check mode)
   azure_rm_postgresqlflexibleserver:
@@ -67,7 +61,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   check_mode: true
 
 - name: Create postgresql flexible server
@@ -99,7 +93,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: Assert the postgresql flexible server create success
@@ -111,7 +105,7 @@
   ansible.builtin.assert:
     that:
       - output.state.identity.type == 'UserAssigned'
-      - user_identity_1 in output.state.identity.user_assigned_identities
+      - managed_identity_ids[0] in output.state.identity.user_assigned_identities
 
 - name: Create postgresql flexible server (Idempotent Test)
   azure_rm_postgresqlflexibleserver:
@@ -142,7 +136,7 @@
       type: UserAssigned
       user_assigned_identities:
         id:
-          - "{{ user_identity_1 }}"
+          - "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: Assert the postgresql server create success
@@ -182,7 +176,7 @@
       type: "UserAssigned"
       user_assigned_identities:
         id:
-          - "{{ user_identity_2 }}"
+          - "{{ managed_identity_ids[1] }}"
         append: true
   register: output
 
@@ -206,8 +200,8 @@
       - output.servers[0].maintenance_window.day_of_week == 6
       - output.servers[0].maintenance_window.start_hour == 10
       - output.servers[0].maintenance_window.start_minute == 6
-      - user_identity_1 in output.servers[0].identity.user_assigned_identities
-      - user_identity_2 in output.servers[0].identity.user_assigned_identities
+      - managed_identity_ids[0] in output.servers[0].identity.user_assigned_identities
+      - managed_identity_ids[1] in output.servers[0].identity.user_assigned_identities
 
 - name: Postgresql server Identity None
   azure_rm_postgresqlflexibleserver:
@@ -414,17 +408,17 @@
     that:
       - output.changed
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
     resource_group: "{{ new_resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-psql-identity"
-    - "ansible-test-psql-identity-2"
+    managed_identity_test_unique: 'eventhub'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Delete the new resource group
   azure_rm_resourcegroup:

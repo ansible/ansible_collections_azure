@@ -1,3 +1,4 @@
 cloud/azure
 destructive
 shippable/azure/group9
+needs/file/tests/integration_common_tasks/managed_identity.yml

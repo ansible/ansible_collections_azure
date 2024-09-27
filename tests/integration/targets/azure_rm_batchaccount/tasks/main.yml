@@ -16,13 +16,6 @@
     batch_account_name: "ba{{ resource_group | hash('md5') | truncate(7, True, '') }}{{ 1000 | random }}"
   run_once: true
 
-- name: Create Storage Account
-  azure_rm_storageaccount:
-    resource_group: "{{ resource_group }}"
-    name: "{{ storage_account_name }}"
-    location: eastus
-    account_type: Standard_LRS
-
 - name: Gather Resource Group info
   azure.azcollection.azure_rm_resourcegroup_info:
     name: "{{ resource_group }}"
@@ -32,34 +25,33 @@
   ansible.builtin.set_fact:
     location: "{{ __rg_info.resourcegroups.0.location }}"
 
-- name: Create User Managed Identities
-  azure_rm_resource:
+- name: Create Storage Account
+  azure_rm_storageaccount:
     resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    body:
-      location: "{{ location }}"
-    state: present
-  loop:
-    - "ansible-test-batchaccount-identity"
-    - "ansible-test-batchaccount-identity-2"
+    name: "{{ storage_account_name }}"
+    location: "{{ location }}"
+    account_type: Standard_LRS
 
-- name: Set identities base path
+- name: Create identities array
   ansible.builtin.set_fact:
-    identity_base_path: "/subscriptions/{{ azure_subscription_id }}/resourcegroups/{{ resource_group }}/providers/Microsoft.ManagedIdentity"
+    managed_identity_ids: []
 
-- name: Set identities IDs to test. Identities ansible-test-batchaccount-identity and ansible-test-batchaccount-identity-2 have to be created previously
-  ansible.builtin.set_fact:
-    user_identity_1: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-batchaccount-identity"
-    user_identity_2: "{{ identity_base_path }}/userAssignedIdentities/ansible-test-batchaccount-identity-2"
+- name: Create user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'batchaccount'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'create'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'
 
 - name: Create Batch Account
   azure_rm_batchaccount:
     resource_group: "{{ resource_group }}"
     name: "{{ batch_account_name }}"
-    location: eastus
+    location: "{{ location }}"
     auto_storage_account:
       name: "{{ storage_account_name }}"
     pool_allocation_mode: batch_service
@@ -68,7 +60,7 @@
       key2: value2
     identity:
       type: UserAssigned
-      user_assigned_identity: "{{ user_identity_1 }}"
+      user_assigned_identity: "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: Assert the resource was created
@@ -77,13 +69,13 @@
       - output.changed
       - output.new.identity.type == "UserAssigned"
       - output.new.identity.user_assigned_identities | length == 1
-      - output.new.identity.user_assigned_identities['{{ user_identity_1 }}'] is defined
+      - output.new.identity.user_assigned_identities[managed_identity_ids[0]] is defined
 
 - name: Create Batch Account -- idempotent
   azure_rm_batchaccount:
     resource_group: "{{ resource_group }}"
     name: "{{ batch_account_name }}"
-    location: eastus
+    location: "{{ location }}"
     auto_storage_account:
       name: "{{ storage_account_name }}"
     pool_allocation_mode: batch_service
@@ -92,7 +84,7 @@
       key2: value2
     identity:
       type: UserAssigned
-      user_assigned_identity: "{{ user_identity_1 }}"
+      user_assigned_identity: "{{ managed_identity_ids[0] }}"
   register: output
 
 - name: Assert the resource wasn't changed
@@ -101,13 +93,13 @@
       - not output.changed
       - output.new.identity.type == "UserAssigned"
       - output.new.identity.user_assigned_identities | length == 1
-      - output.new.identity.user_assigned_identities['{{ user_identity_1 }}'] is defined
+      - output.new.identity.user_assigned_identities[managed_identity_ids[0]] is defined
 
 - name: Update user assigned identity
   azure_rm_batchaccount:
     resource_group: "{{ resource_group }}"
     name: "{{ batch_account_name }}"
-    location: eastus
+    location: "{{ location }}"
     auto_storage_account:
       name: "{{ storage_account_name }}"
     pool_allocation_mode: batch_service
@@ -116,7 +108,7 @@
       key2: value2
     identity:
       type: UserAssigned
-      user_assigned_identity: "{{ user_identity_2 }}"
+      user_assigned_identity: "{{ managed_identity_ids[1] }}"
   register: output
 
 - name: Assert the resource was changed
@@ -125,7 +117,7 @@
       - output.changed
       - output.new.identity.type == "UserAssigned"
       - output.new.identity.user_assigned_identities | length == 1
-      - output.new.identity.user_assigned_identities['{{ user_identity_2 }}'] is defined
+      - output.new.identity.user_assigned_identities[managed_identity_ids[1]] is defined
 
 - name: Get Batch Account facts
   azure_rm_batchaccount_info:
@@ -140,13 +132,13 @@
       - output.batch_account[0].tags | length == 2
       - output.batch_account[0].identity.type == "UserAssigned"
       - output.batch_account[0].identity.user_assigned_identities | length == 1
-      - output.batch_account[0].identity.user_assigned_identities['{{ user_identity_2 }}'] is defined
+      - output.batch_account[0].identity.user_assigned_identities[managed_identity_ids[1]] is defined
 
 - name: Update identity type to SystemAssigned
   azure_rm_batchaccount:
     resource_group: "{{ resource_group }}"
     name: "{{ batch_account_name }}"
-    location: eastus
+    location: "{{ location }}"
     auto_storage_account:
       name: "{{ storage_account_name }}"
     pool_allocation_mode: batch_service
@@ -182,14 +174,13 @@
     name: "{{ storage_account_name }}"
     state: absent
 
-- name: Destroy User Managed Identities
-  azure_rm_resource:
-    resource_group: "{{ resource_group }}"
-    provider: ManagedIdentity
-    resource_type: userAssignedIdentities
-    resource_name: "{{ item }}"
-    api_version: "2023-01-31"
-    state: absent
-  loop:
-    - "ansible-test-batchaccount-identity"
-    - "ansible-test-batchaccount-identity-2"
+- name: Delete user managed identities
+  ansible.builtin.include_tasks: "{{ role_path }}/../../../integration_common_tasks/managed_identity.yml"
+  vars:
+    managed_identity_test_unique: 'batchaccount'
+    managed_identity_unique: "{{ item }}"
+    managed_identity_action: 'delete'
+    managed_identity_location: "{{ location }}"
+  with_items:
+    - '1'
+    - '2'

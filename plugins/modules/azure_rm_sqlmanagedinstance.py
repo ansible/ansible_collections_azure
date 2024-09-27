@@ -60,35 +60,6 @@ options:
         description:
             - The Azure Active Directory administrator of the server.
         type: str
-    identity:
-        description:
-            - Azure Active Directory identity configuration for a resource.
-        type: dict
-        suboptions:
-            type:
-                description:
-                    - Type of the managed identity
-                choices:
-                    - SystemAssigned
-                    - UserAssigned
-                    - SystemAssigned, UserAssigned
-                    - None
-                default: None
-                type: str
-            user_assigned_identities:
-                description:
-                    - User Assigned Managed Identities and its options
-                required: false
-                type: dict
-                default: {}
-                suboptions:
-                    id:
-                        description:
-                            - List of the user assigned identities IDs associated to the WebApp
-                        required: false
-                        type: list
-                        elements: str
-                        default: []
     managed_instance_create_mode:
         description:
             - Specifies the mode of database creation.
@@ -223,6 +194,7 @@ options:
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
+    - azure.azcollection.azure_identity_multiple
 
 author:
     - xuzhang3 (@xuzhang3)
@@ -542,22 +514,6 @@ user_assigned_identities_spec = dict(
     )
 )
 
-managed_identity_spec = dict(
-    type=dict(
-        type='str',
-        choices=['SystemAssigned',
-                 'UserAssigned',
-                 'SystemAssigned, UserAssigned',
-                 'None'],
-        default='None'
-    ),
-    user_assigned_identities=dict(
-        type='dict',
-        options=user_assigned_identities_spec,
-        default={}
-    ),
-)
-
 
 # class AzureRMSqlManagedInstance(AzureRMModuleBase):
 class AzureRMSqlManagedInstance(AzureRMModuleBaseExt):
@@ -580,7 +536,7 @@ class AzureRMSqlManagedInstance(AzureRMModuleBaseExt):
             ),
             identity=dict(
                 type='dict',
-                options=managed_identity_spec
+                options=self.managed_identity_multiple_spec
             ),
             sku=dict(
                 type='dict',
@@ -704,9 +660,9 @@ class AzureRMSqlManagedInstance(AzureRMModuleBaseExt):
 
         sql_managed_instance = self.get()
 
-        update_identity, identity = self.update_managed_identity(sql_managed_instance and
-                                                                 sql_managed_instance.get('identity'),
-                                                                 self.identity)
+        update_identity, identity = self.update_managed_identity(new_identity=self.identity or {},
+                                                                 curr_identity=sql_managed_instance and
+                                                                 sql_managed_instance.get('identity', {}) or {})
         if update_identity:
             self.body["identity"] = identity.as_dict()
 

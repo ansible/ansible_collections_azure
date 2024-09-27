@@ -1,3 +1,4 @@
+---
 - name: Set user managed identity name
   ansible.builtin.set_fact:
     identity_name: "ansible-test-{{ managed_identity_test_unique }}-identity-{{ managed_identity_unique }}"
