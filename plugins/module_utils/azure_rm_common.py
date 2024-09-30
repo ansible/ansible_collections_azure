@@ -959,7 +959,10 @@ class AzureRMModuleBase(object):
             try:
                 setattr(client, '_ansible_models', importlib.import_module(client_type.__module__).models)
             except AttributeError:
-                setattr(client, '_ansible_models', importlib.import_module(client_type.__module__)._models)
+                if hasattr(importlib.import_module(client_type.__module__), '_modeles'):
+                    setattr(client, '_ansible_models', importlib.import_module(client_type.__module__)._models)
+                else:
+                    pass
             client.models = types.MethodType(_ansible_get_models, client)
 
         if self.azure_auth._cert_validation_mode == 'ignore':
