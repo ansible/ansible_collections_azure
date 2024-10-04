@@ -436,7 +436,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         next_link = response.get('nextLink')
 
         if next_link:
-            self._enqueue_get(url=next_link, api_version=self._compute_api_version, handler=self._on_arcvm_page_response)
+            self._enqueue_get(url=next_link, api_version=self._hybridcompute_api_version, handler=self._on_arcvm_page_response)
 
         for arcvm in response['value']:
             url = '{0}/providers/Microsoft.AzureStackHCI/virtualMachineInstances'.format(arcvm['id'])
