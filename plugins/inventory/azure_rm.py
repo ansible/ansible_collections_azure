@@ -68,6 +68,10 @@ include_vmss_resource_groups:
 include_hcivm_resource_groups:
     - myrg1
 
+# fetches ARC hosts in specific resource groups (defaults to no ARC fetch)
+include_arc_resource_groups:
+    - myrg1
+
 # places a host in the named group if the associated condition evaluates to true
 conditional_groups:
     # since this will be true for every host, every host sourced from this inventory plugin config will be in the
@@ -298,6 +302,15 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         url = url.format(subscriptionId=self._clientconfig.subscription_id, rg=rg)
         self._enqueue_get(url=url, api_version=self._compute_api_version, handler=self._on_vm_page_response)
 
+    def _enqueue_arc_list(self, rg='*'):
+        if not rg or rg == '*':
+            url = '/subscriptions/{subscriptionId}/providers/Microsoft.HybridCompute/machines'
+        else:
+            url = '/subscriptions/{subscriptionId}/resourceGroups/{rg}/providers/Microsoft.HybridCompute/machines'
+
+        url = url.format(subscriptionId=self._clientconfig.subscription_id, rg=rg)
+        self._enqueue_get(url=url, api_version=self._hybridcompute_api_version, handler=self._on_arc_page_response)
+
     def _enqueue_arcvm_list(self, rg='*'):
         if not rg or rg == '*':
             url = '/subscriptions/{subscriptionId}/providers/Microsoft.HybridCompute/machines'
@@ -323,6 +336,9 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
         else:
             for vm_rg in self.get_option('include_vm_resource_groups'):
                 self._enqueue_vm_list(vm_rg)
+
+        for arc_rg in self.get_option('include_arc_resource_groups'):
+            self._enqueue_arc_list(arc_rg)
 
         for vm_rg in self.get_option('include_hcivm_resource_groups'):
             self._enqueue_arcvm_list(vm_rg)
@@ -438,6 +454,15 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
                 # FUTURE: add direct VM filtering by tag here (performance optimization)?
                 self._hosts.append(AzureHost(h, self, vmss=vmss, arcvm=arcvm, legacy_name=self._legacy_hostnames))
 
+    def _on_arc_page_response(self, response):
+        next_link = response.get('nextLink')
+
+        if next_link:
+            self._enqueue_get(url=next_link, api_version=self._hybridcompute_api_version, handler=self._on_arc_page_response)
+
+        for arcvm in response['value']:
+            self._hosts.append(ArcHost(arcvm, self, legacy_name=self._legacy_hostnames))
+
     def _on_arcvm_page_response(self, response):
         next_link = response.get('nextLink')
 
@@ -448,6 +473,7 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             url = '{0}/providers/Microsoft.AzureStackHCI/virtualMachineInstances'.format(arcvm['id'])
             # Stack HCI instances look close enough to regular VMs that we can share the handler impl...
             self._enqueue_get(url=url, api_version=self._stackhci_api_version, handler=self._on_vm_page_response, handler_args=dict(arcvm=arcvm))
+            self._hosts.append(ArcHost(arcvm, self, legacy_name=self._legacy_hostnames))
 
     def _on_vmss_page_response(self, response):
         next_link = response.get('nextLink')
@@ -589,6 +615,69 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
 
 # VM list (all, N resource groups): VM -> InstanceView, N NICs, N PublicIPAddress)
 # VMSS VMs (all SS, N specific SS, N resource groups?): SS -> VM -> InstanceView, N NICs, N PublicIPAddress)
+
+
+class ArcHost(object):
+    def __init__(self, arc_model, inventory_client, legacy_name=False):
+        self._inventory_client = inventory_client
+        self._arc_model = arc_model
+        self._instanceview = self._arc_model
+        self._status = self._arc_model['properties'].get('status', {}).lower()  # 'Connected'
+        self._powerstate = self._status.replace('connected', 'running')
+
+        self._hostvars = {}
+
+        arc_name = self._arc_model['name']
+
+        if legacy_name:
+            self.default_inventory_hostname = arc_name
+        else:
+            # Azure often doesn't provide a globally-unique filename, so use resource name + a chunk of ID hash
+            self.default_inventory_hostname = '{0}_{1}'.format(arc_name, hashlib.sha1(to_bytes(arc_model['id'])).hexdigest()[0:4])
+
+    @property
+    def hostvars(self):
+        if self._hostvars != {}:
+            return self._hostvars
+
+        properties = self._arc_model.get('properties', {})
+        new_hostvars = dict(
+            network_interface=[],
+            mac_address=[],
+            ansible_all_ipv4_addresses=[],
+            ansible_all_ipv6_addresses=[],
+            public_ipv4_address=[],
+            private_ipv4_addresses=[],
+            public_dns_hostnames=[],
+            ansible_dns=[],
+            id=self._arc_model['id'],
+            location=self._arc_model['location'],
+            name=self._arc_model['name'],
+            default_inventory_hostname=self.default_inventory_hostname,
+            powerstate=self._powerstate,
+            status=self._status,
+            provisioning_state=properties.get('provisioningState', 'unknown').lower(),
+            os_profile=dict(
+                sku=properties.get('osSku', 'unknown'),
+                system=properties.get('osType', 'unknown'),
+                version=properties.get('osVersion', 'unknown'),
+            ),
+            tags=self._arc_model.get('tags', {}),
+            resource_type=self._arc_model.get('type', "unknown"),
+            resource_group=parse_resource_id(self._arc_model['id']).get('resource_group').lower(),
+        )
+
+        for nic in properties.get('networkProfile', {}).get('networkInterfaces', []):
+            new_hostvars['mac_address'].append(nic.get('macAddress'))
+            new_hostvars['network_interface'].append(nic.get('name'))
+            for ipaddr in nic.get('ipAddresses', []):
+                ipAddressVersion = ipaddr.get('ipAddressVersion')
+                if ipAddressVersion == 'IPv4':
+                    new_hostvars['ansible_all_ipv4_addresses'].append(ipaddr.get('address'))
+                if ipAddressVersion == 'IPv6':
+                    new_hostvars['ansible_all_ipv6_addresses'].append(ipaddr.get('address'))
+        self._hostvars = new_hostvars
+        return self._hostvars
 
 
 class AzureHost(object):
