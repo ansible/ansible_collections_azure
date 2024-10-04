@@ -698,7 +698,7 @@ def create_aks_dict(aks):
         kubernetes_version=aks.kubernetes_version,
         tags=aks.tags,
         linux_profile=create_linux_profile_dict(aks.linux_profile),
-        identity=aks.identity.as_dict() if aks.identity else None,
+        identity=aks.identity.as_dict() if aks.identity else {},
         service_principal_profile=create_service_principal_profile_dict(
             aks.service_principal_profile),
         provisioning_state=aks.provisioning_state,
@@ -1246,18 +1246,18 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                         if not matched:
                             self.log("Agent Pool not found")
                             to_be_updated = True
-                        if not self.default_compare({}, self.pod_identity_profile, response['pod_identity_profile'], '', dict(compare=[])):
-                            to_be_updated = True
-                        else:
-                            self.pod_identity_profile = response['pod_identity_profile']
+                    if not self.default_compare({}, self.pod_identity_profile, response['pod_identity_profile'], '', dict(compare=[])):
+                        to_be_updated = True
+                    else:
+                        self.pod_identity_profile = response['pod_identity_profile']
 
-                        # Default to SystemAssigned if service_principal is not specified
-                        if not self.service_principal and not self.identity:
-                            self.identity = dotdict({'type': 'SystemAssigned'})
-                        if self.identity:
-                            changed, self.identity = self.update_identity(self.identity, response['identity'])
-                            if changed:
-                                to_be_updated = True
+                    # Default to SystemAssigned if service_principal is not specified
+                    if not self.service_principal and not self.identity:
+                        self.identity = dotdict({'type': 'SystemAssigned'})
+                    if self.identity:
+                        changed, self.identity = self.update_identity(self.identity, response['identity'])
+                        if changed:
+                            to_be_updated = True
 
             if update_agentpool:
                 self.log("Need to update agentpool")

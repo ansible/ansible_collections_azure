@@ -12,9 +12,9 @@ DOCUMENTATION = '''
 ---
 module: azure_rm_virtualmachinescalesetinstance
 version_added: "0.1.2"
-short_description: Get Azure Virtual Machine Scale Set Instance facts
+short_description: Manage Azure virtual machine scale set instance
 description:
-    - Get facts of Azure Virtual Machine Scale Set VMs.
+    - Manage Azure virtual machine scale set instance.
 
 options:
     resource_group:
