@@ -339,7 +339,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
 
         required_if = [
             ('state', 'present', ['image', 'lab_subnet', 'vm_size', 'os_type']),
-            ('ssh_key', '*', ['is_authentication_with_ssh_key'])
+            ('is_authentication_with_ssh_key', True, ['ssh_key'])
         ]
 
         self.resource_group = None
