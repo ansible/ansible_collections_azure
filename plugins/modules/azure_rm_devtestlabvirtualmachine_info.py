@@ -87,6 +87,12 @@ virtualmachines:
             returned: always
             type: str
             sample: myVm
+        is_authentication_with_ssh_key:
+            description:
+                - Indicates whether this virtual machine uses an SSH key for authentication.
+            type: bool
+            returned: always
+            sample: False
         notes:
             description:
                 - Notes of the virtual machine.
@@ -314,7 +320,8 @@ class AzureRMDtlVirtualMachineInfo(AzureRMModuleBase):
             'compute_vm_name': self.parse_resource_to_dict(d.get('compute_id')).get('name'),
             'fqdn': d.get('fqdn'),
             'provisioning_state': d.get('provisioning_state'),
-            'tags': d.get('tags', None)
+            'tags': d.get('tags', None),
+            'is_authentication_with_ssh_key': d.get('is_authentication_with_ssh_key')
         }
         return d
 
