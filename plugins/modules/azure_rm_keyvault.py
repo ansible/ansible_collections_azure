@@ -424,8 +424,8 @@ class AzureRMVaults(AzureRMModuleBase):
                         ('enable_purge_protection' not in old_response['properties'] or
                          not old_response['properties']['enable_purge_protection']):
                     self.parameters['properties'].pop('enable_purge_protection')
-                for item in ['enabled_for_deployment', 'enabled_for_disk_encryption', 'enabled_for_template_deployment',\
-                  'enable_soft_delete', 'enable_purge_protection', 'enable_rbac_authorization']:
+                for item in ['enabled_for_deployment', 'enabled_for_disk_encryption', 'enabled_for_template_deployment',
+                             'enable_soft_delete', 'enable_purge_protection', 'enable_rbac_authorization']:
                     if item in self.parameters['properties'] and bool(old_response['properties'].get(item)) != bool(self.parameters['properties'][item]):
                         self.to_do = Actions.Update
                     else:
