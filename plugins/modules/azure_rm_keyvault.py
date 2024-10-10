@@ -180,7 +180,7 @@ options:
             description:
                 - A collection of rules governing the accessibility of the vault from specific network locations.
             type: dict
-            contains:
+            suboptions:
                 bypass:
                     description:
                         - Tells what traffic can bypass network rules.
@@ -203,7 +203,7 @@ options:
                         - The list of IP address rules.
                     type: list
                     elements: dict
-                    suboption:
+                    suboptions:
                         value:
                             description:
                                 - An IPv4 address range in CIDR notation.
@@ -214,7 +214,7 @@ options:
                         - The list of virtual network rules.
                     type: list
                     elements: dict
-                    subopition:
+                    subopitions:
                         id:
                             description:
                                 - Full resource id of a vnet subnet.
@@ -360,7 +360,8 @@ class AzureRMVaults(AzureRMModuleBaseExt):
                 type='bool'
             ),
             public_network_access=dict(
-                type='str'
+                type='str',
+                choices=['Disabled', 'Enabled']
             ),
             network_acls=dict(
                 type='dict',
@@ -558,9 +559,10 @@ class AzureRMVaults(AzureRMModuleBaseExt):
                 if old_response['properties'].get('network_acls') is not None:
                     old_response['properties']['network_acls']['ip_rules'] = [dict(
                         value=item['value'].split('/')[0]
-                    ) for item in old_response['properties']['network_acls']['ip_rules']] if old_response['properties']['network_acls'].get('ip_rules') else None
+                  ) for item in old_response['properties']['network_acls']['ip_rules']] if old_response['properties']['network_acls']['ip_rules'] else None
 
-                if not self.default_compare({}, self.parameters['properties'].get('network_acls'), old_response['properties'].get('network_acls'), '', dict(compare=[])):
+                if not self.default_compare({}, self.parameters['properties'].get('network_acls'),
+                   old_response['properties'].get('network_acls'), '', dict(compare=[])):
                     self.to_do = Actions.Update
 
                 update_tags, newtags = self.update_tags(old_response.get('tags', dict()))

@@ -161,6 +161,131 @@
       - facts['keyvaults'][0]['id'] != None
       - facts['keyvaults'][0]['enable_soft_delete'] == true
       - facts['keyvaults'][0]['soft_delete_retention_in_days'] == 7
+
+- name: Create virtual network
+  azure_rm_virtualnetwork:
+    name: vnet{{ rpfx }}
+    address_prefixes_cidr:
+      - 10.1.0.0/16
+    dns_servers:
+      - 127.0.0.1
+      - 127.0.0.3
+    resource_group: "{{ resource_group }}"
+
+- name: Create network security group
+  azure_rm_securitygroup:
+    name: secgroup{{ rpfx }}
+    resource_group: "{{ resource_group }}"
+
+- name: Create the subnet
+  azure_rm_subnet:
+    name: subnet{{ rpfx }}
+    virtual_network_name: vnet{{ rpfx }}
+    resource_group: "{{ resource_group }}"
+    address_prefix_cidr: "10.1.0.0/16"
+    security_group: secgroup{{ rpfx }}
+    private_endpoint_network_policies: Enabled
+    private_link_service_network_policies: Enabled
+    service_endpoints:
+      - service: Microsoft.KeyVault
+        locations:
+          - eastus
+  register: subnet_output
+
+- name: Create a secodary instance of Key Vault
+  azure_rm_keyvault:
+    resource_group: "{{ resource_group }}"
+    vault_name: "vault{{ rpfx }}-sec"
+    enabled_for_deployment: false
+    vault_tenant: "{{ tenant_id }}"
+    soft_delete_retention_in_days: 7
+    public_network_access: "disabled"
+    network_acls:
+      bypass: None
+      default_action: Allow
+      ip_rules:
+        - value: 124.56.78.91
+      virtual_network_rules:
+        - id: "{{ subnet_output.state.id }}"
+          ignore_missing_vnet_service_endpoint: true
+    sku:
+      name: standard
+      family: A
+    access_policies:
+      - tenant_id: "{{ tenant_id }}"
+        object_id: "{{ object_id }}"
+        secrets:
+          - get
+          - list
+          - set
+          - delete
+          - recover
+          - backup
+          - restore
+  register: output
+
+- name: Assert the keyvault created
+  ansible.builtin.assert:
+    that: output.changed
+
+- name: Update instance of Key Vault
+  azure_rm_keyvault:
+    resource_group: "{{ resource_group }}"
+    vault_name: "vault{{ rpfx }}-sec"
+    enabled_for_deployment: false
+    vault_tenant: "{{ tenant_id }}"
+    soft_delete_retention_in_days: 7
+    public_network_access: "Enabled"
+    network_acls:
+      bypass: AzureServices
+      default_action: Deny
+      ip_rules:
+        - value: 124.56.78.91
+        - value: 124.56.78.92
+        - value: 124.56.78.93
+      virtual_network_rules:
+        - id: "{{ subnet_output.state.id }}"
+          ignore_missing_vnet_service_endpoint: true
+    sku:
+      name: standard
+      family: A
+    access_policies:
+      - tenant_id: "{{ tenant_id }}"
+        object_id: "{{ object_id }}"
+        secrets:
+          - get
+          - list
+          - set
+          - delete
+          - recover
+          - backup
+          - restore
+  register: output
+
+- name: Assert the keyvault Updated
+  ansible.builtin.assert:
+    that: output.changed
+
+- name: Get key vault facts
+  azure_rm_keyvault_info:
+    resource_group: "{{ resource_group }}"
+    name: "vault{{ rpfx }}-sec"
+  register: facts
+
+- name: Assert the facts are properly set
+  ansible.builtin.assert:
+    that:
+      - facts['keyvaults'][0]['public_network_access'] == 'Enabled'
+      - facts['keyvaults'][0]['network_acls']['bypass'] == 'AzureServices'
+      - facts['keyvaults'][0]['network_acls']['default_action'] == 'Deny'
+      - facts['keyvaults'][0]['network_acls']['ip_rules'] | lenght == 3
+      - facts['keyvaults'][0]['network_acls']['virtual_network_rules'] | lenght == 1
+
+- name: Delete the secondary Key Vault
+  azure_rm_keyvault:
+    resource_group: "{{ resource_group }}"
+    vault_name: "vault{{ rpfx }}"
+    state: absent
 #
 # azure_rm_keyvaultkey tests
 #
