@@ -199,7 +199,7 @@
     enabled_for_deployment: false
     vault_tenant: "{{ tenant_id }}"
     soft_delete_retention_in_days: 7
-    public_network_access: "disabled"
+    public_network_access: "Disabled"
     network_acls:
       bypass: None
       default_action: Allow
