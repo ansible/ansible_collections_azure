@@ -176,53 +176,53 @@ options:
         choices:
             - Disabled
             - Enabled
-        network_acls:
-            description:
-                - A collection of rules governing the accessibility of the vault from specific network locations.
-            type: dict
-            suboptions:
-                bypass:
-                    description:
-                        - Tells what traffic can bypass network rules.
-                        - If not specified the default is 'AzureServices'.
-                    type: str
-                    choices:
-                        - AzureServices
-                        - None
-                    default: AzureServices
-                default_action:
-                    description:
-                        - The default action when no rule from ipRules and from virtualNetworkRules match.
-                        - This is only used after the bypass property has been evaluated.
-                    type: str
-                    choices:
-                        - Allow
-                        - Deny
-                ip_rules:
-                    description:
-                        - The list of IP address rules.
-                    type: list
-                    elements: dict
-                    suboptions:
-                        value:
-                            description:
-                                - An IPv4 address range in CIDR notation.
-                                - Such as C(124.56.78.91) (simple IP address) or C(124.56.78.0/24) (all addresses that start with 124.56.78).
-                            type: str
-                virtual_network_rules:
-                    description:
-                        - The list of virtual network rules.
-                    type: list
-                    elements: dict
-                    subopitions:
-                        id:
-                            description:
-                                - Full resource id of a vnet subnet.
-                            type: str
-                        ignore_missing_vnet_service_endpoint:
-                            description:
-                                - Property to specify whether NRP will ignore the check if parent subnet has serviceEndpoints configured.
-                            type: bool
+    network_acls:
+        description:
+            - A collection of rules governing the accessibility of the vault from specific network locations.
+        type: dict
+        suboptions:
+            bypass:
+                description:
+                    - Tells what traffic can bypass network rules.
+                    - If not specified the default is 'AzureServices'.
+                type: str
+                choices:
+                    - AzureServices
+                    - None
+                default: AzureServices
+            default_action:
+                description:
+                    - The default action when no rule from ipRules and from virtualNetworkRules match.
+                    - This is only used after the bypass property has been evaluated.
+                type: str
+                choices:
+                    - Allow
+                    - Deny
+            ip_rules:
+                description:
+                    - The list of IP address rules.
+                type: list
+                elements: dict
+                suboptions:
+                    value:
+                        description:
+                            - An IPv4 address range in CIDR notation.
+                            - Such as C(124.56.78.91) (simple IP address) or C(124.56.78.0/24) (all addresses that start with 124.56.78).
+                        type: str
+            virtual_network_rules:
+                description:
+                    - The list of virtual network rules.
+                type: list
+                elements: dict
+                subopitions:
+                    id:
+                        description:
+                            - Full resource id of a vnet subnet.
+                        type: str
+                    ignore_missing_vnet_service_endpoint:
+                        description:
+                            - Property to specify whether NRP will ignore the check if parent subnet has serviceEndpoints configured.
+                        type: bool
     state:
         description:
             - Assert the state of the KeyVault. Use C(present) to create or update an KeyVault and C(absent) to delete it.
@@ -557,9 +557,10 @@ class AzureRMVaults(AzureRMModuleBaseExt):
                     self.parameters['properties']['public_network_access'] = old_response['properties'].get('public_network_access')
 
                 if old_response['properties'].get('network_acls') is not None:
-                    old_response['properties']['network_acls']['ip_rules'] = [dict(
-                        value=item['value'].split('/')[0]
-                  ) for item in old_response['properties']['network_acls']['ip_rules']] if old_response['properties']['network_acls']['ip_rules'] else None
+                    if old_response['properties']['network_acls'].get('ip_rules') is not None:
+                        old_response['properties']['network_acls']['ip_rules'] = list()
+                        for item in old_response['properties']['network_acls']['ip_rules']:
+                            old_response['properties']['network_acls']['ip_rules'].append(dict(value=item['value'].split('/')[0]))
 
                 if not self.default_compare({}, self.parameters['properties'].get('network_acls'),
                    old_response['properties'].get('network_acls'), '', dict(compare=[])):
