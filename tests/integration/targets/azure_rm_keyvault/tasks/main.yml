@@ -284,7 +284,7 @@
 - name: Delete the secondary Key Vault
   azure_rm_keyvault:
     resource_group: "{{ resource_group }}"
-    vault_name: "vault{{ rpfx }}"
+    vault_name: "vault{{ rpfx }}-sec"
     state: absent
 #
 # azure_rm_keyvaultkey tests
