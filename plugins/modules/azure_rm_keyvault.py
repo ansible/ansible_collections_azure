@@ -214,7 +214,7 @@ options:
                     - The list of virtual network rules.
                 type: list
                 elements: dict
-                subopitions:
+                suboptions:
                     id:
                         description:
                             - Full resource id of a vnet subnet.

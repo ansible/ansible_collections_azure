@@ -278,8 +278,8 @@
       - facts['keyvaults'][0]['public_network_access'] == 'Enabled'
       - facts['keyvaults'][0]['network_acls']['bypass'] == 'AzureServices'
       - facts['keyvaults'][0]['network_acls']['default_action'] == 'Deny'
-      - facts['keyvaults'][0]['network_acls']['ip_rules'] | lenght == 3
-      - facts['keyvaults'][0]['network_acls']['virtual_network_rules'] | lenght == 1
+      - facts['keyvaults'][0]['network_acls']['ip_rules'] | length == 3
+      - facts['keyvaults'][0]['network_acls']['virtual_network_rules'] | length == 1
 
 - name: Delete the secondary Key Vault
   azure_rm_keyvault:
