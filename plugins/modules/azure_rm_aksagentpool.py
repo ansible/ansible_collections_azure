@@ -126,10 +126,11 @@ options:
         description:
             - Specifies an OS SKU.
             - This value must not be specified if OSType is Windows.
+            - The I(os_sku=CBLMariner) deprecated. Microsoft recommends that new deployments choose 'AzureLinux' instead.
         type: str
         choices:
             - Ubuntu
-            - CBLMariner
+            - AzureLinux
             - Windows2019
             - Windows2022
     scale_down_mode:
@@ -859,7 +860,7 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
                 type='str', choices=['OCIContainer', 'WasmWasi']
             ),
             os_sku=dict(
-                type='str', choices=["Ubuntu", "CBLMariner", "Windows2022", "Windows2019"]
+                type='str', choices=["Ubuntu", "AzureLinux", "Windows2022", "Windows2019"]
             ),
             scale_down_mode=dict(
                 type='str',
@@ -1159,7 +1160,6 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
             enable_ultra_ssd=agent_pool.enable_ultra_ssd,
             enable_fips=agent_pool.enable_fips,
             gpu_instance_profile=agent_pool.gpu_instance_profile,
-            os_sku=agent_pool.os_sku
         )
 
         if agent_pool.upgrade_settings is not None:
