@@ -313,6 +313,12 @@ aks_agent_pools:
             type: str
             returned: always
             sample: MIG1g
+        os_sku:
+            description:
+                - SKU to be used to specify os type.
+            type: str
+            returned: always
+            sample: Ubuntu
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -421,7 +427,8 @@ class AzureRMAgentPoolInfo(AzureRMModuleBase):
             enable_encryption_at_host=agent_pool.enable_encryption_at_host,
             enable_ultra_ssd=agent_pool.enable_ultra_ssd,
             enable_fips=agent_pool.enable_fips,
-            gpu_instance_profile=agent_pool.gpu_instance_profile
+            gpu_instance_profile=agent_pool.gpu_instance_profile,
+            os_sku=agent_pool.os_sku
         )
 
         if agent_pool.upgrade_settings is not None:

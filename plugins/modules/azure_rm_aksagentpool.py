@@ -130,6 +130,8 @@ options:
         choices:
             - Ubuntu
             - CBLMariner
+            - Windows2019
+            - Windows2022
     scale_down_mode:
         description:
             - This also effects the cluster autoscaler behavior.
@@ -766,6 +768,12 @@ aks_agent_pools:
             type: str
             returned: always
             sample: MIG1g
+        os_sku:
+            description:
+                - SKU to be used to specify os type.
+            type: str
+            returned: always
+            sample: Ubuntu
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -851,7 +859,7 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
                 type='str', choices=['OCIContainer', 'WasmWasi']
             ),
             os_sku=dict(
-                type='str', choices=["Ubuntu", "CBLMariner"]
+                type='str', choices=["Ubuntu", "CBLMariner", "Windows2022", "Windows2019"]
             ),
             scale_down_mode=dict(
                 type='str',
@@ -1150,7 +1158,8 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
             enable_encryption_at_host=agent_pool.enable_encryption_at_host,
             enable_ultra_ssd=agent_pool.enable_ultra_ssd,
             enable_fips=agent_pool.enable_fips,
-            gpu_instance_profile=agent_pool.gpu_instance_profile
+            gpu_instance_profile=agent_pool.gpu_instance_profile,
+            os_sku=agent_pool.os_sku
         )
 
         if agent_pool.upgrade_settings is not None:
