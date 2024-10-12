@@ -636,6 +636,43 @@ EXAMPLES = '''
             client_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
             object_id: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
+- name: Create a kubernet service with I(os_type=Windows)
+  azure_rm_aks:
+    name: myaks02
+    location: eastus
+    resource_group: "{{ resource_group }}"
+    kubernetes_version: "{{ versions }}"
+    dns_prefix: "aks_dns"
+    enable_rbac: true
+    windows_profile:
+      admin_username: azureuser
+      admin_password: Password@0329
+    aad_profile:
+      managed: true
+    agent_pool_profiles:
+      - name: default
+        count: 1
+        vm_size: Standard_D8ds_v5
+        mode: System
+        os_type: Linux
+        os_sku: Ubuntu
+      - name: def
+        count: 1
+        vm_size: Standard_D2as_v4
+        mode: User
+        os_type: Windows
+        os_sku: Windows2022
+    api_server_access_profile:
+      authorized_ip_ranges:
+        - "192.0.2.0"
+        - "198.51.100.0"
+        - "203.0.113.0"
+      enable_private_cluster: false
+    network_profile:
+      load_balancer_sku: standard
+      network_plugin: azure
+      outbound_type: loadBalancer
+
 - name: Remove a managed Azure Container Services (AKS) instance
   azure_rm_aks:
     name: myAKS
