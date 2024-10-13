@@ -769,12 +769,6 @@ aks_agent_pools:
             type: str
             returned: always
             sample: MIG1g
-        os_sku:
-            description:
-                - SKU to be used to specify os type.
-            type: str
-            returned: always
-            sample: Ubuntu
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
