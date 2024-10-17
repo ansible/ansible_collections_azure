@@ -282,7 +282,6 @@
     resource_group: "{{ resource_group }}"
     name: "md{{ rpfx }}6"
   register: output
-  register: output
 
 - name: Assert the managed disk facts
   ansible.builtin.assert:
