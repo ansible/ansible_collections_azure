@@ -715,7 +715,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
                 resp = True
         if self.disk_iops_read_write is not None and found_disk['disk_iops_read_write'] != self.disk_iops_read_write:
             resp = True
-        if self.ddisk_m_bps_read_write is not None and found_disk['disk_m_bps_read_write'] != self.disk_m_bps_read_write:
+        if self.disk_m_bps_read_write is not None and found_disk['disk_m_bps_read_write'] != self.disk_m_bps_read_write:
             resp = True
         if self.disk_iops_read_only is not None and found_disk['disk_iops_read_only'] != self.disk_iops_read_only:
             resp = True
