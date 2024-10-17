@@ -451,16 +451,16 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             ),
             disk_iops_read_only=dict(
                 type='int'
-            )
+            ),
             disk_iops_read_write=dict(
                 type='int'
-            )
+            ),
             disk_m_bps_read_only=dict(
                 type='int'
-            )
+            ),
             disk_m_bps_read_write=dict(
                 type='int'
-            )
+            ),
         )
         required_if = [
             ('create_option', 'import', ['source_uri', 'storage_account_id']),
