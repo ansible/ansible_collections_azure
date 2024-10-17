@@ -62,6 +62,7 @@ options:
             - StandardSSD_LRS
             - StandardSSD_ZRS
             - Premium_LRS
+            - PremiumV2_LRS
             - Premium_ZRS
             - UltraSSD_LRS
     create_option:
@@ -407,7 +408,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             ),
             storage_account_type=dict(
                 type='str',
-                choices=['Standard_LRS', 'StandardSSD_LRS', 'StandardSSD_ZRS', 'Premium_LRS', 'Premium_ZRS', 'UltraSSD_LRS']
+                choices=['Standard_LRS', 'StandardSSD_LRS', 'StandardSSD_ZRS', 'Premium_LRS', 'Premium_ZRS', 'UltraSSD_LRS', 'PremiumV2_LRS']
             ),
             create_option=dict(
                 type='str',

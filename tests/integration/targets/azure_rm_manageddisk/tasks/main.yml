@@ -226,6 +226,73 @@
       - output.ansible_info.azure_managed_disk[0].storage_account_type == "Premium_ZRS"
       - output.ansible_info.azure_managed_disk[0].disk_size_gb == 2
 
+- name: Create new managed disk with throught parameters
+  azure_rm_manageddisk:
+    resource_group: "{{ resource_group }}"
+    name: "md{{ rpfx }}6"
+    storage_account_type: UltraSSD_LRS
+    disk_size_gb: 4
+    disk_iops_read_only: 200
+    disk_m_bps_read_only: 30
+    disk_m_bps_read_write: 30
+    disk_iops_read_write: 200
+  register: output
+
+- name: Assert the managed disk Created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Create new managed disk with throught parameters(Idempotent Test)
+  azure_rm_manageddisk:
+    resource_group: "{{ resource_group }}"
+    name: "md{{ rpfx }}6"
+    storage_account_type: UltraSSD_LRS
+    disk_size_gb: 4
+    disk_iops_read_only: 200
+    disk_m_bps_read_only: 30
+    disk_m_bps_read_write: 30
+    disk_iops_read_write: 200
+  register: output
+
+- name: Assert the managed disk no change
+  ansible.builtin.assert:
+    that:
+      - not output.changed
+
+- name: Update the managed disk
+  azure_rm_manageddisk:
+    resource_group: "{{ resource_group }}"
+    name: "md{{ rpfx }}6"
+    storage_account_type: UltraSSD_LRS
+    disk_size_gb: 4
+    disk_iops_read_only: 300
+    disk_m_bps_read_only: 60
+    disk_m_bps_read_write: 60
+    disk_iops_read_write: 300
+  register: output
+
+- name: Assert the managed disk updated
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Get the managed disk facts
+  azure_rm_manageddisk_info:
+    resource_group: "{{ resource_group }}"
+    name: "md{{ rpfx }}6"
+  register: output
+  register: output
+
+- name: Assert the managed disk facts
+  ansible.builtin.assert:
+    that:
+      - output.ansible_info.azure_managed_disk[0].storage_account_type == "UltraSSD_LRS"
+      - output.ansible_info.azure_managed_disk[0].disk_iops_read_only == 300
+      - output.ansible_info.azure_managed_disk[0].disk_m_bps_read_only == 60
+      - output.ansible_info.azure_managed_disk[0].disk_m_bps_read_write == 60
+      - output.ansible_info.azure_managed_disk[0].disk_iops_read_write == 300
+
 - name: Delete managed disk (Check Mode)
   azure_rm_manageddisk:
     resource_group: "{{ resource_group }}"
@@ -252,6 +319,7 @@
     - 3
     - 4
     - 5
+    - 6
 
 - name: Delete virtual machine
   azure_rm_virtualmachine:
