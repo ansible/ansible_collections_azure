@@ -155,6 +155,15 @@
             statistic: Average
             operator: GreaterThan
             type: ChangeCount
+            metric_namespace: Fredtest
+            metric_resource_location: eastus
+            divide_per_instance: true
+            dimensions:
+              - dimension_name: AppName
+                operator: Equals
+                values:
+                  - App1
+                  - App2
         max_count: '1'
         recurrence_mins:
           - '0'
