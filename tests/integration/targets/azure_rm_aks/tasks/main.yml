@@ -47,7 +47,6 @@
       enable_azure_rbac: true
     disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
-    disable_local_accounts: true
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
@@ -93,7 +92,6 @@
       enable_azure_rbac: true
     disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
-    disable_local_accounts: true
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
