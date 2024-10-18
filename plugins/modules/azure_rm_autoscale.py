@@ -157,7 +157,6 @@ options:
                     dimensions:
                         description:
                             - List of dimension conditions.
-                            - Such as I(demensions=[{"dimension_name": "AppName", "Operator":"Equals", "Values":["App1", "App2"]}]).
                         type: list
                         elements: dict
                         suboptions:
@@ -176,7 +175,7 @@ options:
                                 requrired: true
                             values:
                                 description:
-                                    - List of dimension values. Such as I(values=["App1","App2"]).
+                                    - List of dimension values.
                                 type: list
                                 elements: str
                                 requrired: true
@@ -343,6 +342,12 @@ EXAMPLES = '''
             statistic: Average
             operator: GreaterThan
             type: ChangeCount
+            dimensions:
+              - dimension_name: AppName
+                operator: Equals
+                values:
+                  - App1
+                  - App2
         max_count: '1'
         recurrence_mins:
           - '0'
