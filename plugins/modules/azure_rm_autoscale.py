@@ -490,7 +490,7 @@ def rule_to_dict(rule):
                   time_window=timedelta_to_minutes(rule.metric_trigger.time_window),
                   time_aggregation=get_enum_value(rule.metric_trigger.time_aggregation),
                   operator=get_enum_value(rule.metric_trigger.operator),
-                  threshold=float(rule.metric_trigger.threshold)
+                  threshold=float(rule.metric_trigger.threshold),
                   metric_namespace=rule.metric_trigger.metric_namespace,
                   dimensions=[],
                   divide_per_instance=rule.metric_trigger.divide_per_instance)
