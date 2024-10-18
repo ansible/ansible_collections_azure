@@ -164,7 +164,7 @@ options:
                                 description:
                                     - Name of the dimension.
                                 type: str
-                                requrired: true
+                                required: true
                             operator:
                                 description:
                                     - The dimension operator. Only C(Equals) and C(NotEquals) are supported.
@@ -172,13 +172,13 @@ options:
                                     - Equals
                                     - NotEquals
                                 type: str
-                                requrired: true
+                                required: true
                             values:
                                 description:
                                     - List of dimension values.
                                 type: list
                                 elements: str
-                                requrired: true
+                                required: true
                     divide_per_instance:
                         description:
                             - A value indicating whether metric should divide per instance.
