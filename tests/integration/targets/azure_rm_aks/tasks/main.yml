@@ -42,6 +42,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     disable_local_accounts: true
     service_principal:
@@ -84,6 +88,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     disable_local_accounts: true
     service_principal:
@@ -136,6 +144,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -196,6 +208,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -235,6 +251,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -275,6 +295,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -311,6 +335,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -352,6 +380,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -389,6 +421,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -437,6 +473,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -478,6 +518,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
@@ -526,6 +570,10 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
