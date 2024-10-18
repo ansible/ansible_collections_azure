@@ -64,7 +64,7 @@
   register: output
   ignore_errors: true
 
-#- name: Verify that the cluster credentials are successfully obtained
+# - name: Verify that the cluster credentials are successfully obtained
 #  ansible.builtin.assert:
 #    that:
 #      - output.cluster_credentials | length == 1
