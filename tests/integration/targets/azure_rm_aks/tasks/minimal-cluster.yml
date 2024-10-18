@@ -38,6 +38,7 @@
     auto_upgrade_profile:
       node_os_upgrade_channel: NodeImage
       upgrade_channel: patch
+    disable_local_accounts: true
   register: output
 
 - name: Assert the AKS instance is well created
