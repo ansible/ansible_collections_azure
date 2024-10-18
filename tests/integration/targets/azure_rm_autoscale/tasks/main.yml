@@ -156,7 +156,6 @@
             operator: GreaterThan
             type: ChangeCount
             metric_namespace: Fredtest
-            metric_resource_location: eastus
             divide_per_instance: true
             dimensions:
               - dimension_name: AppName

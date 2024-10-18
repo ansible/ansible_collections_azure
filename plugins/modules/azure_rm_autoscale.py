@@ -184,10 +184,6 @@ options:
                         description:
                             - A value indicating whether metric should divide per instance.
                         type: bool
-                    metric_resource_location:
-                        description:
-                            - The location of the resource the rule monitors
-                        type: str
                     metric_namespace:
                         description:
                             - The namespace of the metric that defines what the rule monitors.
@@ -423,7 +419,6 @@ state:
                         ],
                         "divide_per_instance": true,
                         "metric_namespace": "Fredtest",
-                        "metric_resource_location": null,
                         "direction": "Increase",
                         "metric_name": "Percentage CPU",
                         "metric_resource_uri": "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsof
@@ -451,7 +446,7 @@ from datetime import timedelta
 
 try:
     from azure.mgmt.monitor.models import WebhookNotification, EmailNotification, AutoscaleNotification, RecurrentSchedule, MetricTrigger, \
-        ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule. ScaleRuleMetricDimension
+        ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule, ScaleRuleMetricDimension
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -497,7 +492,6 @@ def rule_to_dict(rule):
                   operator=get_enum_value(rule.metric_trigger.operator),
                   threshold=float(rule.metric_trigger.threshold)
                   metric_namespace=rule.metric_trigger.metric_namespace,
-                  metric_resource_location=rule.metric_trigger.metric_resource_location,
                   dimensions=[],
                   divide_per_instance=rule.metric_trigger.divide_per_instance)
     if rule.metric_trigger.dimensions:
@@ -562,7 +556,6 @@ rule_spec = dict(
     value=dict(type='str'),
     cooldown=dict(type='float'),
     metric_namespace=dict(type='str'),
-    metric_resource_location=dict(type='str'),
     divide_per_instance=dict(type='bool'),
     dimensions=dict(
         type='list',

@@ -106,7 +106,6 @@ autoscales:
                         ],
                         "divide_per_instance": true,
                         "metric_namespace": "Fredtest",
-                        "metric_resource_location": null,
                         "direction": "Increase",
                         "metric_name": "Percentage CPU",
                         "metric_resource_uri": "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsof
@@ -173,7 +172,6 @@ def rule_to_dict(rule):
                   operator=get_enum_value(rule.metric_trigger.operator),
                   threshold=float(rule.metric_trigger.threshold),
                   metric_namespace=rule.metric_trigger.metric_namespace,
-                  metric_resource_location=rule.metric_trigger.metric_resource_location,
                   dimensions=[],
                   divide_per_instance=rule.metric_trigger.divide_per_instance)
     if rule.metric_trigger.dimensions:
