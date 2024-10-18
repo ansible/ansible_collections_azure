@@ -440,6 +440,11 @@ options:
                                 description:
                                     - The client ID of the user assigned identity.
                                 type: str
+    disable_local_accounts:
+        description:
+            - If set to true, getting static credentials will be disabled for this cluster.
+            - This must only be used on Managed Clusters that are AAD enabled.
+        type: bool
     auto_upgrade_profile:
         description:
             - Auto upgrade profile for a managed cluster.
@@ -641,6 +646,7 @@ state:
           upgrade_channel: patch
         changed: false
         dns_prefix: aks9860bdcd89
+        disable_local_accounts: true
         id: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourcegroups/myResourceGroup/providers/Microsoft.ContainerService/managedClusters/aks9860bdc"
         kube_config: ["......"]
         kubernetes_version: 1.14.6
@@ -697,6 +703,7 @@ def create_aks_dict(aks):
         dns_prefix=aks.dns_prefix,
         kubernetes_version=aks.kubernetes_version,
         tags=aks.tags,
+        disable_local_accounts=aks.disable_local_accounts,
         linux_profile=create_linux_profile_dict(aks.linux_profile),
         identity=aks.identity.as_dict() if aks.identity else {},
         service_principal_profile=create_service_principal_profile_dict(
@@ -1030,7 +1037,10 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                         default='NodeImage'
                     )
                 )
-            )
+            ),
+            disable_local_accounts=dict(
+                type='bool'
+            ),
         )
 
         self.resource_group = None
@@ -1052,6 +1062,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         self.node_resource_group = None
         self.pod_identity_profile = None
         self.auto_upgrade_profile = None
+        self.disable_local_accounts = None
 
         mutually_exclusive = [('identity', 'service_principal')]
 
@@ -1142,6 +1153,14 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
 
                     if response['enable_rbac'] != self.enable_rbac:
                         to_be_updated = True
+
+                    if self.disable_local_accounts is not None:
+                        if response.get('disable_local_accounts') is None:
+                            to_be_updated = True
+                        elif bool(self.disable_local_accounts) != bool(response.get('disable_local_accounts')):
+                            to_be_updated = True
+                        else:
+                            self.disable_local_accounts = response.get('disable_local_accounts')
 
                     if response['api_server_access_profile'] != self.api_server_access_profile and self.api_server_access_profile is not None:
                         if bool(self.api_server_access_profile.get('enable_private_cluster')) != \
@@ -1363,7 +1382,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
             addon_profiles=self.create_addon_profile_instance(self.addon),
             node_resource_group=self.node_resource_group,
             pod_identity_profile=pod_identity_profile,
-            auto_upgrade_profile=auto_upgrade_profile
+            auto_upgrade_profile=auto_upgrade_profile,
+            disable_local_accounts=self.disable_local_accounts,
         )
 
         # self.log("service_principal_profile : {0}".format(parameters.service_principal_profile))
