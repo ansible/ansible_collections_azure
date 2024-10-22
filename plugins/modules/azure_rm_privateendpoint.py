@@ -40,6 +40,26 @@ options:
                 description:
                     - The ID of the subnet from which the private IP will be allocated.
                 type: str
+    manual_private_link_service_connections:
+        description:
+            - A grouping of information about the connection to the remote resource.
+            - Used when the network admin does not have access to approve connections to the remote resource.
+        type: list
+        elements: dict
+        suboptions:
+            name:
+                description:
+                    - The name of the resource that is unique within a resource group.
+                type: str
+            private_link_service_id:
+                description:
+                    - The resource id of the private endpoint to connect to.
+                type: str
+            group_ids:
+                description:
+                    - The ID(s) of the group(s) obtained from the remote resource that this private endpoint should connect to.
+                type: list
+                elements: str
     private_link_service_connections:
         description:
             - A grouping of information about the connection to the remote resource.
@@ -155,6 +175,12 @@ state:
                 returned: always
                 type: str
                 sample: "/subscriptions/xxx-xxx-xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/virtualNetworks/fredtestRG-vnet/subnets/default"
+            manual_private_link_service_connections:
+                description:
+                    - The resource id of the private endpoint to connect.
+                returned: always
+                type: list
+                sample: ["/subscriptions/xxx/resourceGroups/myRG/providers/Microsoft.Network/privateEndpoints/point/privateLinkServiceConnections/point02",]
             private_link_service_connections:
                 description:
                     - The resource id of the private endpoint to connect.
@@ -180,6 +206,13 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 
 network_interfaces_spec = dict(
     id=dict(type='str')
+)
+
+
+manual_private_service_connection_spec = dict(
+    name=dict(type='str'),
+    private_link_service_id=dict(type='str'),
+    group_ids=dict(type='list', elements='str')
 )
 
 
@@ -210,6 +243,7 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
             location=dict(type='str'),
             subnet=dict(type='dict', options=subnet_spec),
             private_link_service_connections=dict(type='list', elements='dict', options=private_service_connection_spec),
+            manual_private_link_service_connections=dict(type='list', elements='dict', options=manual_private_service_connection_spec),
         )
 
         self.resource_group = None
@@ -329,6 +363,10 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
             results['private_link_service_connections'] = []
             for connections in privateendpoint.private_link_service_connections:
                 results['private_link_service_connections'].append(dict(private_link_service_id=connections.private_link_service_id, name=connections.name))
+        if privateendpoint.manual_private_link_service_connections and len(privateendpoint.manual_private_link_service_connections) > 0:
+            results['manual_private_link_service_connections'] = []
+            for connections in privateendpoint.manual_private_link_service_connections:
+                results['manual_private_link_service_connections'].append(dict(private_link_service_id=connections.manual_private_link_service_id, name=connections.name))
 
         return results
 

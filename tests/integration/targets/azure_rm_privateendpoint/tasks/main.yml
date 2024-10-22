@@ -34,7 +34,7 @@
           - westus
   register: subnet_output
 
-- name: Create instance of PostgreSQL Server
+- name: Create instance of PostgreSQL Server --- first
   azure_rm_postgresqlserver:
     resource_group: "{{ resource_group }}"
     name: postgresqlsrv{{ rpfx }}
@@ -47,6 +47,20 @@
     admin_username: zimxyz
     admin_password: "{{ password }}"
   register: post_output
+
+- name: Create instance of PostgreSQL Server --- secondary
+  azure_rm_postgresqlserver:
+    resource_group: "{{ resource_group }}"
+    name: "postgresqlsrv{{ rpfx }}02"
+    sku:
+      name: GP_Gen5_2
+      tier: GeneralPurpose
+    location: eastus
+    storage_mb: 51200
+    enforce_ssl: true
+    admin_username: zimxyz
+    admin_password: "{{ password }}"
+  register: post_output02
 
 - name: Delete private endpoint, makesure there is no private endpoint exist
   azure_rm_privateendpoint:
@@ -61,6 +75,11 @@
     private_link_service_connections:
       - name: privateEndpoints_test_name
         private_link_service_id: "{{ post_output.id }}"
+        group_ids:
+          - postgresqlServer
+    manual_private_link_service_connections:
+      - name: privateEndpoints_test_name02
+        private_link_service_id: "{{ post_output02.id }}"
         group_ids:
           - postgresqlServer
     subnet:
@@ -87,6 +106,11 @@
         private_link_service_id: "{{ post_output.id }}"
         group_ids:
           - postgresqlServer
+    manual_private_link_service_connections:
+      - name: privateEndpoints_test_name02
+        private_link_service_id: "{{ post_output02.id }}"
+        group_ids:
+          - postgresqlServer
     subnet:
       id: "{{ subnet_output.state.id }}"
     tags:
@@ -107,6 +131,11 @@
     private_link_service_connections:
       - name: privateEndpoints_test_name
         private_link_service_id: "{{ post_output.id }}"
+        group_ids:
+          - postgresqlServer
+    manual_private_link_service_connections:
+      - name: privateEndpoints_test_name02
+        private_link_service_id: "{{ post_output02.id }}"
         group_ids:
           - postgresqlServer
     subnet:
