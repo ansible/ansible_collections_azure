@@ -67,7 +67,7 @@ state:
         id:
             description:
                 - Resource ID of the private endpoint.
-            sample: /subscriptions/xxx-xxx-xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/privateEndpoints/testprivateendpoint
+            sample: /subscriptions/xxx-xxx-xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/privateEndpoints/ped01
             returned: always
             type: str
         etag:
@@ -105,7 +105,7 @@ state:
                 - Name of the private endpoint.
             returned: always
             type: str
-            sample: estprivateendpoint
+            sample: ped01
         subnets_id:
             description:
                 - Subnets associated with the virtual network.
@@ -115,7 +115,7 @@ state:
         manual_private_link_service_connections:
             description:
                 - The resource id of the private endpoint to connect.
-            returned: always
+            returned: when-used
             type: complex
             contains:
                 id:
@@ -123,7 +123,7 @@ state:
                         - The resource id of the private endpoint to connect.
                     returned: always
                     type: str
-                    sample: "/subscriptions/xxx/resourceGroups/v-xisuRG01/providers/Microsoft.Network/privateEndpoints/ped01/privateLinkServiceConnections/ped_name01"
+                    sample: "/subscriptions/xxx/resourceGroups/testRG/providers/Microsoft.Network/privateEndpoints/ped01/privateLinkServiceConnections/ped01"
                 name:
                     description:
                         - The name of the private endpoint connection.
@@ -157,7 +157,7 @@ state:
         private_link_service_connections:
             description:
                 - The resource id of the private endpoint to connect.
-            returned: always
+            returned: when-used
             type: complex
             contains:
                 id:
@@ -165,7 +165,7 @@ state:
                         - The resource id of the private endpoint to connect.
                     returned: always
                     type: str
-                    sample: "/subscriptions/xxx/resourceGroups/v-xisuRG01/providers/Microsoft.Network/privateEndpoints/ped01/privateLinkServiceConnections/ped_name02"
+                    sample: "/subscriptions/xxx/resourceGroups/testRG/providers/Microsoft.Network/privateEndpoints/ped01/privateLinkServiceConnections/ped02"
                 name:
                     description:
                         - The name of the private endpoint connection.

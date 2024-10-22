@@ -258,10 +258,12 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
             state=dict()
         )
         self.to_do = Actions.NoAction
+        mutually_exclusive = [['private_link_service_connections', 'manual_private_link_service_connections']]
 
         super(AzureRMPrivateEndpoint, self).__init__(self.module_arg_spec,
                                                      supports_tags=True,
-                                                     supports_check_mode=True)
+                                                     supports_check_mode=True,
+                                                     mutually_exclusive=mutually_exclusive)
 
     def exec_module(self, **kwargs):
 
@@ -366,7 +368,8 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
         if privateendpoint.manual_private_link_service_connections and len(privateendpoint.manual_private_link_service_connections) > 0:
             results['manual_private_link_service_connections'] = []
             for connections in privateendpoint.manual_private_link_service_connections:
-                results['manual_private_link_service_connections'].append(dict(private_link_service_id=connections.manual_private_link_service_id, name=connections.name))
+                results['manual_private_link_service_connections'].append(dict(
+                    private_link_service_id=connections.manual_private_link_service_id, name=connections.name))
 
         return results
 
