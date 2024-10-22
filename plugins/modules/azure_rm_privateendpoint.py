@@ -369,7 +369,7 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
             results['manual_private_link_service_connections'] = []
             for connections in privateendpoint.manual_private_link_service_connections:
                 results['manual_private_link_service_connections'].append(dict(
-                    private_link_service_id=connections.manual_private_link_service_id, name=connections.name))
+                    private_link_service_id=connections.private_link_service_id, name=connections.name))
 
         return results
 
