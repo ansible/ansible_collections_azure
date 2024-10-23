@@ -162,6 +162,7 @@ try:
     from azure.core.pipeline import PipelineResponse
     from azure.mgmt.core.polling.arm_polling import ARMPolling
     from azure.core.polling import LROPoller
+    from netaddr import IPAddress
 except ImportError:
     Configuration = object
     parse_resource_id = object
@@ -473,7 +474,6 @@ class InventoryModule(BaseInventoryPlugin, Constructable):
             url = '{0}/providers/Microsoft.AzureStackHCI/virtualMachineInstances'.format(arcvm['id'])
             # Stack HCI instances look close enough to regular VMs that we can share the handler impl...
             self._enqueue_get(url=url, api_version=self._stackhci_api_version, handler=self._on_vm_page_response, handler_args=dict(arcvm=arcvm))
-            self._hosts.append(ArcHost(arcvm, self, legacy_name=self._legacy_hostnames))
 
     def _on_vmss_page_response(self, response):
         next_link = response.get('nextLink')
@@ -673,7 +673,12 @@ class ArcHost(object):
             for ipaddr in nic.get('ipAddresses', []):
                 ipAddressVersion = ipaddr.get('ipAddressVersion')
                 if ipAddressVersion == 'IPv4':
-                    new_hostvars['ansible_all_ipv4_addresses'].append(ipaddr.get('address'))
+                    ipv4_address = ipaddr.get('address')
+                    new_hostvars['ansible_all_ipv4_addresses'].append(ipv4_address)
+                    if IPAddress(ipv4_address).is_global():
+                        new_hostvars['public_ipv4_address'].append(ipv4_address)
+                    else:
+                        new_hostvars['private_ipv4_addresses'].append(ipv4_address)
                 if ipAddressVersion == 'IPv6':
                     new_hostvars['ansible_all_ipv6_addresses'].append(ipaddr.get('address'))
         self._hostvars = new_hostvars
