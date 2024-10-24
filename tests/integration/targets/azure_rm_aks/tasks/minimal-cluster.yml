@@ -288,7 +288,7 @@
 
 - name: Create Log Analytics Workspace
   azure_rm_loganalyticsworkspace:
-    name: "{{ name_rpfx }}"
+    name: "log{{ rpfx }}"
     intelligence_packs:
       Backup: true
       Containers: true

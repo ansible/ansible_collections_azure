@@ -198,7 +198,7 @@ options:
                 description:
                     - Workload identity settings for the security profile.
                     - Workload identity enables Kubernetes applications to access Azure cloud resources securely with Azure AD.
-                    - See L(https://aka.ms/aks/wi) for more details.
+                    - See U(https://aka.ms/aks/wi) for more details.
                 type: dict
                 suboptions:
                     enabled:
@@ -228,7 +228,7 @@ options:
                             - Resource ID of the Log Analytics workspace to be associated with Microsoft Defender.
                             - When Microsoft Defender is enabled, this field is required and must be a valid workspace resource ID.
                             - When Microsoft Defender is disabled, leave the field empty.
-                        type: bool
+                        type: str
                     security_monitoring:
                         description:
                             - Microsoft Defender threat detection for Cloud settings for the security profile.
@@ -241,7 +241,7 @@ options:
             azure_key_vault_kms:
                 description:
                     - Azure Key Vault.
-                    - See L(https://kubernetes.io/docs/tasks/administer-cluster/kms-provider/) settings for the security profile.
+                    - See U(https://kubernetes.io/docs/tasks/administer-cluster/kms-provider/) settings for the security profile.
                 type: dict
                 suboptions:
                     enabled:
@@ -252,7 +252,6 @@ options:
                     key_id:
                         description:
                             - Identifier of Azure Key Vault key.
-                            - See key identifier format I(https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#vault-name-and-object-name).
                         type: str
                     key_vault_network_acces:
                         description:
@@ -1429,7 +1428,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                                     to_be_updated = True
                                 elif security_profile is not None:
                                     if bool(security_profile['enable_secure_boot']) != bool(profile_result['security_profile']['enable_secure_boot']) or \
-                                      bool(security_profile['enable_vtpm']) != bool(profile_result['security_profile']['enable_vtpm']):
+                                       bool(security_profile['enable_vtpm']) != bool(profile_result['security_profile']['enable_vtpm']):
                                         self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(str(profile_result), str(profile_self))))
                                         to_be_updated = True
 
