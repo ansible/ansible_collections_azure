@@ -246,20 +246,28 @@ options:
                 suboptions:
                     enabled:
                         description:
-                            -
+                            -  Whether to enable Azure Key Vault key management service. The default is C(false).
                         type: bool
+                        default: false
                     key_id:
                         description:
-                            -
-                        type: bool
+                            - Identifier of Azure Key Vault key.
+                            - See key identifier format I(https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#vault-name-and-object-name).
+                        type: str
                     key_vault_network_acces:
                         description:
-                            -
-                        type: bool
+                            - Network access of key vault.
+                        type: str
+                        choices:
+                            - Public
+                            - Private
+                        default: Public
                     key_vault_resource_id:
                         description:
-                            -
-                        type: bool
+                            - Resource ID of key vault.
+                            - When I(key_vault_network_acces=Private), this field is required and must be a valid resource ID.
+                            - When I(key_vault_network_acces=Public), leave the field empty.
+                        type: str
     service_principal:
         description:
             - The service principal suboptions.
@@ -1170,7 +1178,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     azure_key_vault_kms=dict(
                         type='dict',
                         options=dict(
-                            enabled=dict(type='bool'),
+                            enabled=dict(type='bool', default=False),
                             key_id=dict(type='str'),
                             key_vault_network_acces=dict(type='str', choices=['Private', 'Public'], default='Public'),
                             key_vault_resource_id=dict(type='str')

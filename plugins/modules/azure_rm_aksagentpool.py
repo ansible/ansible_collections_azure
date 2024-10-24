@@ -1016,7 +1016,7 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
             ),
             security_profile=dict(
                 type='dict',
-                opitons=dict(
+                options=dict(
                     enable_secure_boot=dict(type='bool', default=False),
                     enable_vtpm=dict(type='bool', default=False)
                 )
