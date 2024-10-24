@@ -286,6 +286,16 @@
     that:
       - output.changed
 
+- name: Create Log Analytics Workspace
+  azure_rm_loganalyticsworkspace:
+    name: "{{ name_rpfx }}"
+    intelligence_packs:
+      Backup: true
+      Containers: true
+    retention_in_days: 30
+    resource_group: "{{ resource_group }}"
+  register: log_output
+
 - name: Create a new kubernet service with security parameters
     azure_rm_aks:
     name: "min{{ rpfx }}-sec"
@@ -301,7 +311,7 @@
         enabled: false
         interval_hours: 38
       defender:
-        log_analytics_workspace_resource_id: "/subscriptions/0b1f6471-1bf0-4dda-aec3-cb9272f09590/resourceGroups/v-xisuRG05/providers/Microsoft.OperationalInsights/workspaces/fred001"
+        log_analytics_workspace_resource_id: "{{ log_output.id }}"
         security_monitoring:
           enabled: true
     agent_pool_profiles:
