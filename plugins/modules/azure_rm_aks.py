@@ -1176,6 +1176,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     ),
                     azure_key_vault_kms=dict(
                         type='dict',
+                        no_log=True,
                         options=dict(
                             enabled=dict(type='bool', default=False),
                             key_id=dict(type='str'),
