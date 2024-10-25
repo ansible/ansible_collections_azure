@@ -1,5 +1,65 @@
 # Change Log
 
+## v2.8.0 (2024-10-25)
+
+### NEW MODULES
+  - azure_rm_virtualnetworkgatewayconnection: Support to managed virtual network gateway connection's resource ([#1627](https://github.com/ansible-collections/azure/pull/1627))
+  - azure_rm_virtualnetworkgatewayconnection_info: Support to fetch the virtual network gateway connection resource ([#1627](https://github.com/ansible-collections/azure/pull/1627))
+  - azure_rm_mysqlflexibleserver: Support managed flexible server ([#1586](https://github.com/ansible-collections/azure/pull/1586))
+  - azure_rm_mysqlflexibleserver_info: Support to fetch managed flexible server ([#1586](https://github.com/ansible-collections/azure/pull/1586))
+  - azure_rm_mysqlflexibleconfiguration: Support managed flexible server configuration ([#1586](https://github.com/ansible-collections/azure/pull/1586))
+  - azure_rm_mysqlflexibleconfiguration_info: Support to fetch managed flexible server configuration ([#1586](https://github.com/ansible-collections/azure/pull/1586))
+  - azure_rm_mysqlflexibledatabase: Support managed flexible server database ([#1586](https://github.com/ansible-collections/azure/pull/1586))
+  - azure_rm_mysqlflexibledatabase_info: Support to fetch flexible server database ([#1586](https://github.com/ansible-collections/azure/pull/1586))
+  - azure_rm_mysqlflexiblefirewallrule: Support managed flexible server firewall rule ([#1586](https://github.com/ansible-collections/azure/pull/1586))
+  - azure_rm_mysqlflexiblefirewallrule_info: Support to fetch flexible server firewall rule ([#1586](https://github.com/ansible-collections/azure/pull/1586))
+  - azure_identity_multiple_user: Managed identity cleanup ([#1724](https://github.com/ansible-collections/azure/pull/1724))
+  - azure_identity_single: Managed identity cleanup ([#1724](https://github.com/ansible-collections/azure/pull/1724))
+  - azure_rm_imagesku_info: VM Image SKUs support in Ansible collection for Azure module creation ([#1719](https://github.com/ansible-collections/azure/pull/1719))
+
+### FEATURE ENHANCEMENT
+  - azure_rm_eventhub: Add managed identity support to eventhub module ([#1696](https://github.com/ansible-collections/azure/pull/1696))
+  - main.yml:
+    - Use the password plug-in to generate a login key ([#1699](https://github.com/ansible-collections/azure/pull/1699))
+    - Set the value of open port ([#1704](https://github.com/ansible-collections/azure/pull/1704))
+    - Update azure_rm_sqlelasticpool test case ([#1714](https://github.com/ansible-collections/azure/pull/1714))
+  - azure_rm_openshiftmanagedcluster: Add suport outbound_type to azure_rm_openshiftmanagedcluster modules ([#1664](https://github.com/ansible-collections/azure/pull/1664))
+  - requirements.txt:
+    - Upgrade dependency package to lasted ([#1709](https://github.com/ansible-collections/azure/pull/1709))
+    - Upgrade azure-mgmt-compute to v33.0.0 ([#1700](https://github.com/ansible-collections/azure/pull/1700))
+    - Upgrade azure-mgmt-network-to-v26.0.0 ([#1697](https://github.com/ansible-collections/azure/pull/1697))
+    - Bump cryptography from 42.0.4 to 43.0.1 ([#1702](https://github.com/ansible-collections/azure/pull/1702))
+    - Upgrade azure-mgmt-notificationhubs and azure-mgmt-eventhub to lastest ([#1706](https://github.com/ansible-collections/azure/pull/1706))
+    - Update some dependency packages ([#1703](https://github.com/ansible-collections/azure/pull/1703))
+    - Update some dependency packages -- 02 ([#1707](https://github.com/ansible-collections/azure/pull/1707))
+    - Update all packages to the latest version ([#1712](https://github.com/ansible-collections/azure/pull/1712))
+    - Upgrade azure-mgmt-notificationhub api version to v2023-09-01 ([#1723](https://github.com/ansible-collections/azure/pull/1723))
+    - Upgrade azure-mgmt-recoveryservicesbackup to v9.1.0 ([#1733](https://github.com/ansible-collections/azure/pull/1733))
+    - Update azure-identity and azure-core to new version ([#1746](https://github.com/ansible-collections/azure/pull/1746))
+  - azure_rm_loganalyticsworkspace: Add Identity Management to log_analytics ([#1683](https://github.com/ansible-collections/azure/pull/1683))
+  - azure_rm_hdinsightcluster: Add Identity support to hdinsight cluster ([#1695](https://github.com/ansible-collections/azure/pull/1695))
+  - azure_rm_hdinsightcluster_info: Fetch the hdinsight cluster's Identity ([#1695](https://github.com/ansible-collections/azure/pull/1695))
+  - azure_aksagentpool: Add tags to parameter agent_pools ([#1718](https://github.com/ansible-collections/azure/pull/1718))
+  - azure_aksagentpool_info: Fetch the agent pool's tags ([#1718](https://github.com/ansible-collections/azure/pull/1718))
+  - azure_rm_publicipaddress: Add support reverse_fqdn ([#1660](https://github.com/ansible-collections/azure/pull/1660))
+  - azure_rm_snapshot_info: Add support for list snapshot instance ([#1659](https://github.com/ansible-collections/azure/pull/1659))
+  - azure_rm_sqlmanagedinstance: Add support for Managed User Identities to sqlManagedInstance ([#1633](https://github.com/ansible-collections/azure/pull/1633))
+  - azure_rm: Add support to Azure StackHCI vms in the inventory plugin ([#1620](https://github.com/ansible-collections/azure/pull/1620))
+  - azure_rm_manageddisk: Add new parameters support to azure_rm_manageddisk ([#1741](https://github.com/ansible-collections/azure/pull/1741))
+  - azure_rm_manageddisk_info: Fetch the new config facts ([#1741](https://github.com/ansible-collections/azure/pull/1741))
+
+### BUG FIXING
+  - azure_rm_networkinterface: Fixes errors for application security groups under different subscription ids ([#1711](https://github.com/ansible-collections/azure/pull/1711))
+  - azure_rm_common: Lexicalized resource ids should get 'subscription' instead of 'subscription_id' ([#1720](https://github.com/ansible-collections/azure/pull/1720))
+  - azure_rm_image: Lexicalized resource ids should get 'subscription' instead of 'subscription_id' ([#1720](https://github.com/ansible-collections/azure/pull/1720))
+  - meta/runtime.yml: Keeping action_groups and modules list on version 2.7.0 ([#1694](https://github.com/ansible-collections/azure/pull/1694))
+  - azure_rm_*: fix version_added for 2.7.0 ([#1693](https://github.com/ansible-collections/azure/pull/1693))
+  - azure_rm_openshiftcluster: Remove vm_size choices ([#1691](https://github.com/ansible-collections/azure/pull/1691))
+  - azure_rm_virtualmachine_info: Fetch the identity facts ([#1674](https://github.com/ansible-collections/azure/pull/1674))
+  - azure_rm_aks: Fixed bugs caused by indent ([#1730](https://github.com/ansible-collections/azure/pull/1730))
+  - azure_rm_virtualmachinescalesetinstance: Update azure_rm_virtualmachinescalesetinstance.py's document ([#1732](https://github.com/ansible-collections/azure/pull/1732))
+
+
 ## v2.7.0 (2024-08-30)
 
 ### NEW MODULES
