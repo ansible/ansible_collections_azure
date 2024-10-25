@@ -64,11 +64,6 @@
   register: output
   ignore_errors: true
 
-# - name: Verify that the cluster credentials are successfully obtained
-#  ansible.builtin.assert:
-#    that:
-#      - output.cluster_credentials | length == 1
-
 - name: Get managecluster user credentials
   azure_rm_akscredentials_info:
     resource_group: "{{ resource_group }}"
@@ -77,11 +72,6 @@
   register: output
   ignore_errors: true
 
-# - name: Verify that the cluster credentials are successfully obtained
-#  ansible.builtin.assert:
-#    that:
-#      - output.cluster_credentials | length == 1
-
 - name: Get managecluster monitor user credentials
   azure_rm_akscredentials_info:
     resource_group: "{{ resource_group }}"
@@ -89,11 +79,6 @@
     show_monitor_credentials: true
   register: output
   ignore_errors: true
-
-# - name: Verify that the cluster credentials are successfully obtained
-#  ansible.builtin.assert:
-#    that:
-#      - output.cluster_credentials | length == 1
 
 - name: Get cluster's node agent pool info
   azure_rm_aksagentpool_info:
@@ -133,8 +118,8 @@
     max_count: 10
     orchestrator_version: "{{ agentpool_version.azure_orchestrator_version[0] }}"
     security_profile:
-      enable_vtpm: false
-      enable_secure_boot: false
+      enable_vtpm: true
+      enable_secure_boot: true
     availability_zones:
       - 1
       - 2
@@ -161,8 +146,8 @@
     max_count: 10
     orchestrator_version: "{{ agentpool_version.azure_orchestrator_version[0] }}"
     security_profile:
-      enable_vtpm: false
-      enable_secure_boot: false
+      enable_vtpm: true
+      enable_secure_boot: true
     availability_zones:
       - 1
       - 2
@@ -201,7 +186,7 @@
     orchestrator_version: "{{ agentpool_version.azure_orchestrator_version[0] }}"
     security_profile:
       enable_vtpm: false
-      enable_secure_boot: true
+      enable_secure_boot: false
     availability_zones:
       - 1
       - 2
@@ -229,7 +214,7 @@
       - output.aks_agent_pools[0].max_pods == 42
       - output.aks_agent_pools[0].orchestrator_version == agentpool_version.azure_orchestrator_version[0]
       - output.aks_agent_pools[0].security_profile.enable_vtpm is false
-      - output.aks_agent_pools[0].security_profile.enable_secure_boot is true
+      - output.aks_agent_pools[0].security_profile.enable_secure_boot is false
 
 - name: Create a new agent pool with multi parameters
   azure_rm_aksagentpool:

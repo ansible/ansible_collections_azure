@@ -320,8 +320,8 @@
         vm_size: Standard_B2s
         mode: System
         security_profile:
-          enable_vtpm: false
-          enable_secure_boot: false
+          enable_vtpm: true
+          enable_secure_boot: true
     api_server_access_profile:
       authorized_ip_ranges:
         - "192.0.2.0"
@@ -362,8 +362,8 @@
         vm_size: Standard_B2s
         mode: System
         security_profile:
-          enable_vtpm: false
-          enable_secure_boot: false
+          enable_vtpm: true
+          enable_secure_boot: true
     api_server_access_profile:
       authorized_ip_ranges:
         - "192.0.2.0"
@@ -404,7 +404,7 @@
         vm_size: Standard_B2s
         mode: System
         security_profile:
-          enable_vtpm: true
+          enable_vtpm: false
           enable_secure_boot: false
     api_server_access_profile:
       authorized_ip_ranges:
@@ -420,9 +420,9 @@
 - name: Assert the AKS instance facts
   ansible.builtin.assert:
     that:
-      - output.aks[0].agent_pool_profiles[0].security_profile.enable_vtpm is true
+      - output.aks[0].agent_pool_profiles[0].security_profile.enable_vtpm is false
       - output.aks[0].agent_pool_profiles[0].security_profile.enable_secure_boot is false
-      - output.aks[0].security_profile.image_cleaner.enabled is false
+      - output.aks[0].security_profile.image_cleaner.enabled is true
       - output.aks[0].security_profile.image_cleaner.interval_hours == 68
 
 - name: Delete the AKS instance
