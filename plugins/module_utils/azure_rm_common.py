@@ -429,7 +429,7 @@ class AzureRMModuleBase(object):
         self._resource_client = None
         self._compute_client = None
         self._disk_client = None
-        self.multi_disk_client = None
+        self._multi_disk_client = None
         self._diskencryptionset_client = None
         self._image_client = None
         self._dns_client = None
