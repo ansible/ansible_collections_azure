@@ -429,6 +429,7 @@ class AzureRMModuleBase(object):
         self._resource_client = None
         self._compute_client = None
         self._disk_client = None
+        self.multi_disk_client = None
         self._diskencryptionset_client = None
         self._image_client = None
         self._dns_client = None
@@ -1142,6 +1143,20 @@ class AzureRMModuleBase(object):
     def disk_models(self):
         self.log("Getting disk models")
         return ComputeManagementClient.models("2023-04-02")
+
+    @property
+    def multi_disk_client(self):
+        self.log('Getting disk client')
+        if not self._multi_disk_client:
+            self._multi_disk_client = self.get_mgmt_svc_client(ComputeManagementClient,
+                                                               base_url=self._cloud_environment.endpoints.resource_manager,
+                                                               api_version='2024-04-01')
+        return self._multi_disk_client
+
+    @property
+    def multi_disk_models(self):
+        self.log("Getting disk models")
+        return ComputeManagementClient.models("2021-04-01")
 
     @property
     def diskencryptionset_client(self):
