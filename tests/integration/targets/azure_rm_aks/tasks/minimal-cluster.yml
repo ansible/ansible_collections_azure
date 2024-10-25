@@ -424,7 +424,7 @@
 
 - name: Get AKS fact
   azure_rm_aks_info:
-    name: "minimal{{ rpfx }}-sec"
+    name: "min{{ rpfx }}-sec"
     resource_group: "{{ resource_group }}"
   register: output
 
@@ -438,7 +438,7 @@
 
 - name: Delete the AKS instance
   azure_rm_aks:
-    name: "minimal{{ rpfx }}-sec"
+    name: "min{{ rpfx }}-sec"
     resource_group: "{{ resource_group }}"
     state: absent
 
