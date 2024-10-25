@@ -417,6 +417,17 @@
       outbound_type: loadBalancer
   register: output
 
+- name: Assert the AKS instance updated
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Get AKS fact
+  azure_rm_aks_info:
+    name: "minimal{{ rpfx }}-sec"
+    resource_group: "{{ resource_group }}"
+  register: output
+
 - name: Assert the AKS instance facts
   ansible.builtin.assert:
     that:
