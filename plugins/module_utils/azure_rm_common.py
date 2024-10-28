@@ -965,13 +965,10 @@ class AzureRMModuleBase(object):
                     pass
             client.models = types.MethodType(_ansible_get_models, client)
 
-
         client._config.user_agent_policy = self.add_user_agent(client._config.user_agent_policy)
-
 
         if self.azure_auth._cert_validation_mode == 'ignore':
             client._config.session_configuration_callback = self._validation_ignore_callback
-
 
         return client
 
