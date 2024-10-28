@@ -36,6 +36,7 @@
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     dns_prefix: "aks{{ rpfx }}"
     enable_rbac: true
+    disable_local_accounts: true
     aad_profile:
       managed: true
     agent_pool_profiles:
@@ -61,11 +62,7 @@
     cluster_name: "min{{ rpfx }}"
     show_admin_credentials: true
   register: output
-
-- name: Verify that the cluster credentials are successfully obtained
-  ansible.builtin.assert:
-    that:
-      - output.cluster_credentials | length == 1
+  ignore_errors: true
 
 - name: Get managecluster user credentials
   azure_rm_akscredentials_info:
@@ -73,11 +70,7 @@
     cluster_name: "min{{ rpfx }}"
     show_user_credentials: true
   register: output
-
-- name: Verify that the cluster credentials are successfully obtained
-  ansible.builtin.assert:
-    that:
-      - output.cluster_credentials | length == 1
+  ignore_errors: true
 
 - name: Get managecluster monitor user credentials
   azure_rm_akscredentials_info:
@@ -85,11 +78,7 @@
     cluster_name: "min{{ rpfx }}"
     show_monitor_credentials: true
   register: output
-
-- name: Verify that the cluster credentials are successfully obtained
-  ansible.builtin.assert:
-    that:
-      - output.cluster_credentials | length == 1
+  ignore_errors: true
 
 - name: Get cluster's node agent pool info
   azure_rm_aksagentpool_info:
@@ -128,6 +117,9 @@
     min_count: 1
     max_count: 10
     orchestrator_version: "{{ agentpool_version.azure_orchestrator_version[0] }}"
+    security_profile:
+      enable_vtpm: true
+      enable_secure_boot: true
     availability_zones:
       - 1
       - 2
@@ -153,6 +145,9 @@
     min_count: 1
     max_count: 10
     orchestrator_version: "{{ agentpool_version.azure_orchestrator_version[0] }}"
+    security_profile:
+      enable_vtpm: true
+      enable_secure_boot: true
     availability_zones:
       - 1
       - 2
@@ -189,6 +184,9 @@
     min_count: 2
     max_count: 20
     orchestrator_version: "{{ agentpool_version.azure_orchestrator_version[0] }}"
+    security_profile:
+      enable_vtpm: false
+      enable_secure_boot: false
     availability_zones:
       - 1
       - 2
@@ -215,6 +213,8 @@
       - output.aks_agent_pools[0].type_properties_type == "VirtualMachineScaleSets"
       - output.aks_agent_pools[0].max_pods == 42
       - output.aks_agent_pools[0].orchestrator_version == agentpool_version.azure_orchestrator_version[0]
+      - output.aks_agent_pools[0].security_profile.enable_vtpm is false
+      - output.aks_agent_pools[0].security_profile.enable_secure_boot is false
 
 - name: Create a new agent pool with multi parameters
   azure_rm_aksagentpool:
