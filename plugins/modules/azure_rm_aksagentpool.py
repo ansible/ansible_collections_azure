@@ -442,6 +442,21 @@ options:
             - MIG3g
             - MIG4g
             - MIG7g
+    security_profile:
+        description:
+            - The security settings of an agent pool.
+        type: dict
+        suboptions:
+            enable_vtpm:
+                description:
+                    - Whether to disable or enabled the vTPM.
+                type: bool
+                default: false
+            enable_secure_boot:
+                description:
+                    - Whether to disable or enabled the secure boot.
+                default: false
+                type: bool
     state:
         description:
             - State of the automation runbook. Use C(present) to create or update a automation runbook and use C(absent) to delete.
@@ -648,6 +663,23 @@ aks_agent_pools:
             type: float
             returned: always
             sample: null
+        security_profile:
+            description:
+                - The security settings of an agent pool.
+            type: complex
+            contains:
+                enable_secure_boot:
+                    description:
+                        - The secure boot is disabled or enabled.
+                    type: bool
+                    returned: always
+                    sample: true
+                enable_vtpm:
+                    description:
+                        - The vTPM is enabled or disabled.
+                    type: bool
+                    returned: always
+                    sample: true
         type:
             description:
                 - Resource Type.
@@ -985,6 +1017,13 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
                 type='str',
                 choices=["MIG1g", "MIG2g", "MIG3g", "MIG4g", "MIG7g"]
             ),
+            security_profile=dict(
+                type='dict',
+                options=dict(
+                    enable_secure_boot=dict(type='bool', default=False),
+                    enable_vtpm=dict(type='bool', default=False)
+                )
+            ),
             state=dict(
                 type='str',
                 choices=['present', 'absent'],
@@ -1031,6 +1070,7 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
         self.enable_ultra_ssd = None
         self.enable_fips = None
         self.gpu_instance_profile = None
+        self.security_profile = None
         self.body = dict()
 
         super(AzureRMAksAgentPool, self).__init__(self.module_arg_spec, supports_check_mode=True, supports_tags=True)
@@ -1055,7 +1095,10 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
                             changed = True
                     elif self.body[key] is not None and isinstance(self.body[key], dict):
                         for item in self.body[key].keys():
-                            if self.body[key][item] is not None and self.body[key][item] != agent_pool[key].get(item):
+                            if key == 'security_profile':
+                                if bool(self.body[key][item]) != bool(agent_pool[key].get(item)):
+                                    changed = True
+                            elif self.body[key][item] != agent_pool[key].get(item):
                                 changed = True
                     elif key == 'node_public_ip_prefix_id':
                         pass
@@ -1150,6 +1193,7 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
             proximity_placement_group_id=agent_pool.proximity_placement_group_id,
             kubelet_config=dict(),
             linux_os_config=dict(),
+            security_profile=dict(),
             enable_encryption_at_host=agent_pool.enable_encryption_at_host,
             enable_ultra_ssd=agent_pool.enable_ultra_ssd,
             enable_fips=agent_pool.enable_fips,
@@ -1188,6 +1232,12 @@ class AzureRMAksAgentPool(AzureRMModuleBase):
                 agent_pool_dict['linux_os_config']['sysctls'] = None
         else:
             agent_pool_dict['linux_os_config'] = None
+
+        if agent_pool.security_profile is not None:
+            agent_pool_dict['security_profile']['enable_vtpm'] = agent_pool.security_profile.enable_vtpm
+            agent_pool_dict['security_profile']['enable_secure_boot'] = agent_pool.security_profile.enable_secure_boot
+        else:
+            agent_pool_dict['security_profile'] = None
 
         return agent_pool_dict
 

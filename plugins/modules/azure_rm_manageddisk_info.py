@@ -142,6 +142,36 @@ azure_managed_disk:
                 - The time the disk was created.
             type: str
             sample: "2018-01-01T11:08:15.338648900:00"
+        disk_iops_read_write:
+            description:
+                - The number of IOPS allowed for this disk.
+                - Only settable for I(storage_account_type=UltraSSD_LRS) disks.
+                - One operation can transfer between 4k and 256k bytes.
+            type: int
+            returned: always
+            sample: 200
+        disk_m_bps_read_write:
+            description:
+                - The bandwidth allowed for this disk.
+                - Only settable for I(storage_account_type=UltraSSD_LRS) disks.
+                - One operation can transfer between 4k and 256k bytes.
+            type: int
+            returned: always
+            sample: 30
+        disk_iops_read_only:
+            description:
+                - The total throughput (MBps) that will be allowed across all VMs mounting the shared disk as ReadOnly.
+                - One operation can transfer between 4k and 256k bytes.
+            type: int
+            returned: always
+            sample: 200
+        disk_m_bps_read_only:
+            description:
+                - The total throughput (MBps) that will be allowed across all VMs mounting the shared disk as ReadOnly.
+                - MBps means millions of bytes per second - MB here uses the ISO notation, of powers of 10.
+            type: int
+            returned: always
+            sample: 30
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -261,7 +291,11 @@ class AzureRMManagedDiskInfo(AzureRMModuleBase):
             max_shares=managed_disk.max_shares,
             managed_by_extended=managed_disk.managed_by_extended,
             zone=managed_disk.zones[0] if managed_disk.zones and len(managed_disk.zones) > 0 else '',
-            time_created=managed_disk.time_created.isoformat() if managed_disk.time_created else None
+            time_created=managed_disk.time_created.isoformat() if managed_disk.time_created else None,
+            disk_iops_read_write=managed_disk.disk_iops_read_write,
+            disk_m_bps_read_write=managed_disk.disk_m_bps_read_write,
+            disk_iops_read_only=managed_disk.disk_iops_read_only,
+            disk_m_bps_read_only=managed_disk.disk_m_bps_read_only,
         )
 
 

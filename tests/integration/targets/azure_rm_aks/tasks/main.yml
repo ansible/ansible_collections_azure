@@ -42,13 +42,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -83,13 +84,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -134,13 +136,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -194,12 +197,13 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -233,12 +237,13 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -273,12 +278,13 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -309,13 +315,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -350,13 +357,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -387,13 +395,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -435,13 +444,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -476,13 +486,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1
@@ -524,13 +535,14 @@
     resource_group: "{{ resource_group }}"
     location: "{{ location }}"
     dns_prefix: "aks{{ rpfx }}"
+    aad_profile:
+      managed: true
+      enable_azure_rbac: true
+    disable_local_accounts: true
     kubernetes_version: "{{ version1.azure_aks_versions[0] }}"
     service_principal:
       client_id: "{{ azure_client_id }}"
       client_secret: "{{ azure_secret }}"
-    linux_profile:
-      admin_username: azureuser
-      ssh_key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDSPmiqkvDH1/+MDAVDZT8381aYqp73Odz8cnD5hegNhqtXajqtiH0umVg7HybX3wt1HjcrwKJovZURcIbbcDvzdH2bnYbF93T4OLXA0bIfuIp6M86x1iutFtXdpN3TTicINrmSXEE2Ydm51iMu77B08ZERjVaToya2F7vC+egfoPvibf7OLxE336a5tPCywavvNihQjL8sjgpDT5AAScjb3YqK/6VLeQ18Ggt8/ufINsYkb+9/Ji/3OcGFeflnDXq80vPUyF3u4iIylob6RSZenC38cXmQB05tRNxS1B6BXCjMRdy0v4pa7oKM2GA4ADKpNrr0RI9ed+peRFwmsclH test@ansible
     agent_pool_profiles:
       - name: default
         count: 1

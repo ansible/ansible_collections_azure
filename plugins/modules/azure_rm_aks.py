@@ -183,6 +183,99 @@ options:
                     - AzureLinux
                     - Windows2019
                     - Windows2022
+            security_profile:
+                description:
+                    - The security settings of an agent pool.
+                type: dict
+                suboptions:
+                    enable_vtpm:
+                        description:
+                            - Whether to disable or enabled the vTPM.
+                        type: bool
+                        default: false
+                    enable_secure_boot:
+                        description:
+                            - Whether to disable or enabled the secure boot.
+                        default: false
+                        type: bool
+    security_profile:
+        description:
+            - Security profile for the container service cluster.
+        type: dict
+        suboptions:
+            workload_identity:
+                description:
+                    - Workload identity settings for the security profile.
+                    - Workload identity enables Kubernetes applications to access Azure cloud resources securely with Azure AD.
+                    - See U(https://aka.ms/aks/wi) for more details.
+                type: dict
+                suboptions:
+                    enabled:
+                        description:
+                            - Whether to enable workload identity.
+                        type: bool
+            image_cleaner:
+                description:
+                    - Image Cleaner settings for the security profile.
+                type: dict
+                suboptions:
+                    enabled:
+                        description:
+                            - Whether to enable Image Cleaner on AKS cluster.
+                        type: bool
+                    interval_hours:
+                        description:
+                            - Image Cleaner scanning interval in hours.
+                        type: int
+            defender:
+                description:
+                    - Microsoft Defender settings for the security profile.
+                type: dict
+                suboptions:
+                    log_analytics_workspace_resource_id:
+                        description:
+                            - Resource ID of the Log Analytics workspace to be associated with Microsoft Defender.
+                            - When Microsoft Defender is enabled, this field is required and must be a valid workspace resource ID.
+                            - When Microsoft Defender is disabled, leave the field empty.
+                        type: str
+                    security_monitoring:
+                        description:
+                            - Microsoft Defender threat detection for Cloud settings for the security profile.
+                        type: dict
+                        suboptions:
+                            enabled:
+                                description:
+                                    - Whether to enable Defender threat detection.
+                                type: bool
+            azure_key_vault_kms:
+                description:
+                    - Azure Key Vault.
+                    - See U(https://kubernetes.io/docs/tasks/administer-cluster/kms-provider/) settings for the security profile.
+                type: dict
+                suboptions:
+                    enabled:
+                        description:
+                            -  Whether to enable Azure Key Vault key management service. The default is C(false).
+                        type: bool
+                        default: false
+                    key_id:
+                        description:
+                            - Identifier of Azure Key Vault key.
+                        type: str
+                    key_vault_network_acces:
+                        description:
+                            - Network access of key vault.
+                        type: str
+                        choices:
+                            - Public
+                            - Private
+                        default: Public
+                    key_vault_resource_id:
+                        description:
+                            - Resource ID of key vault.
+                            - When I(key_vault_network_acces=Private), this field is required and must be a valid resource ID.
+                            - When I(key_vault_network_acces=Public), leave the field empty.
+                        type: str
     service_principal:
         description:
             - The service principal suboptions.
@@ -464,6 +557,11 @@ options:
                     - The Admin password for the cluster.
                 required: true
                 type: str
+    disable_local_accounts:
+        description:
+            - If set to true, getting static credentials will be disabled for this cluster.
+            - This must only be used on Managed Clusters that are AAD enabled.
+        type: bool
     auto_upgrade_profile:
         description:
             - Auto upgrade profile for a managed cluster.
@@ -698,11 +796,13 @@ state:
            vm_size: Standard_B2s
            vnet_subnet_id: Null
            os_sku: Ubuntu
+           security_profile: { 'enable_secure_boot': true, 'enable_vtpm': false }
         auto_upgrade_profile:
           node_os_upgrade_channel: NodeImage
           upgrade_channel: patch
         changed: false
         dns_prefix: aks9860bdcd89
+        disable_local_accounts: true
         id: "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourcegroups/myResourceGroup/providers/Microsoft.ContainerService/managedClusters/aks9860bdc"
         kube_config: ["......"]
         kubernetes_version: 1.14.6
@@ -732,6 +832,18 @@ state:
                 }
             ]
         }
+        security_profile: {
+            'defender': {
+                "log_analytics_workspace_resource_id": "/subscriptions/xxx/resourceGroups/rg/providers/Microsoft.OperationalInsights/workspaces/fred01",
+                "security_monitoring": {
+                    "enabled": true
+                }
+            },
+            "image_cleaner": {
+                "enabled": false,
+                "interval_hours": 38
+            }
+        }
         tags: {}
         type: Microsoft.ContainerService/ManagedClusters
         windows_profile: None
@@ -760,6 +872,7 @@ def create_aks_dict(aks):
         dns_prefix=aks.dns_prefix,
         kubernetes_version=aks.kubernetes_version,
         tags=aks.tags,
+        disable_local_accounts=aks.disable_local_accounts,
         linux_profile=create_linux_profile_dict(aks.linux_profile),
         identity=aks.identity.as_dict() if aks.identity else {},
         service_principal_profile=create_service_principal_profile_dict(
@@ -778,7 +891,8 @@ def create_aks_dict(aks):
         node_resource_group=aks.node_resource_group,
         auto_upgrade_profile=create_auto_upgrade_profile_dict(aks.auto_upgrade_profile),
         windows_profile=create_windows_profile_dict(aks.windows_profile),
-        pod_identity_profile=create_pod_identity_profile(aks.pod_identity_profile.as_dict()) if aks.pod_identity_profile else None
+        pod_identity_profile=create_pod_identity_profile(aks.pod_identity_profile.as_dict()) if aks.pod_identity_profile else None,
+        security_profile=aks.security_profile.as_dict() if aks.security_profile else None,
     )
 
 
@@ -894,7 +1008,11 @@ def create_agent_pool_profiles_dict(agentpoolprofiles):
         min_count=profile.min_count,
         max_pods=profile.max_pods,
         tags=profile.tags,
-        os_sku=profile.os_sku
+        os_sku=profile.os_sku,
+        security_profile=dict(
+            enable_secure_boot=profile.security_profile.enable_secure_boot,
+            enable_vtpm=profile.security_profile.enable_vtpm
+        )
     ) for profile in agentpoolprofiles] if agentpoolprofiles else None
 
 
@@ -955,7 +1073,14 @@ agent_pool_profile_spec = dict(
     min_count=dict(type='int'),
     max_pods=dict(type='int'),
     tags=dict(type='dict'),
-    os_sku=dict(type='str', choices=['Ubuntu', 'AzureLinux', 'Windows2019', 'Windows2022'])
+    os_sku=dict(type='str', choices=['Ubuntu', 'AzureLinux', 'Windows2019', 'Windows2022']),
+    security_profile=dict(
+        type='dict',
+        options=dict(
+            enable_secure_boot=dict(type='bool', default=False),
+            enable_vtpm=dict(type='bool', default=False)
+        )
+    )
 )
 
 
@@ -1121,7 +1246,50 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                         default='NodeImage'
                     )
                 )
-            )
+            ),
+            disable_local_accounts=dict(
+                type='bool'
+            ),
+            security_profile=dict(
+                type='dict',
+                options=dict(
+                    defender=dict(
+                        type='dict',
+                        options=dict(
+                            log_analytics_workspace_resource_id=dict(type='str'),
+                            security_monitoring=dict(
+                                type='dict',
+                                options=dict(
+                                    enabled=dict(type='bool')
+                                )
+                            )
+                        )
+                    ),
+                    azure_key_vault_kms=dict(
+                        type='dict',
+                        no_log=True,
+                        options=dict(
+                            enabled=dict(type='bool', default=False),
+                            key_id=dict(type='str'),
+                            key_vault_network_acces=dict(type='str', choices=['Private', 'Public'], default='Public'),
+                            key_vault_resource_id=dict(type='str')
+                        )
+                    ),
+                    workload_identity=dict(
+                        type='dict',
+                        options=dict(
+                            enabled=dict(type='bool'),
+                        )
+                    ),
+                    image_cleaner=dict(
+                        type='dict',
+                        options=dict(
+                            enabled=dict(type='bool'),
+                            interval_hours=dict(type='int')
+                        )
+                    ),
+                )
+            ),
         )
 
         self.resource_group = None
@@ -1144,6 +1312,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         self.pod_identity_profile = None
         self.auto_upgrade_profile = None
         self.windows_profile = None
+        self.disable_local_accounts = None
+        self.security_profile = None
 
         mutually_exclusive = [('identity', 'service_principal')]
 
@@ -1235,6 +1405,14 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     if response['enable_rbac'] != self.enable_rbac:
                         to_be_updated = True
 
+                    if self.disable_local_accounts is not None:
+                        if response.get('disable_local_accounts') is None:
+                            to_be_updated = True
+                        elif bool(self.disable_local_accounts) != bool(response.get('disable_local_accounts')):
+                            to_be_updated = True
+                        else:
+                            self.disable_local_accounts = response.get('disable_local_accounts')
+
                     if response['api_server_access_profile'] != self.api_server_access_profile and self.api_server_access_profile is not None:
                         if bool(self.api_server_access_profile.get('enable_private_cluster')) != \
                            bool(response['api_server_access_profile'].get('enable_private_cluster')):
@@ -1272,6 +1450,12 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                             addon_name = ADDONS[key]['name']
                             if not compare_addon(response['addon'].get(addon_name), self.addon.get(key), ADDONS[key].get('config')):
                                 to_be_updated = True
+
+                    if not self.default_compare({}, self.security_profile, response['security_profile'], '', dict(compare=[])):
+                        to_be_updated = True
+                    else:
+                        self.security_profile = response['security_profile']
+
                     if not self.default_compare({}, self.auto_upgrade_profile, response['auto_upgrade_profile'], '', dict(compare=[])):
                         to_be_updated = True
                     else:
@@ -1295,6 +1479,7 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                                 min_count = profile_self['min_count']
                                 max_pods = profile_self['max_pods']
                                 tags = profile_self['tags']
+                                security_profile = profile_self.get('security_profile')
 
                                 if max_pods is not None and profile_result['max_pods'] != max_pods:
                                     self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(str(profile_result), str(profile_self))))
@@ -1334,6 +1519,11 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                                 elif not self.default_compare({}, tags, profile_result['tags'], '', dict(compare=[])):
                                     self.log("Agent Profile Diff - Origin {0} / Update {1}".format(profile_result['tags'], tags))
                                     to_be_updated = True
+                                elif security_profile is not None:
+                                    if bool(security_profile['enable_secure_boot']) != bool(profile_result['security_profile']['enable_secure_boot']) or \
+                                       bool(security_profile['enable_vtpm']) != bool(profile_result['security_profile']['enable_vtpm']):
+                                        self.log(("Agent Profile Diff - Origin {0} / Update {1}".format(str(profile_result), str(profile_self))))
+                                        to_be_updated = True
 
                         if not matched:
                             self.log("Agent Pool not found")
@@ -1450,6 +1640,11 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
         else:
             auto_upgrade_profile = None
 
+        if self.security_profile is not None:
+            security_profile = self.managedcluster_models.ManagedClusterSecurityProfile(**self.security_profile)
+        else:
+            security_profile = None
+
         parameters = self.managedcluster_models.ManagedCluster(
             location=self.location,
             dns_prefix=self.dns_prefix,
@@ -1467,7 +1662,9 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
             addon_profiles=self.create_addon_profile_instance(self.addon),
             node_resource_group=self.node_resource_group,
             pod_identity_profile=pod_identity_profile,
-            auto_upgrade_profile=auto_upgrade_profile
+            auto_upgrade_profile=auto_upgrade_profile,
+            disable_local_accounts=self.disable_local_accounts,
+            security_profile=security_profile,
         )
 
         # self.log("service_principal_profile : {0}".format(parameters.service_principal_profile))
@@ -1510,7 +1707,8 @@ class AzureRMManagedCluster(AzureRMModuleBaseExt):
                     enable_auto_scaling=profile["enable_auto_scaling"],
                     agent_pool_type=profile["type"],
                     mode=profile["mode"],
-                    tags=profile['tags']
+                    tags=profile['tags'],
+                    security_profile=profile['security_profile']
                 )
                 try:
                     poller = self.managedcluster_client.agent_pools.begin_create_or_update(self.resource_group, self.name, profile["name"], parameters)

@@ -38,6 +38,7 @@
     auto_upgrade_profile:
       node_os_upgrade_channel: NodeImage
       upgrade_channel: patch
+    disable_local_accounts: true
   register: output
 
 - name: Assert the AKS instance is well created
@@ -284,6 +285,162 @@
   ansible.builtin.assert:
     that:
       - output.changed
+
+- name: Create Log Analytics Workspace
+  azure_rm_loganalyticsworkspace:
+    name: "log{{ rpfx }}"
+    intelligence_packs:
+      Backup: true
+      Containers: true
+    retention_in_days: 30
+    resource_group: "{{ resource_group }}"
+  register: log_output
+
+- name: Create a new kubernet service with security parameters
+  azure_rm_aks:
+    name: "min{{ rpfx }}-sec"
+    location: westus2
+    resource_group: "{{ resource_group }}"
+    kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
+    dns_prefix: "aks{{ rpfx }}"
+    enable_rbac: true
+    aad_profile:
+      managed: true
+    security_profile:
+      image_cleaner:
+        enabled: false
+        interval_hours: 38
+      defender:
+        log_analytics_workspace_resource_id: "{{ log_output.id }}"
+        security_monitoring:
+          enabled: true
+    agent_pool_profiles:
+      - name: default
+        count: 2
+        vm_size: Standard_B2s
+        mode: System
+        security_profile:
+          enable_vtpm: true
+          enable_secure_boot: true
+    api_server_access_profile:
+      authorized_ip_ranges:
+        - "192.0.2.0"
+        - "198.51.100.0"
+        - "203.0.113.0"
+      enable_private_cluster: false
+    network_profile:
+      load_balancer_sku: standard
+      outbound_type: loadBalancer
+  register: output
+
+- name: Assert the AKS instance is well created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Create a new kubernet service with security parameters (Idempotent test)
+  azure_rm_aks:
+    name: "min{{ rpfx }}-sec"
+    location: westus2
+    resource_group: "{{ resource_group }}"
+    kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
+    dns_prefix: "aks{{ rpfx }}"
+    enable_rbac: true
+    aad_profile:
+      managed: true
+    security_profile:
+      image_cleaner:
+        enabled: false
+        interval_hours: 38
+      defender:
+        log_analytics_workspace_resource_id: "{{ log_output.id }}"
+        security_monitoring:
+          enabled: true
+    agent_pool_profiles:
+      - name: default
+        count: 2
+        vm_size: Standard_B2s
+        mode: System
+        security_profile:
+          enable_vtpm: true
+          enable_secure_boot: true
+    api_server_access_profile:
+      authorized_ip_ranges:
+        - "192.0.2.0"
+        - "198.51.100.0"
+        - "203.0.113.0"
+      enable_private_cluster: false
+    network_profile:
+      load_balancer_sku: standard
+      outbound_type: loadBalancer
+  register: output
+
+- name: Assert the AKS instance no changed
+  ansible.builtin.assert:
+    that:
+      - not output.changed
+
+- name: Update the kubernet service security parameters parameters
+  azure_rm_aks:
+    name: "min{{ rpfx }}-sec"
+    location: westus2
+    resource_group: "{{ resource_group }}"
+    kubernetes_version: "{{ versions.azure_aks_versions[0] }}"
+    dns_prefix: "aks{{ rpfx }}"
+    enable_rbac: true
+    aad_profile:
+      managed: true
+    security_profile:
+      image_cleaner:
+        enabled: true
+        interval_hours: 68
+      defender:
+        log_analytics_workspace_resource_id: "{{ log_output.id }}"
+        security_monitoring:
+          enabled: true
+    agent_pool_profiles:
+      - name: default
+        count: 2
+        vm_size: Standard_B2s
+        mode: System
+        security_profile:
+          enable_vtpm: false
+          enable_secure_boot: false
+    api_server_access_profile:
+      authorized_ip_ranges:
+        - "192.0.2.0"
+        - "198.51.100.0"
+        - "203.0.113.0"
+      enable_private_cluster: false
+    network_profile:
+      load_balancer_sku: standard
+      outbound_type: loadBalancer
+  register: output
+
+- name: Assert the AKS instance updated
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Get AKS fact
+  azure_rm_aks_info:
+    name: "min{{ rpfx }}-sec"
+    resource_group: "{{ resource_group }}"
+  register: output
+
+- name: Assert the AKS instance facts
+  ansible.builtin.assert:
+    that:
+      - output.aks[0].agent_pool_profiles[0].security_profile.enable_vtpm is false
+      - output.aks[0].agent_pool_profiles[0].security_profile.enable_secure_boot is false
+      - output.aks[0].security_profile.image_cleaner.enabled is true
+      - output.aks[0].security_profile.image_cleaner.interval_hours == 68
+
+- name: Delete the AKS instance
+  azure_rm_aks:
+    name: "min{{ rpfx }}-sec"
+    resource_group: "{{ resource_group }}"
+    state: absent
 
 - name: Delete the AKS instance
   azure_rm_aks:

@@ -62,6 +62,7 @@ options:
             - StandardSSD_LRS
             - StandardSSD_ZRS
             - Premium_LRS
+            - PremiumV2_LRS
             - Premium_ZRS
             - UltraSSD_LRS
     create_option:
@@ -148,6 +149,28 @@ options:
         description:
             - The logical unit number for data disk.
             - This value is used to identify data disks within the VM and therefore must be unique for each data disk attached to a VM.
+        type: int
+    disk_iops_read_write:
+        description:
+            - The number of IOPS allowed for this disk.
+            - Only settable for I(storage_account_type=UltraSSD_LRS) disks.
+            - One operation can transfer between 4k and 256k bytes.
+        type: int
+    disk_m_bps_read_write:
+        description:
+            - The bandwidth allowed for this disk.
+            - Only settable for I(storage_account_type=UltraSSD_LRS) disks.
+            - One operation can transfer between 4k and 256k bytes.
+        type: int
+    disk_iops_read_only:
+        description:
+            - The total throughput (MBps) that will be allowed across all VMs mounting the shared disk as ReadOnly.
+            - One operation can transfer between 4k and 256k bytes.
+        type: int
+    disk_m_bps_read_only:
+        description:
+            - The total throughput (MBps) that will be allowed across all VMs mounting the shared disk as ReadOnly.
+            - MBps means millions of bytes per second - MB here uses the ISO notation, of powers of 10.
         type: int
 
 extends_documentation_fragment:
@@ -283,6 +306,36 @@ state:
                 - Tags to assign to the managed disk.
             type: dict
             sample: { "tag": "value" }
+        disk_iops_read_write:
+            description:
+                - The number of IOPS allowed for this disk.
+                - Only settable for I(storage_account_type=UltraSSD_LRS) disks.
+                - One operation can transfer between 4k and 256k bytes.
+            type: int
+            returned: always
+            sample: 200
+        disk_m_bps_read_write:
+            description:
+                - The bandwidth allowed for this disk.
+                - Only settable for I(storage_account_type=UltraSSD_LRS) disks.
+                - One operation can transfer between 4k and 256k bytes.
+            type: int
+            returned: always
+            sample: 30
+        disk_iops_read_only:
+            description:
+                - The total throughput (MBps) that will be allowed across all VMs mounting the shared disk as ReadOnly.
+                - One operation can transfer between 4k and 256k bytes.
+            type: int
+            returned: always
+            sample: 200
+        disk_m_bps_read_only:
+            description:
+                - The total throughput (MBps) that will be allowed across all VMs mounting the shared disk as ReadOnly.
+                - MBps means millions of bytes per second - MB here uses the ISO notation, of powers of 10.
+            type: int
+            returned: always
+            sample: 30
 changed:
     description:
         - Whether or not the resource has changed.
@@ -324,7 +377,11 @@ def managed_disk_to_dict(managed_disk):
         managed_by=managed_disk.managed_by,
         max_shares=managed_disk.max_shares,
         managed_by_extended=managed_disk.managed_by_extended,
-        zone=managed_disk.zones[0] if managed_disk.zones and len(managed_disk.zones) > 0 else ''
+        zone=managed_disk.zones[0] if managed_disk.zones and len(managed_disk.zones) > 0 else '',
+        disk_iops_read_write=managed_disk.disk_iops_read_write,
+        disk_m_bps_read_write=managed_disk.disk_m_bps_read_write,
+        disk_iops_read_only=managed_disk.disk_iops_read_only,
+        disk_m_bps_read_only=managed_disk.disk_m_bps_read_only,
     )
 
 
@@ -351,7 +408,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             ),
             storage_account_type=dict(
                 type='str',
-                choices=['Standard_LRS', 'StandardSSD_LRS', 'StandardSSD_ZRS', 'Premium_LRS', 'Premium_ZRS', 'UltraSSD_LRS']
+                choices=['Standard_LRS', 'StandardSSD_LRS', 'StandardSSD_ZRS', 'Premium_LRS', 'Premium_ZRS', 'UltraSSD_LRS', 'PremiumV2_LRS']
             ),
             create_option=dict(
                 type='str',
@@ -392,7 +449,19 @@ class AzureRMManagedDisk(AzureRMModuleBase):
                 type='list',
                 elements='dict',
                 options=managed_by_extended_spec
-            )
+            ),
+            disk_iops_read_only=dict(
+                type='int'
+            ),
+            disk_iops_read_write=dict(
+                type='int'
+            ),
+            disk_m_bps_read_only=dict(
+                type='int'
+            ),
+            disk_m_bps_read_write=dict(
+                type='int'
+            ),
         )
         required_if = [
             ('create_option', 'import', ['source_uri', 'storage_account_id']),
@@ -419,6 +488,10 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         self.lun = None
         self.max_shares = None
         self.managed_by_extended = None
+        self.disk_iops_read_write = None
+        self.disk_m_bps_read_write = None
+        self.disk_iops_read_only = None
+        self.disk_m_bps_read_only = None
 
         mutually_exclusive = [['managed_by_extended', 'managed_by']]
 
@@ -592,6 +665,14 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             disk_params['os_type'] = None
         if self.max_shares:
             disk_params['max_shares'] = self.max_shares
+        if self.disk_m_bps_read_only is not None:
+            disk_params['disk_m_bps_read_only'] = self.disk_m_bps_read_only
+        if self.disk_m_bps_read_write is not None:
+            disk_params['disk_m_bps_read_write'] = self.disk_m_bps_read_write
+        if self.disk_iops_read_write is not None:
+            disk_params['disk_iops_read_write'] = self.disk_iops_read_write
+        if self.disk_iops_read_only is not None:
+            disk_params['disk_iops_read_only'] = self.disk_iops_read_only
         disk_params['creation_data'] = creation_data
         return disk_params
 
@@ -633,6 +714,14 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         if self.max_shares is not None:
             if not found_disk['max_shares'] == self.max_shares:
                 resp = True
+        if self.disk_iops_read_write is not None and found_disk['disk_iops_read_write'] != self.disk_iops_read_write:
+            resp = True
+        if self.disk_m_bps_read_write is not None and found_disk['disk_m_bps_read_write'] != self.disk_m_bps_read_write:
+            resp = True
+        if self.disk_iops_read_only is not None and found_disk['disk_iops_read_only'] != self.disk_iops_read_only:
+            resp = True
+        if self.disk_m_bps_read_only is not None and found_disk['disk_m_bps_read_only'] != self.disk_m_bps_read_only:
+            resp = True
         return resp
 
     def delete_managed_disk(self):

@@ -21,7 +21,8 @@
 - name: Create public IP address
   azure_rm_publicipaddress:
     resource_group: "{{ resource_group }}"
-    allocation_method: Dynamic
+    allocation_method: Static
+    sku: standard
     name: "{{ pubipname }}"
 
 - name: Create a virtual network gateway

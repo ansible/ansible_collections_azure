@@ -198,6 +198,23 @@ aks_agent_pools:
             type: float
             returned: always
             sample: null
+        security_profile:
+            description:
+                - The security settings of an agent pool.
+            type: complex
+            contains:
+                enable_secure_boot:
+                    description:
+                        - The secure boot is diabled or enabled.
+                    type: bool
+                    returned: always
+                    sample: true
+                enable_vtpm:
+                    description:
+                        - The vTPM is diabled or enabled.
+                    type: bool
+                    returned: always
+                    sample: true
         type:
             description:
                 - Resource Type.
@@ -418,6 +435,7 @@ class AzureRMAgentPoolInfo(AzureRMModuleBase):
             proximity_placement_group_id=agent_pool.proximity_placement_group_id,
             kubelet_config=dict(),
             linux_os_config=dict(),
+            security_profile=dict(),
             enable_encryption_at_host=agent_pool.enable_encryption_at_host,
             enable_ultra_ssd=agent_pool.enable_ultra_ssd,
             enable_fips=agent_pool.enable_fips,
@@ -456,6 +474,12 @@ class AzureRMAgentPoolInfo(AzureRMModuleBase):
             agent_pool_dict['power_state']['code'] = agent_pool.power_state.code
         else:
             agent_pool_dict['power_state'] = None
+
+        if agent_pool.security_profile is not None:
+            agent_pool_dict['security_profile']['enable_vtpm'] = agent_pool.security_profile.enable_vtpm
+            agent_pool_dict['security_profile']['enable_secure_boot'] = agent_pool.security_profile.enable_secure_boot
+        else:
+            agent_pool_dict['security_profile'] = None
 
         return agent_pool_dict
 
