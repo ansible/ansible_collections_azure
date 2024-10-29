@@ -1,6 +1,6 @@
 # Change Log
 
-## v2.8.0 (2024-10-25)
+## v3.0.0 (2024-10-29)
 
 ### NEW MODULES
   - azure_rm_virtualnetworkgatewayconnection: Support to managed virtual network gateway connection's resource ([#1627](https://github.com/ansible-collections/azure/pull/1627))
