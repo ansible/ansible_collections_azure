@@ -59,6 +59,11 @@
   - azure_rm_aks: Fixed bugs caused by indent ([#1730](https://github.com/ansible-collections/azure/pull/1730))
   - azure_rm_virtualmachinescalesetinstance: Update azure_rm_virtualmachinescalesetinstance.py's document ([#1732](https://github.com/ansible-collections/azure/pull/1732))
 
+### BREAKING CHANGE
+  - azure_rm_aks: Deprecate `docker_bridge_cidr` ([#1718](https://github.com/ansible-collections/azure/pull/1718))
+  - azure_rm_openshiftmanagedcluster: Deprecate `vm_size`'s choices ([#1691](https://github.com/ansible-collections/azure/pull/1691))
+  - azure_rm_sqlmanagedinstance: Deprecate identity's `tenant_id` and 'principal_id' ([#1633](https://github.com/ansible-collections/azure/pull/1633))
+
 
 ## v2.7.0 (2024-08-30)
 
