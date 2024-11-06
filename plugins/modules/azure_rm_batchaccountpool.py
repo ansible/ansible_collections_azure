@@ -1107,6 +1107,16 @@ options:
             - When specified, these tags are propagated to the backing Azure resources associated with the pool.
             - This property can only be specified when the Batch account was created with the poolAllocationMode property set to 'UserSubscription'.
         type: dict    
+    is_disable_auto_scale:
+        description:
+            - Whether disables automatic scaling for a pool.
+        type: bool
+        default: false
+    is_stop_resize:
+        description:
+            - Whether stops an ongoing resize operation on the pool.
+        type: bool
+        default: false
     state:
         description:
             - Assert the state of the Batch Account Pool.
@@ -1299,7 +1309,7 @@ state:
             }
 '''
 
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 
 try:
     from azure.core.polling import LROPoller
@@ -1309,7 +1319,7 @@ except ImportError:
     pass
 
 
-class AzureRMBatchAccountPool(AzureRMModuleBase):
+class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM Batch Account Pool resource"""
 
     def __init__(self):
@@ -1332,10 +1342,6 @@ class AzureRMBatchAccountPool(AzureRMModuleBase):
                     type=dict(type='str', required=True, choices=['None', 'UserAssigned']),
                     user_assigned_identities=dict(
                         type='dict',
-                        #options=dict(
-                        #    principal_id=dict(type='str'),
-                        #    client_id=dict(type='str')
-                        #)
                     )
                 )
             ),
@@ -1486,7 +1492,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBase):
                             resize_timeout=dict(type='str'),
                             target_dedicated_nodes=dict(type='int'),
                             target_low_priority_nodes=dict(type='int'),
-                            node_deallocation_option=dict(type='str', default='Requeue', choices=["Requeue", "Terminate", "TaskCompletion", "RetainedData"])
+                            node_deallocation_option=dict(type='str', choices=["Requeue", "Terminate", "TaskCompletion", "RetainedData"])
                         )
                     ),
                     auto_scale=dict(
@@ -1751,6 +1757,14 @@ class AzureRMBatchAccountPool(AzureRMModuleBase):
             resource_tags=dict(
                 type='dict',
             ),
+            is_disable_auto_scale=dict(
+                type='bool',
+                default=False
+            ),
+            is_stop_resize=dict(
+                type='bool',
+                default=False
+            ),
             state=dict(
                 type='str',
                 default='present',
@@ -1761,13 +1775,15 @@ class AzureRMBatchAccountPool(AzureRMModuleBase):
         self.batch_account_name = None
         self.name = None
         self.resource_group = None
+        self.is_disable_auto_scale = None
+        self.is_stop_resize = None
         self.results = dict(changed=False)
         self.state = None
         self.body = dict()
 
         super(AzureRMBatchAccountPool, self).__init__(derived_arg_spec=self.module_arg_spec,
-                                                             supports_check_mode=True,
-                                                             supports_tags=False)
+                                                      supports_check_mode=True,
+                                                      supports_tags=False)
 
 
     def exec_module(self, **kwargs):
@@ -1799,13 +1815,20 @@ class AzureRMBatchAccountPool(AzureRMModuleBase):
                     changed = True
                     response = self.delete_batchaccount_pool()
             else:
-                if not self.check_mode:
+                if not self.default_compare({}, self.body, old_response, '', dict(compare=[])):
                     changed = True
+                if not self.check_mode and changed:
                     response = self.update_batchaccount_pool()
+                if self.is_stop_resize and not self.check_mode:
+                    changed = True
+                    self.stop_resize_pool()
+                if self.is_disable_auto_scale and not self.check_mode:
+                    changed = True
+                    self.disable_auto_scale_pool()
 
         self.results = dict(
             changed=changed,
-            state=response,
+            state=self.get_batchaccount_pool(),
         )
         return self.results
 
@@ -1845,6 +1868,36 @@ class AzureRMBatchAccountPool(AzureRMModuleBase):
             self.fail("Error updating the Batch Account Pool instance: {0}".format(str(exc)))
         return response.as_dict()
 
+    def disable_auto_scale_pool(self):
+        '''
+        Disable_auto_scale Batch Account Pool instance in the specified subscription and resource group.
+        :return: True
+        '''
+        self.log("Disable_auto_scale the Batch Account Pool instance {0}".format(self.name))
+        try:
+            response = self.batch_account_client.pool.disable_auto_scale(resource_group_name=self.resource_group,
+                                                                         account_name=self.batch_account_name,
+                                                                         pool_name=self.name)
+        except Exception as e:
+            self.log('Error attempting to disable the Batch Account Pool auto_scale.')
+            self.fail("Error disable the Batch Account Pool auto_scale instance: {0}".format(str(e)))
+        return True
+
+    def stop_resize_pool(self):
+        '''
+        Stop resize Batch Account Pool instance in the specified subscription and resource group.
+        :return: True
+        '''
+        self.log("Stop the Batch Account Pool resize {0}".format(self.name))
+        try:
+            response = self.batch_account_client.pool.stop_resize(resource_group_name=self.resource_group,
+                                                                  account_name=self.batch_account_name,
+                                                                  pool_name=self.name)
+        except Exception as e:
+            self.log('Error attempting to stop the Batch Account Pool resize.')
+            self.fail("Error stop the Batch Account Pool resize: {0}".format(str(e)))
+        return True
+
     def delete_batchaccount_pool(self):
         '''
         Deletes specified Batch Account Pool instance in the specified subscription and resource group.
@@ -1852,9 +1905,9 @@ class AzureRMBatchAccountPool(AzureRMModuleBase):
         '''
         self.log("Deleting the Batch Account Pool instance {0}".format(self.name))
         try:
-            response = self.batch_account_client.pool.delete(resource_group_name=self.resource_group,
-                                                             account_name=self.batch_account_name,
-                                                             pool_name=self.name)
+            response = self.batch_account_client.pool.begin_delete(resource_group_name=self.resource_group,
+                                                                   account_name=self.batch_account_name,
+                                                                   pool_name=self.name)
         except Exception as e:
             self.log('Error attempting to delete the Batch Account Pool instance.')
             self.fail("Error deleting the Batch Account Pool instance: {0}".format(str(e)))
