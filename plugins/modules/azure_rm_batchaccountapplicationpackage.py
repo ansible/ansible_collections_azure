@@ -83,7 +83,7 @@ EXAMPLES = '''
 - name: Delete Batch Account Application Package
   azure_rm_batchaccountapplicationpackage:
     resource_group: MyResGroup
-    name: mybatchaccountapplication
+    application_name: mybatchaccountapplication
     batch_account_name: mybatchaccount
     name: version01
     state: absent
