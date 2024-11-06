@@ -185,8 +185,8 @@ class AzureRMBatchAccountPoolInfo(AzureRMModuleBase):
         self.results = dict(changed=False)
 
         super(AzureRMBatchAccountPoolInfo, self).__init__(derived_arg_spec=self.module_arg_spec,
-                                                                 supports_check_mode=True,
-                                                                 supports_tags=False)
+                                                          supports_check_mode=True,
+                                                          supports_tags=False)
 
     def exec_module(self, **kwargs):
         """Main module execution method"""

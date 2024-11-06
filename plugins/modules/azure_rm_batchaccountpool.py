@@ -508,7 +508,7 @@ options:
                                     - All ranges within a pool must be distinct and cannot overlap.
                                 type: int
                                 required: true
-                            network_security_group_rules
+                            network_security_group_rules:
                                 description:
                                     - The maximum number of rules that can be specified across all the endpoints on a Batch pool is 25.
                                     - If no network security group rules are specified.
@@ -610,8 +610,8 @@ options:
                     ssh_private_key:
                         description:
                             - The private key must not be password protected.
-                            - The private key is used to automatically configure asymmetric-key based authentication for SSH between nodes in a Linux pool \
-                              when the pool's enableInterNodeCommunication property is true.
+                            - "The private key is used to automatically configure asymmetric-key based authentication for SSH between nodes in a Linux pool
+                               when the pool's enableInterNodeCommunication property is true."
                             - It does this by placing the key pair into the user's .ssh directory.
                             - If not specified, password-less SSH is not configured between nodes (no modification of the user's .ssh directory is done).
                         type: str
@@ -671,16 +671,16 @@ options:
                             - The autoStorageContainerName, storageContainerUrl and httpUrl properties are mutually exclusive and one of them must be specified.
                             - This URL must be readable and listable from compute nodes.
                             - There are three ways to get such a URL for a container in Azure storage. 
-                            - Include a Shared Access Signature (SAS) granting read and list permissions on  the container,\
-                              use a managed identity with read and list permissions, or set the ACL for the container to allow public access.
+                            - "Include a Shared Access Signature (SAS) granting read and list permissions on  the container,
+                              use a managed identity with read and list permissions, or set the ACL for the container to allow public access."
                         type: str
                     http_url:
                         description:
                             - The autoStorageContainerName, storageContainerUrl and httpUrl properties are mutually exclusive and one of them must be specified.
                             - If the URL points to Azure Blob Storage, it must be readable from compute nodes.
                             - There are three ways to get such a URL for a blob in Azure storage.
-                            - Include a Shared Access Signature (SAS) granting read permissions on the blob, use a managed identity with read permission, \
-                              or set the ACL for the blob or its container to allow public access.
+                            - "Include a Shared Access Signature (SAS) granting read permissions on the blob, use a managed identity with read permission,
+                              or set the ACL for the blob or its container to allow public access."
                         type: str
                     blob_prefix:
                         description:
@@ -692,8 +692,8 @@ options:
                         description:
                             - If the httpUrl property is specified, the filePath is required and describes the path which the file will be downloaded to, including the filename.
                             - If the autoStorageContainerName or storageContainerUrl property is specified, filePath is optional and is the directory to download the files to.
-                            - In the case where filePath is used as a directory, any directory structure already associated with the input data will be retained in full and \
-                              appended to the specified filePath directory.
+                            - "In the case where filePath is used as a directory, any directory structure already associated with the input data will be retained in full and 
+                              appended to the specified filePath directory."
                             - The specified relative path cannot break out of  the task's working directory.
                         type: str
                     file_mode:
@@ -769,15 +769,15 @@ options:
                 description:
                     - If true and the start task fails on a compute node.
                     - The Batch service retries the start task up to its maximum retry count (maxTaskRetryCount).
-                    - If the task has still not completed successfully after all retries, then the Batch service marks the compute node unusable,\ 
-                      and will not schedule tasks to it.
+                    - "If the task has still not completed successfully after all retries, then the Batch service marks the compute node unusable, 
+                      and will not schedule tasks to it."
                     - This condition can be detected via the node state and scheduling error detail.
                     - If false, the Batch service will not wait for the start task to complet.
                 type: bool
             container_settings:
                 description:
-                    - When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR are mapped into the container,\
-                      all task environment variables are mapped into the container, and the task command line is executed in the container.
+                    - "When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR are mapped into the container,
+                      all task environment variables are mapped into the container, and the task command line is executed in the container."
                 type: dict
                 suboptions:
                     container_run_options:
@@ -845,8 +845,8 @@ options:
     certificates:
         description:
             - For Windows compute nodes, the Batch service installs the certificates to the specified certificate store and location.
-            - For Linux compute nodes, the certificates are stored in a directory inside the task working directory and \
-              an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location.
+            - "For Linux compute nodes, the certificates are stored in a directory inside the task working directory and
+              an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location."
             - For certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory and certificates are placed in that directory.
         type: list
         elements: dict
@@ -861,8 +861,8 @@ options:
                 description:
                     - The default value is C(CurrentUser).
                     - This property is applicable only for pools configured with Windows nodes.
-                    - For Linux compute nodes, the certificates are stored in a directory inside the task working directory and \
-                      an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location.
+                    - "For Linux compute nodes, the certificates are stored in a directory inside the task working directory and
+                      an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location."
                     - For certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory and certificates are placed in that directory.
                 type: str
                 choices:
@@ -1067,8 +1067,8 @@ options:
                         type: bool
                     enable_automatic_os_upgrade:
                         description:
-                            - Indicates whether OS upgrades should automatically be applied to scale set instances in a rolling fashion \
-                              when a newer version of the OS image becomes available.
+                            - "Indicates whether OS upgrades should automatically be applied to scale set instances in a rolling fashion
+                              when a newer version of the OS image becomes available."
                         type: bool
                     use_rolling_upgrade_policy:
                         description:
@@ -1095,19 +1095,19 @@ options:
                     max_batch_instance_percent:
                         description:
                             - The maximum percent of total virtual machine instances that will be upgraded simultaneously by the rolling upgrade in one batch.
-                            - As this is a maximum, unhealthy instances in previous or future batches can cause the percentage of instances \
-                              in a batch to decrease to ensure higher reliability.
+                            - "As this is a maximum, unhealthy instances in previous or future batches can cause the percentage of instances
+                              in a batch to decrease to ensure higher reliability."
                             - The value of this field should be between 5 and 100, inclusive.
-                            - If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value,\
-                              the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent.
+                            - "If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value,
+                              the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent."
                         type: int
                     max_unhealthy_instance_percent:
                         description:
-                            - The maximum percentage of the total virtual machine instances in the scale set that can be simultaneously unhealthy,\
-                              either as a result of being upgraded, or by being found in an unhealthy state by the virtual machine health checks before the rolling upgrade aborts.
+                            - "The maximum percentage of the total virtual machine instances in the scale set that can be simultaneously unhealthy,
+                              either as a result of being upgraded, or by being found in an unhealthy state by the virtual machine health checks before the rolling upgrade aborts."
                             - This constraint will be checked prior to starting any batch.
-                            - If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value,\
-                              the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent.
+                            - "If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value,
+                              the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent."
                         type: int
                     max_unhealthy_upgraded_instance_percent:
                         description:
