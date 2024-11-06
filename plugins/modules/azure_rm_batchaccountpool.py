@@ -40,7 +40,7 @@ options:
             - The type of identity used for the Batch Pool.
             - If the pool identity is updated during update an existing pool.
             - Only the new vms which are created after the pool shrinks to 0 will have the updated identities.
-        type: dict    
+        type: dict
         suboptions:
             type:
                 description:
@@ -60,7 +60,7 @@ options:
             - For information about available sizes of virtual machines for Cloud Services Pools.
             - Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2,
             - Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
-        type: dict    
+        type: dict
     deployment_configuration:
         description:
             - Using CloudServiceConfiguration specifies that the nodes should be creating using Azure Cloud Services (PaaS).
@@ -75,7 +75,7 @@ options:
                 suboptions:
                     os_family:
                         description:
-                            - I(os_family=2) equivalent to Windows Server 2008 R2 SP1. 
+                            - I(os_family=2) equivalent to Windows Server 2008 R2 SP1.
                             - I(os_family=3) equivalent to Windows Server 2012.
                             - I(os_family=4) equivalent to Windows Server 2012 R2.
                             - I(os_family=5) equivalent to Windows Server 2016.
@@ -86,7 +86,7 @@ options:
                         description:
                             - The default value is C(*) which specifies the latest operating system version for the specified OS family.
                         type: str
-                        default: *
+                        default: '*'
             virtual_machine_configuration:
                 description:
                     - This property and cloudServiceConfiguration are mutually exclusive and one of the properties must be specified.
@@ -120,11 +120,12 @@ options:
                                 description:
                                     - This property is mutually exclusive with other properties.
                                     - The Azure Compute Gallery Image must have replicas in the same region as the Azure Batch account.
-                                    - Sample as C('/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Compute/images/{imageName}).
+                                    - Sample as C('/subscriptions/{sub_Id}/resourceGroups/{resourceGroup}/providers/Microsoft.Compute/images/{imageName}).
                                 type: str
                     node_agent_sku_id:
                         description:
-                            - The Batch node agent is a program that runs on each node in the pool, and provides the command-and-control interface between the node and the Batch service.
+                            - The Batch node agent is a program that runs on each node in the pool.
+                            - Provides the command-and-control interface between the node and the Batch service.
                             - There are different implementations of the node agent, known as SKUs, for different operating systems.
                             - You must specify a node agent SKU which matches the selected image reference.
                             - To get the list of supported node agent SKUs along with their list of verified image references.
@@ -178,14 +179,16 @@ options:
                                     - StandardSSD_LRS
                     license_type:
                         description:
-                            - This only applies to images that contain the Windows operating system, and should only be used when you hold valid on-premises licenses for the nodes which will be deployed. 
+                            - This only applies to images that contain the Windows operating system.
+                            - Should only be used when you hold valid on-premises licenses for the nodes which will be deployed.
                             - C(Windows_Server), The on-premises license is for Windows Server.
                             - C(Windows_Client), The on-premises license is for Windows Client.
                         type: str
                     container_configuration:
                         description:
                             - If specified, setup is performed on each node in the pool to allow tasks to run in containers.
-                            - All regular tasks and job manager tasks run on this pool must specify the containerSettings property and all other tasks may specify it.
+                            - All regular tasks and job manager tasks run on this pool must specify the containerSettings property.
+                            - All other tasks may specify it.
                         type: dict
                         suboptions:
                             type:
@@ -377,7 +380,7 @@ options:
                     service_artifact_reference:
                         description:
                             - The service artifact reference ID.
-                            - Such as C(/subscriptions/{subscriptionId}/resourceGroups/{resourceGroup}/providers/Microsoft.Compute/galleries/{galleryN     ame}/serviceArtifacts/{serviceArtifactName}/vmArtifactsProfiles/{vmArtifactsProfilesName}).
+                            - Such as C(/subscriptions/{subId}/resourceGroups/{testRG}/providers/Microsoft.Compute/galleries/{gName}/serviceArtifacts/{ArtName}/vmArtifactsProfiles/{ProfilesName}).
                         type: dict
                         suboptions:
                             id:
@@ -454,7 +457,7 @@ options:
                 description:
                     - The virtual network must be in the same region and subscription as the Azure Batch account.
                     - The specified subnet should have enough free IP addresses to accommodate the number of nodes in the pool.
-                    - If the subnet doesn't have enough free IP addresses, the pool will partially allocate compute nodes and a resize error will occur. 
+                    - If the subnet doesn't have enough free IP addresses, the pool will partially allocate compute nodes and a resize error will occur.
                 type: str
             dynamic_vnet_assignment_scope:
                 description:
@@ -533,7 +536,7 @@ options:
                                         type: str
                                     source_port_ranges:
                                         description:
-                                            - Valid values are '\ *' (for all ports 0 - 65535) or arrays of orts or port ranges (i.e. 100-200).
+                                            - Valid values are '*' (for all ports 0 - 65535) or arrays of orts or port ranges (i.e. 100-200).
                                         type: list
                                         elements: str
             public_ip_address_configuration:
@@ -607,7 +610,8 @@ options:
                     ssh_private_key:
                         description:
                             - The private key must not be password protected.
-                            - The private key is used to automatically configure asymmetric-key based authentication for SSH between nodes in a Linux pool when the pool's enableInterNodeCommunication property is true.
+                            - The private key is used to automatically configure asymmetric-key based authentication for SSH between nodes in a Linux pool \
+                              when the pool's enableInterNodeCommunication property is true.
                             - It does this by placing the key pair into the user's .ssh directory.
                             - If not specified, password-less SSH is not configured between nodes (no modification of the user's .ssh directory is done).
                         type: str
@@ -667,14 +671,16 @@ options:
                             - The autoStorageContainerName, storageContainerUrl and httpUrl properties are mutually exclusive and one of them must be specified.
                             - This URL must be readable and listable from compute nodes.
                             - There are three ways to get such a URL for a container in Azure storage. 
-                            - Include a Shared Access Signature (SAS) granting read and list permissions on  the container, use a managed identity with read and list permissions, or set the ACL for the container to allow public access.
+                            - Include a Shared Access Signature (SAS) granting read and list permissions on  the container,\
+                              use a managed identity with read and list permissions, or set the ACL for the container to allow public access.
                         type: str
                     http_url:
                         description:
                             - The autoStorageContainerName, storageContainerUrl and httpUrl properties are mutually exclusive and one of them must be specified.
                             - If the URL points to Azure Blob Storage, it must be readable from compute nodes.
                             - There are three ways to get such a URL for a blob in Azure storage.
-                            - Include a Shared Access Signature (SAS) granting read permissions on the blob, use a managed identity with read permission, or set the ACL for the blob or its container to allow public access.
+                            - Include a Shared Access Signature (SAS) granting read permissions on the blob, use a managed identity with read permission, \
+                              or set the ACL for the blob or its container to allow public access.
                         type: str
                     blob_prefix:
                         description:
@@ -686,7 +692,8 @@ options:
                         description:
                             - If the httpUrl property is specified, the filePath is required and describes the path which the file will be downloaded to, including the filename.
                             - If the autoStorageContainerName or storageContainerUrl property is specified, filePath is optional and is the directory to download the files to.
-                            - In the case where filePath is used as a directory, any directory structure already associated with the input data will be retained in full and appended to the specified filePath directory.
+                            - In the case where filePath is used as a directory, any directory structure already associated with the input data will be retained in full and \
+                              appended to the specified filePath directory.
                             - The specified relative path cannot break out of  the task's working directory.
                         type: str
                     file_mode:
@@ -742,7 +749,7 @@ options:
                                     - The default value is Pool.
                                     - If the pool is running Windows a value of Task should be specified if stricter isolation between tasks is required.
                                 type: str
-                                choices: 
+                                choices:
                                     - Task
                                     - Pool
                             elevation_level:
@@ -762,13 +769,15 @@ options:
                 description:
                     - If true and the start task fails on a compute node.
                     - The Batch service retries the start task up to its maximum retry count (maxTaskRetryCount).
-                    - If the task has still not completed successfully after all retries, then the Batch service marks the compute node  unusable, and will not schedule tasks to it.
+                    - If the task has still not completed successfully after all retries, then the Batch service marks the compute node unusable,\ 
+                      and will not schedule tasks to it.
                     - This condition can be detected via the node state and scheduling error detail.
                     - If false, the Batch service will not wait for the start task to complet.
                 type: bool
             container_settings:
                 description:
-                    - When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR are mapped into the container, all task environment variables are mapped into the container, and the task command line is executed in the container.
+                    - When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR are mapped into the container,\
+                      all task environment variables are mapped into the container, and the task command line is executed in the container.
                 type: dict
                 suboptions:
                     container_run_options:
@@ -836,7 +845,8 @@ options:
     certificates:
         description:
             - For Windows compute nodes, the Batch service installs the certificates to the specified certificate store and location.
-            - For Linux compute nodes, the certificates are stored in a directory inside the task working directory and an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location.
+            - For Linux compute nodes, the certificates are stored in a directory inside the task working directory and \
+              an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location.
             - For certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory and certificates are placed in that directory.
         type: list
         elements: dict
@@ -851,7 +861,8 @@ options:
                 description:
                     - The default value is C(CurrentUser).
                     - This property is applicable only for pools configured with Windows nodes.
-                    - For Linux compute nodes, the certificates are stored in a directory inside the task working directory and an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location.
+                    - For Linux compute nodes, the certificates are stored in a directory inside the task working directory and \
+                      an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location.
                     - For certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory and certificates are placed in that directory.
                 type: str
                 choices:
@@ -917,6 +928,9 @@ options:
                         description:
                             - These are C(net use) options in Windows and C(mount) options in Linux.
                         type: str
+                        choices:
+                            - 'net user'
+                            - mount
                     relative_mount_path:
                         description:
                             - All file systems are mounted relative to the Batch mounts directory, accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable.
@@ -951,6 +965,9 @@ options:
                         description:
                             - These are C(net use) options in Windows and C(mount) options in Linux.
                         type: str
+                        choices:
+                            - 'net user'
+                            - mount
             cifs_mount_configuration:
                 description:
                     - Configuration of the cifs mount.
@@ -976,6 +993,9 @@ options:
                         description:
                             -  These are C(net use) options in Windows and C(mount) options in Linux.
                         type: str
+                        choices:
+                            - 'net user'
+                            - mount
                     password:
                         description:
                             - The password to use for authentication against the CIFS file system.
@@ -1011,6 +1031,9 @@ options:
                         description:
                             - These are C(net use) options in Windows and C(mount) options in Linux.
                         type: str
+                        choices:
+                            - 'net user'
+                            - mount
     target_node_communication_mode:
         description:
             - If omitted, the default value is C(Default).
@@ -1022,7 +1045,7 @@ options:
     upgrade_policy:
         description:
             - Describes an upgrade policy.
-        type: dict 
+        type: dict
         suboptions:
             mode:
                 description:
@@ -1044,7 +1067,8 @@ options:
                         type: bool
                     enable_automatic_os_upgrade:
                         description:
-                            - Indicates whether OS upgrades should automatically be applied to scale set instances in a rolling fashion when a newer version of the OS image becomes available.
+                            - Indicates whether OS upgrades should automatically be applied to scale set instances in a rolling fashion \
+                              when a newer version of the OS image becomes available.
                         type: bool
                     use_rolling_upgrade_policy:
                         description:
@@ -1071,15 +1095,19 @@ options:
                     max_batch_instance_percent:
                         description:
                             - The maximum percent of total virtual machine instances that will be upgraded simultaneously by the rolling upgrade in one batch.
-                            - As this is a maximum, unhealthy instances in previous or future batches can cause the percentage of instances in a batch to decrease to ensure higher reliability.
+                            - As this is a maximum, unhealthy instances in previous or future batches can cause the percentage of instances \
+                              in a batch to decrease to ensure higher reliability.
                             - The value of this field should be between 5 and 100, inclusive.
-                            - If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value, the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent.
+                            - If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value,\
+                              the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent.
                         type: int
                     max_unhealthy_instance_percent:
                         description:
-                            - The maximum percentage of the total virtual machine instances in the scale set that can be simultaneously unhealthy, either as a result of being upgraded, or by being found in an unhealthy state by the virtual machine health checks before the rolling upgrade aborts.
+                            - The maximum percentage of the total virtual machine instances in the scale set that can be simultaneously unhealthy,\
+                              either as a result of being upgraded, or by being found in an unhealthy state by the virtual machine health checks before the rolling upgrade aborts.
                             - This constraint will be checked prior to starting any batch.
-                            - If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value, the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent.
+                            - If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value,\
+                              the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent.
                         type: int
                     max_unhealthy_upgraded_instance_percent:
                         description:
@@ -1106,7 +1134,7 @@ options:
             - The user-defined tags to be associated with the Azure Batch Pool.
             - When specified, these tags are propagated to the backing Azure resources associated with the pool.
             - This property can only be specified when the Batch account was created with the poolAllocationMode property set to 'UserSubscription'.
-        type: dict    
+        type: dict
     is_disable_auto_scale:
         description:
             - Whether disables automatic scaling for a pool.
@@ -1178,7 +1206,7 @@ EXAMPLES = '''
             protocol: UDP
       public_ip_address_configuration:
         provision: BatchManaged
-            scale_settings:
+    scale_settings:
       fixed_scale:
         resize_timeout: PT15M
         target_dedicated_nodes: 0
@@ -1422,7 +1450,9 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                             node_placement_configuration=dict(
                                 type='dict',
                                 options=dict(
-                                    policy=dict(type='str', choices=['Zonal', 'Regional']
+                                    policy=dict(
+                                        type='str',
+                                        choices=['Zonal', 'Regional']
                                     )
                                 ),
                             ),
@@ -1664,7 +1694,11 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                 options=dict(
                     id=dict(type='str', required=True),
                     store_location=dict(type='str', default='CurrentUser', choices=['CurrentUser', 'LocalMachine']),
-                    store_name=dict(type='str', default='My', choices=['My', 'Root', 'CA', 'Trust', 'Disallowed', 'TrustedPeople', 'TrustedPublisher', 'AuthRoot', 'AddressBook']),
+                    store_name=dict(
+                        type='str',
+                        default='My',
+                        choices=['My', 'Root', 'CA', 'Trust', 'Disallowed', 'TrustedPeople', 'TrustedPublisher', 'AuthRoot', 'AddressBook']
+                    ),
                     visibility=dict(type='list', elements='str', choices=['StartTask', 'Task', 'RemoteUser'])
                 )
             ),
@@ -1725,7 +1759,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
             target_node_communication_mode=dict(
                 type='str',
                 default='Default',
-                choices=[ "Default", "Classic", "Simplified"]
+                choices=["Default", "Classic", "Simplified"]
             ),
             upgrade_policy=dict(
                 type='dict',
@@ -1784,7 +1818,6 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
         super(AzureRMBatchAccountPool, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                       supports_check_mode=True,
                                                       supports_tags=False)
-
 
     def exec_module(self, **kwargs):
         """Main module execution method"""

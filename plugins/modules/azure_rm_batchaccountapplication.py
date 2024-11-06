@@ -91,7 +91,7 @@ batch_account_application:
                 - The ID of the batch account application.
             type: str
             returned: always
-            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Batch/batchAccounts/batch01/applications/app01",
+            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Batch/batchAccounts/batch01/applications/app01"
         resource_group:
             description:
                 - The resource group name.
@@ -190,7 +190,6 @@ class AzureRMBatchAccountApplication(AzureRMModuleBase):
         super(AzureRMBatchAccountApplication, self).__init__(derived_arg_spec=self.module_arg_spec,
                                                              supports_check_mode=True,
                                                              supports_tags=False)
-
 
     def exec_module(self, **kwargs):
         """Main module execution method"""

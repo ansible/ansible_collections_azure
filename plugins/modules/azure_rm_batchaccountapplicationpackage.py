@@ -36,7 +36,7 @@ options:
             - The name of the Batch Account Application Package.
         required: true
         type: str
-    formt:
+    format:
         description:
             - The format of the application package, if the package is active.
             - Sample as C(zip).
@@ -45,6 +45,7 @@ options:
         description:
             - Whether to activates the specified application package.
         type: bool
+        default: false
     state:
         description:
             - Assert the state of the Batch Account Application Package.
@@ -143,7 +144,7 @@ state:
                 - The time at which the package was last activated, if the package is active.
             type: str
             returned: always
-            sample: 2024-11-04T15:03:59.834538Z
+            sample: '2024-11-04T15:03:59.834538Z'
         state:
             description:
                 - The current state of the application package.
@@ -211,7 +212,7 @@ class AzureRMBatchAccountApplicationPackage(AzureRMModuleBase):
             state=dict(
                 type='str',
                 default='present',
-                choices=['present', 'absent', 'activate']
+                choices=['present', 'absent']
             )
         )
 
@@ -229,7 +230,6 @@ class AzureRMBatchAccountApplicationPackage(AzureRMModuleBase):
                                                                     supports_check_mode=True,
                                                                     required_if=required_if,
                                                                     supports_tags=False)
-
 
     def exec_module(self, **kwargs):
         """Main module execution method"""

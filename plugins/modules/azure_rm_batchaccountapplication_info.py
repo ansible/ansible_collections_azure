@@ -64,7 +64,7 @@ batch_account_application:
                 - The ID of the batch account application.
             type: str
             returned: always
-            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Batch/batchAccounts/batch01/applications/app01",
+            sample: "/subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Batch/batchAccounts/batch01/applications/app01"
         resource_group:
             description:
                 - The resource group name.

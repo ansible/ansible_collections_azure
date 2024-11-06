@@ -220,7 +220,6 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
 
         response = None
 
-
         old_response = self.get_batchaccount()
         curr_identity = old_response["identity"] if old_response else None
 

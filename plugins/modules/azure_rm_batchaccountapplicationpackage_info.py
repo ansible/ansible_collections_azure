@@ -113,7 +113,7 @@ batch_account_application_package:
                 - The time at which the package was last activated, if the package is active.
             type: str
             returned: always
-            sample: 2024-11-04T15:03:59.834538Z
+            sample: '2024-11-04T15:03:59.834538Z'
         state:
             description:
                 - The current state of the application package.
