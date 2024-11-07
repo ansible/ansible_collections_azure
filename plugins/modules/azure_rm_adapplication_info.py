@@ -120,12 +120,6 @@ applications:
             type: str
             returned: always
             sample: AzureADandPersonalMicrosoftAccount
-        available_to_other_tenants:
-            description:
-                - The application can be used from any Azure AD tenants
-            type: str
-            returned: always
-            sample: AzureADandPersonalMicrosoftAccount
         public_client_reply_urls:
             description:
                 - The public client redirect urls.
@@ -202,12 +196,6 @@ app_diff:
             type: str
             sample: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
         sign_in_audience:
-            description:
-                - The application can be used from any Azure AD tenants
-            type: str
-            returned: always
-            sample: AzureADandPersonalMicrosoftAccount
-        available_to_other_tenants:
             description:
                 - The application can be used from any Azure AD tenants
             type: str
@@ -356,7 +344,6 @@ class AzureRMADApplicationInfo(AzureRMModuleBase):
             object_id=object.id,
             app_display_name=object.display_name,
             identifier_uris=object.identifier_uris,
-            available_to_other_tenants=object.sign_in_audience,
             sign_in_audience=object.sign_in_audience,
             web_reply_urls=object.web.redirect_uris,
             spa_reply_urls=object.spa.redirect_uris,
