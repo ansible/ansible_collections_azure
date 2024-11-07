@@ -244,6 +244,9 @@ options:
                                     - on Windows pool, C(OsDisk) and C(TemporaryDisk) must be specified.
                                 type: list
                                 elements: str
+                                choices:
+                                    - TemporaryDisk
+                                    - OsDisk
                     node_placement_configuration:
                         description:
                             - This configuration will specify rules on how nodes in the pool during node provisioning.
@@ -318,7 +321,6 @@ options:
                                         description:
                                             - This property can be used by user in the request to choose which location the operating system should be in.
                                         type: str
-                                        default: CacheDisk
                             caching:
                                 description:
                                     - The type of caching to enable for the disk.
@@ -336,6 +338,7 @@ options:
                                         description:
                                             - The storage account type for use in creating data disks or OSdisk.
                                         type: str
+                                        default: Standard_LRS
                                         choices:
                                             - Standard_LRS
                                             - Premium_LRS
@@ -541,8 +544,24 @@ options:
                                         elements: str
             public_ip_address_configuration:
                 description:
-                    -
-                type: bool
+                    - This property is only supported on Pools with the virtualMachineConfiguration property.
+                type: dict
+                suboptions:
+                    provision:
+                        description:
+                            - The public IP Address configuration's provision.
+                        type: str
+                        default: BatchManaged
+                        choices:
+                            - BatchManaged
+                            - UserManaged
+                            - NoPublicIPAddresses
+                    ip_address_ids:
+                        description:
+                            - "The number of IPs specified here limits the maximum size of the Pool
+                              100 dedicated nodes or 100 Spot/low-priority nodes can be allocated for each public IP."
+                        type: list
+                        elements: str
             enable_accelerated_networking:
                 description:
                     - Accelerated networking enables single root I/O virtualization (SR-IOV) to a VM.
@@ -563,7 +582,6 @@ options:
                 description:
                     - How tasks should be distributed across compute nodes.
                 type: str
-                default: Spread
                 choices:
                     - Spread
                     - Pack
@@ -625,7 +643,6 @@ options:
                             - Specifies login mode for the user.
                             - The default value for VirtualMachineConfiguration pools is interactive mode and for CloudServiceConfiguration pools is batch mode.
                         type: str
-                        default: Interactive
                         choices:
                             - Batch
                             - Interactive
@@ -692,7 +709,7 @@ options:
                         description:
                             - If the httpUrl property is specified, the filePath is required and describes the path which the file will be downloaded to, including the filename.
                             - If the autoStorageContainerName or storageContainerUrl property is specified, filePath is optional and is the directory to download the files to.
-                            - "In the case where filePath is used as a directory, any directory structure already associated with the input data will be retained in full and 
+                            - "In the case where filePath is used as a directory, any directory structure already associated with the input data will be retained in full and
                               appended to the specified filePath directory."
                             - The specified relative path cannot break out of  the task's working directory.
                         type: str
@@ -749,6 +766,7 @@ options:
                                     - The default value is Pool.
                                     - If the pool is running Windows a value of Task should be specified if stricter isolation between tasks is required.
                                 type: str
+                                default: Pool
                                 choices:
                                     - Task
                                     - Pool
@@ -756,6 +774,7 @@ options:
                                 description:
                                     - The auto user elevation level.
                                 type: str
+                                default: NonAdmin
                                 choices:
                                     - NonAdmin
                                     - Admin
@@ -782,7 +801,8 @@ options:
                 suboptions:
                     container_run_options:
                         description:
-                            - These additional options are supplied as arguments to the "docker create" command, in addition to those controlled by the Batch Service.
+                            - "These additional options are supplied as arguments to the "docker create" command,
+                              in addition to those controlled by the Batch Service."
                         type: str
                     image_name:
                         description:
@@ -839,7 +859,8 @@ options:
                 required: true
             version:
                 description:
-                    - If this is omitted, and no default version is specified for this application, the request fails with the error code InvalidApplicationPackageReferences.
+                    - "If this is omitted, and no default version is specified for this application,
+                      the request fails with the error code InvalidApplicationPackageReferences."
                     - If you are calling the REST API directly, the HTTP status code is 409.
                 type: str
     certificates:
@@ -847,7 +868,8 @@ options:
             - For Windows compute nodes, the Batch service installs the certificates to the specified certificate store and location.
             - "For Linux compute nodes, the certificates are stored in a directory inside the task working directory and
               an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location."
-            - For certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory and certificates are placed in that directory.
+            - "For certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory and
+              certificates are placed in that directory."
         type: list
         elements: dict
         suboptions:
@@ -863,8 +885,10 @@ options:
                     - This property is applicable only for pools configured with Windows nodes.
                     - "For Linux compute nodes, the certificates are stored in a directory inside the task working directory and
                       an environment variable AZ_BATCH_CERTIFICATES_DIR is supplied to the task to query for this location."
-                    - For certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory and certificates are placed in that directory.
+                    - "For certificates with visibility of 'remoteUser', a 'certs' directory is created in the user's home directory
+                      and certificates are placed in that directory."
                 type: str
+                default: CurrentUser
                 choices:
                     - CurrentUser
                     - LocalMachine
@@ -880,6 +904,10 @@ options:
                     - CA
                     - Trust
                     - Disallowed
+                    - TrustedPeople
+                    - TrustedPublisher
+                    - AuthRoot
+                    - AddressBook
             visibility:
                 description:
                     - Which user accounts on the compute node should have access to the private data of the certificate.
@@ -929,11 +957,12 @@ options:
                             - These are C(net use) options in Windows and C(mount) options in Linux.
                         type: str
                         choices:
-                            - 'net user'
+                            - 'net use'
                             - mount
                     relative_mount_path:
                         description:
-                            - All file systems are mounted relative to the Batch mounts directory, accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable.
+                            - "All file systems are mounted relative to the Batch mounts directory,
+                              accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable."
                         type: str
                         required: true
                     identity_reference:
@@ -958,7 +987,8 @@ options:
                         required: true
                     relative_mount_path:
                         description:
-                            - All file systems are mounted relative to the Batch mounts directory, accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable.
+                            - "All file systems are mounted relative to the Batch mounts directory,
+                              accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable."
                         type: str
                         required: true
                     mount_options:
@@ -966,7 +996,7 @@ options:
                             - These are C(net use) options in Windows and C(mount) options in Linux.
                         type: str
                         choices:
-                            - 'net user'
+                            - 'net use'
                             - mount
             cifs_mount_configuration:
                 description:
@@ -986,7 +1016,8 @@ options:
                         required: true
                     relative_mount_path:
                         description:
-                            - All file systems are mounted relative to the Batch mounts directory, accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable.
+                            - "All file systems are mounted relative to the Batch mounts directory,
+                              accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable."
                         type: str
                         required: true
                     mount_options:
@@ -994,7 +1025,7 @@ options:
                             -  These are C(net use) options in Windows and C(mount) options in Linux.
                         type: str
                         choices:
-                            - 'net user'
+                            - 'net use'
                             - mount
                     password:
                         description:
@@ -1024,7 +1055,8 @@ options:
                         required: true
                     relative_mount_path:
                         description:
-                            - All file systems are mounted relative to the Batch mounts directory, accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable.
+                            - "All file systems are mounted relative to the Batch mounts directory,
+                              accessible via the AZ_BATCH_NODE_MOUNTS_DIR environment variable."
                         type: str
                         required: true
                     mount_options:
@@ -1032,12 +1064,13 @@ options:
                             - These are C(net use) options in Windows and C(mount) options in Linux.
                         type: str
                         choices:
-                            - 'net user'
+                            - 'net use'
                             - mount
     target_node_communication_mode:
         description:
             - If omitted, the default value is C(Default).
         type: str
+        default: Default
         choices:
             - Default
             - Classic
@@ -1089,7 +1122,8 @@ options:
                             - Allow VMSS to ignore AZ boundaries when constructing upgrade batches.
                             - Take into consideration the Update Domain and maxBatchInstancePercent to determine the batch size.
                             - If this field is not set, Azure Azure Batch will not set its default value.
-                            - The value of enableCrossZoneUpgrade on the created VirtualMachineScaleSet will be decided by the default configurations on VirtualMachineScaleSet.
+                            - "The value of enableCrossZoneUpgrade on the created VirtualMachineScaleSet
+                              will be decided by the default configurations on VirtualMachineScaleSet."
                             - This field is able to be set to true or false only when using NodePlacementConfiguration as Zonal.
                         type: bool
                     max_batch_instance_percent:
@@ -1413,7 +1447,12 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                     lun=dict(type='int',),
                                     caching=dict(type='str', choices=['None', 'ReadOnly', 'ReadWrite']),
                                     disk_size_gb=dict(type='int'),
-                                    storage_account_type=dict(type='str', required=True, default='Standard_LRS')
+                                    storage_account_type=dict(
+                                        type='str',
+                                        required=True,
+                                        default='Standard_LRS',
+                                        choices=['Standard_LRS', 'Premium_LRS', 'StandardSSD_LRS']
+                                    )
                                 )
                             ),
                             license_type=dict(
@@ -1429,7 +1468,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                         elements='dict',
                                         options=dict(
                                             user_name=dict(type='str'),
-                                            password=dict(type='str'),
+                                            password=dict(type='str', no_log=True),
                                             registry_server=dict(type='str'),
                                             identity_reference=dict(
                                                 type='dict',
@@ -1457,7 +1496,8 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                 ),
                             ),
                             extensions=dict(
-                                type='dict',
+                                type='list',
+                                elements='dict',
                                 options=dict(
                                     name=dict(type='str', required=True),
                                     publisher=dict(type='str', required=True),
@@ -1529,7 +1569,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                         type='dict',
                         options=dict(
                             formula=dict(type='str', required=True),
-                            evaluation_interval=dict(type='str', default=15),
+                            evaluation_interval=dict(type='str', default='P15M'),
                         )
                     )
                 )
@@ -1595,13 +1635,13 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                 elements='dict',
                 options=dict(
                     name=dict(type='str', required=True),
-                    password=dict(type='str', required=True),
+                    password=dict(type='str', required=True, no_log=True),
                     elevation_level=dict(type='str', choices=['NonAdmin', 'Admin']),
                     linux_user_configuration=dict(
                         type='dict',
                         options=dict(
                             uid=dict(type='int',),
-                            git=dict(type='int'),
+                            gid=dict(type='int'),
                             ssh_private_key=dict(type='str'),
                         )
                     ),
@@ -1659,7 +1699,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                 type='dict',
                                 options=dict(
                                     scope=dict(type='str', default='Pool', choices=['Pool', 'Task']),
-                                    elevation_level=dict(type='str', default='nonAdmin', choices=['nonAdmin', 'Admin'])
+                                    elevation_level=dict(type='str', default='NonAdmin', choices=['NonAdmin', 'Admin'])
                                 )
                             )
                         )
@@ -1715,9 +1755,9 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                         options=dict(
                             account_name=dict(type='str', required=True),
                             container_name=dict(type='str', required=True),
-                            account_key=dict(type='str'),
-                            sas_key=dict(type='str'),
-                            blobfuse_options=dict(type='str', choices=['net user', 'mount']),
+                            account_key=dict(type='str', no_log=True),
+                            sas_key=dict(type='str', no_log=True),
+                            blobfuse_options=dict(type='str', choices=['net use', 'mount']),
                             relative_mount_path=dict(type='str', required=True),
                             identity_reference=dict(
                                 type='dict',
@@ -1741,7 +1781,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                             source=dict(type='str', required=True),
                             relative_mount_path=dict(type='str'),
                             mount_options=dict(type='str', choices=['net use', 'mount']),
-                            password=dict(type='str')
+                            password=dict(type='str', no_log=True)
                         )
                     ),
                     azure_file_share_configuration=dict(
@@ -1749,7 +1789,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                         options=dict(
                             account_name=dict(type='str', required=True),
                             azure_file_url=dict(type='str'),
-                            azure_key=dict(type='str', required=True),
+                            account_key=dict(type='str', required=True, no_log=True),
                             relative_mount_path=dict(type='str', required=True),
                             mount_options=dict(type='str', choices=['net use', 'mount'])
                         )
