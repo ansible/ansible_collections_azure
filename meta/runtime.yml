@@ -335,4 +335,9 @@ action_groups:
     - azure.azcollection.azure_rm_capacityreservationgroup
     - azure.azcollection.azure_rm_capacityreservationgroup_info
     - azure.azcollection.azure_rm_virtualnetworkgatewayconnection
-    - azure.azcollection.azure_rm_virtualnetworkgatewayconnection_info
+    - azure.azcollection.azure_rm_batchaccountapplication
+    - azure.azcollection.azure_rm_batchaccountapplication_info
+    - azure.azcollection.azure_rm_batchaccountpool
+    - azure.azcollection.azure_rm_batchaccountpool_info
+    - azure.azcollection.azure_rm_batchaccountapplicationpackage
+    - azure.azcollection.azure_rm_batchaccountapplicationpackage_info
