@@ -668,7 +668,6 @@ options:
                 description:
                     - The value of the metadata item.
                 type: str
-                required: true
     start_task:
         description:
             - In an PATCH (update) operation, this property can be set to an empty object to remove the start task from the pool.
@@ -836,6 +835,7 @@ options:
                                 description:
                                     - If omitted, the default is "docker.io".
                                 type: str
+                                default: 'docker.io'
                             identity_reference:
                                 description:
                                     - The reference to a user assigned identity associated with the Batch pool which a compute node will use.
@@ -1429,8 +1429,11 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                 type='dict',
                 options=dict(
                     cloud_service_configuration=dict(
-                        os_family=dict(type='str', default='*'),
-                        os_version=dict(type='str')
+                        type='dict',
+                        options=dict(
+                            os_family=dict(type='str', default='*'),
+                            os_version=dict(type='str')
+                        )
                     ),
                     virtual_machine_configuration=dict(
                         type='dict',
@@ -1462,7 +1465,6 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                     disk_size_gb=dict(type='int', required=True),
                                     storage_account_type=dict(
                                         type='str',
-                                        required=True,
                                         default='Standard_LRS',
                                         choices=['Standard_LRS', 'Premium_LRS', 'StandardSSD_LRS']
                                     )
@@ -1519,8 +1521,8 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                     auto_upgrade_minor_version=dict(type='bool'),
                                     enable_automatic_upgrade=dict(type='bool'),
                                     provision_after_extensions=dict(type='list', elements='str'),
-                                    settings=dict(type='dict'),
-                                    protected_settings=dict(type='dict')
+                                    settings=dict(type='json'),
+                                    protected_settings=dict(type='json')
                                 )
                             ),
                             os_disk=dict(
@@ -1531,6 +1533,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                         choices=['ReadOnly', 'ReadWrite', 'None']
                                     ),
                                     write_accelerator_enabled=dict(type='bool'),
+                                    disk_size_gb=dict(type='int'),
                                     managed_disk=dict(
                                         type='dict',
                                         options=dict(
@@ -1725,7 +1728,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                         )
                     ),
                     max_task_retry_count=dict(
-                        type='dict',
+                        type='int',
                         default=0,
                     ),
                     wait_for_success=dict(type='bool'),
