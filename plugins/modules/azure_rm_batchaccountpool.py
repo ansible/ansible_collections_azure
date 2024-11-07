@@ -801,7 +801,7 @@ options:
                 suboptions:
                     container_run_options:
                         description:
-                            - "These additional options are supplied as arguments to the "docker create" command,
+                            - "These additional options are supplied as arguments to the 'docker create' command,
                               in addition to those controlled by the Batch Service."
                         type: str
                     image_name:
