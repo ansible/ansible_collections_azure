@@ -81,7 +81,7 @@ options:
                             - I(os_family=5) equivalent to Windows Server 2016.
                             - I(os_family=6) equivalent to Windows Server 2019.
                         type: str
-                        required: true
+                        default: '*'
                     os_version:
                         description:
                             - The default value is C(*) which specifies the latest operating system version for the specified OS family.
@@ -668,6 +668,7 @@ options:
                 description:
                     - The value of the metadata item.
                 type: str
+                required: true
     start_task:
         description:
             - In an PATCH (update) operation, this property can be set to an empty object to remove the start task from the pool.
@@ -793,6 +794,7 @@ options:
                     - Note that this value specifically controls the number of retries.
                     - The Batch service will try the task once, and may then retry up to this limit.
                 type: int
+                default: 0
             wait_for_success:
                 description:
                     - If true and the start task fails on a compute node.
@@ -1814,6 +1816,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                     cifs_mount_configuration=dict(
                         type='dict',
                         options=dict(
+                            user_name=dict(type='str', required=True),
                             source=dict(type='str', required=True),
                             relative_mount_path=dict(type='str', required=True),
                             mount_options=dict(type='str', choices=['net use', 'mount']),

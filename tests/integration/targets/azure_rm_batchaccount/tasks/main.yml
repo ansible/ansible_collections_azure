@@ -304,7 +304,7 @@
           caching: None
           managed_disk:
             storage_account_type: Premium_LRS
-    display_name: "fredtest01"
+    display_name: "fredtest"
     inter_node_communication: Disabled
     network_configuration:
       dynamic_vnet_assignment_scope: none
@@ -363,7 +363,7 @@
           caching: None
           managed_disk:
             storage_account_type: Premium_LRS
-    display_name: "fredtest01"
+    display_name: "fredtest"
     inter_node_communication: Disabled
     network_configuration:
       dynamic_vnet_assignment_scope: none
@@ -426,7 +426,7 @@
           caching: None
           managed_disk:
             storage_account_type: Premium_LRS
-    display_name: "fredtest01"
+    display_name: "fredtest"
     inter_node_communication: Disabled
     network_configuration:
       dynamic_vnet_assignment_scope: none
