@@ -140,7 +140,7 @@ options:
                                 description:
                                     - If omitted, the default value is C(true).
                                 type: bool
-                                default: false
+                                default: true
                     data_disks:
                         description:
                             - This property must be specified if the compute nodes in the pool need to have empty data disks attached to them.
@@ -173,6 +173,7 @@ options:
                                     - C(Standard_LRS) for the data disk should use standard locally redundant storage.
                                     - C(Premium_LRS) for the he data disk should use premium locally redundant storage.
                                 type: str
+                                default: Standard_LRS
                                 choices:
                                     - Standard_LRS
                                     - Premium_LRS
@@ -202,12 +203,14 @@ options:
                             container_image_names:
                                 description:
                                     - This is the full image reference, as would be specified to "docker pull".
-                                    - An image will be sourced from the default Docker registry unless the image is fully qualified with an alternative registry.
+                                    - "An image will be sourced from the default Docker registry
+                                      unless the image is fully qualified with an alternative registry."
                                 type: list
                                 elements: str
                             container_registries:
                                 description:
-                                    - If any images must be downloaded from a private registry which requires credentials, then those credentials must be provided here.
+                                    - "If any images must be downloaded from a private registry which requires credentials,
+                                      then those credentials must be provided here."
                                 type: list
                                 elements: dict
                                 suboptions:
@@ -288,11 +291,12 @@ options:
                             auto_upgrade_minor_version:
                                 description:
                                     - Indicates whether the extension should use a newer minor version if one is available at deployment time.
-                                    - Once deployed, however, the extension will not upgrade minor versions unless redeployed, even with this property set to true.
+                                    - Once deployed, the extension will not upgrade minor versions unless redeployed, even with this property set to true.
                                 type: bool
                             enable_automatic_upgrade:
                                 description:
-                                    - Indicates whether the extension should be automatically upgraded by the platform if there is a newer version of the extension available.
+                                    - "Indicates whether the extension should be automatically upgraded by the platform
+                                      if there is a newer version of the extension available."
                                 type: bool
                             settings:
                                 description:
@@ -302,7 +306,7 @@ options:
                                 description:
                                     - The extension can contain either protectedSettings or protectedSettingsFromKeyVault or no protected settings at all.
                                 type: json
-                            provision_after_extensions:                            
+                            provision_after_extensions:
                                 description:
                                     - Collection of extension names after which this extension needs to be provisioned.
                                 type: list
@@ -338,7 +342,6 @@ options:
                                         description:
                                             - The storage account type for use in creating data disks or OSdisk.
                                         type: str
-                                        default: Standard_LRS
                                         choices:
                                             - Standard_LRS
                                             - Premium_LRS
@@ -364,8 +367,9 @@ options:
                                 default: trustedLaunch
                             encryption_at_host:
                                 description:
-                                    - This property can be used by user in the request to enable or disable the Host Encryption for the virtual machine or virtual machine scale set.
-                                    - This willenable the encryption for all the disks including Resource/Temp disk at host itself. 
+                                    - "This property can be used by user in the request to enable or disable the Host Encryption
+                                      for the virtual machine or virtual machine scale set."
+                                    - This willenable the encryption for all the disks including Resource/Temp disk at host itself.
                                 type: bool
                             uefi_settings:
                                 description:
@@ -383,17 +387,19 @@ options:
                     service_artifact_reference:
                         description:
                             - The service artifact reference ID.
-                            - Such as C(/subscriptions/{subId}/resourceGroups/{testRG}/providers/Microsoft.Compute/galleries/{gName}/serviceArtifacts/{ArtName}/vmArtifactsProfiles/{ProfilesName}).
+                            - "Such as C(/subscriptions/{subId}/resourceGroups/{testRG}/providers/Microsoft.Compute/galleries
+                              /{gName}/serviceArtifacts/{ArtName}/vmArtifactsProfiles/{ProfilesName})."
                         type: dict
                         suboptions:
                             id:
                                 description:
                                     - The service artifact reference ID of the vmArtifactsProfiles.
-                                type: str                          
+                                type: str 
     scale_settings:
         description:
             - Defines the desired size of the pool.
-            - This can either be 'fixedScale' where the requested targetDedicatedNodes is specified, or 'autoScale' which defines a formula which is periodically reevaluated.
+            - "This can either be 'fixedScale' where the requested targetDedicatedNodes is specified,
+              or 'autoScale' which defines a formula which is periodically reevaluated."
             - If this property is not specified, the pool will have a fixed scale with 0 targetDedicatedNodes.
         type: dict
         suboptions:
@@ -406,7 +412,7 @@ options:
                         description:
                             - The default value is 15 minutes C(P15M).
                             - Timeout values use ISO 8601 format. For example, use PT10M for 10 minutes.
-                            - The minimum value is 5 minutes. 
+                            - The minimum value is 5 minutes.
                             - If you specify a value less than 5 minutes, the Batch service rejects the request with an error.
                         type: str
                         default: P15M
@@ -535,7 +541,7 @@ options:
                                     source_address_prefix:
                                         description:
                                             - Valid values are a single IP address (i.e. 10.10.10.10).
-                                            - Valid values are a single IP address 
+                                            - Valid values are a single IP address.
                                         type: str
                                     source_port_ranges:
                                         description:
@@ -649,7 +655,8 @@ options:
     metadata:
         description:
             - The Batch service does not assign any meaning to this metadata; it is solely for the use of user code.
-        type: dict
+        type: list
+        elements: dict
         suboptions:
             name:
                 description:
@@ -687,7 +694,7 @@ options:
                         description:
                             - The autoStorageContainerName, storageContainerUrl and httpUrl properties are mutually exclusive and one of them must be specified.
                             - This URL must be readable and listable from compute nodes.
-                            - There are three ways to get such a URL for a container in Azure storage. 
+                            - There are three ways to get such a URL for a container in Azure storage.
                             - "Include a Shared Access Signature (SAS) granting read and list permissions on  the container,
                               use a managed identity with read and list permissions, or set the ACL for the container to allow public access."
                         type: str
@@ -707,10 +714,12 @@ options:
                         type: str
                     file_path:
                         description:
-                            - If the httpUrl property is specified, the filePath is required and describes the path which the file will be downloaded to, including the filename.
-                            - If the autoStorageContainerName or storageContainerUrl property is specified, filePath is optional and is the directory to download the files to.
-                            - "In the case where filePath is used as a directory, any directory structure already associated with the input data will be retained in full and
-                              appended to the specified filePath directory."
+                            - If the httpUrl property is specified, the filePath is required and
+                              describes the path which the file will be downloaded to, including the filename.
+                            - If the autoStorageContainerName or storageContainerUrl property is specified, filePath is optional and
+                              is the directory to download the files to.
+                            - "In the case where filePath is used as a directory, any directory structure already associated with the input data
+                              will be retained in full and appended to the specified filePath directory."
                             - The specified relative path cannot break out of  the task's working directory.
                         type: str
                     file_mode:
@@ -788,7 +797,7 @@ options:
                 description:
                     - If true and the start task fails on a compute node.
                     - The Batch service retries the start task up to its maximum retry count (maxTaskRetryCount).
-                    - "If the task has still not completed successfully after all retries, then the Batch service marks the compute node unusable, 
+                    - "If the task has still not completed successfully after all retries, then the Batch service marks the compute node unusable,
                       and will not schedule tasks to it."
                     - This condition can be detected via the node state and scheduling error detail.
                     - If false, the Batch service will not wait for the start task to complet.
@@ -1137,8 +1146,8 @@ options:
                         type: int
                     max_unhealthy_instance_percent:
                         description:
-                            - "The maximum percentage of the total virtual machine instances in the scale set that can be simultaneously unhealthy,
-                              either as a result of being upgraded, or by being found in an unhealthy state by the virtual machine health checks before the rolling upgrade aborts."
+                            - "The maximum percentage of the total virtual machine instances in the scale set that can be simultaneously unhealthy, either as a result of being
+                              upgraded, or by being found in an unhealthy state by the virtual machine health checks before the rolling upgrade aborts."
                             - This constraint will be checked prior to starting any batch.
                             - "If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value,
                               the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent."
@@ -1469,7 +1478,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                         options=dict(
                                             user_name=dict(type='str'),
                                             password=dict(type='str', no_log=True),
-                                            registry_server=dict(type='str'),
+                                            registry_server=dict(type='str', default='docker.io'),
                                             identity_reference=dict(
                                                 type='dict',
                                                 options=dict(
@@ -1559,7 +1568,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                     fixed_scale=dict(
                         type='dict',
                         options=dict(
-                            resize_timeout=dict(type='str'),
+                            resize_timeout=dict(type='str', default='P15M'),
                             target_dedicated_nodes=dict(type='int'),
                             target_low_priority_nodes=dict(type='int'),
                             node_deallocation_option=dict(type='str', choices=["Requeue", "Terminate", "TaskCompletion", "RetainedData"])
@@ -1608,7 +1617,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                     public_ip_address_configuration=dict(
                         type='dict',
                         options=dict(
-                            provision=dict(type='str', choices=['BatchManaged', 'UserManaged', 'NoPublicIPAddresses']),
+                            provision=dict(type='str', default='BatchManaged', choices=['BatchManaged', 'UserManaged', 'NoPublicIPAddresses']),
                             ip_address_ids=dict(
                                 type='list',
                                 elements='str'
@@ -1636,7 +1645,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                 options=dict(
                     name=dict(type='str', required=True),
                     password=dict(type='str', required=True, no_log=True),
-                    elevation_level=dict(type='str', choices=['NonAdmin', 'Admin']),
+                    elevation_level=dict(type='str', choices=['NonAdmin', 'Admin'], default='NonAdmin'),
                     linux_user_configuration=dict(
                         type='dict',
                         options=dict(
@@ -1715,7 +1724,20 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                             container_run_options=dict(type='str'),
                             image_name=dict(type='str'),
                             working_directory=dict(type='str', choices=['TaskWorkingDirectory', 'ContainerImageDefault']),
-                            registry=dict(type='str', choices=['TaskWorkingDirectory', 'ContainerImageDefault'])
+                            registry=dict(
+                                type='dict',
+                                options=dict(
+                                    user_name=dict(type='str'),
+                                    password=dict(type='str', no_log=True),
+                                    registry_server=dict(type='str', default='docker.io'),
+                                    identity_reference=dict(
+                                        type='dict',
+                                        options=dict(
+                                            resource_id=dict(type='str')
+                                        )
+                                    )
+                                )
+                            )
                         )
                     )
                 )
