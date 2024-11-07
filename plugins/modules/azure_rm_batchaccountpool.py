@@ -60,7 +60,7 @@ options:
             - For information about available sizes of virtual machines for Cloud Services Pools.
             - Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2,
             - Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
-        type: dict
+        type: str
     deployment_configuration:
         description:
             - Using CloudServiceConfiguration specifies that the nodes should be creating using Azure Cloud Services (PaaS).
@@ -86,7 +86,6 @@ options:
                         description:
                             - The default value is C(*) which specifies the latest operating system version for the specified OS family.
                         type: str
-                        default: '*'
             virtual_machine_configuration:
                 description:
                     - This property and cloudServiceConfiguration are mutually exclusive and one of the properties must be specified.
@@ -226,7 +225,7 @@ options:
                                         description:
                                             - If omitted, the default is C(docker.io).
                                         type: str
-                                        default: docker.io
+                                        default: 'docker.io'
                                     identity_reference:
                                         description:
                                             - The reference to a user assigned identity associated with the Batch pool which a compute node will use.
@@ -394,7 +393,7 @@ options:
                             id:
                                 description:
                                     - The service artifact reference ID of the vmArtifactsProfiles.
-                                type: str 
+                                type: str
     scale_settings:
         description:
             - Defines the desired size of the pool.
@@ -506,11 +505,13 @@ options:
                                     - This must be unique within a Batch pool.
                                     - Acceptable values are between 1 amd 65535 except for 22.
                                 type: int
+                                required: true
                             frontend_port_range_start:
                                 description:
                                     - Acceptable values range between 1 and 65534 except ports overlap
                                     - If any reserved or overlapping values are provided the request fails with HTTP status code 400.
-                                type: str
+                                type: int
+                                required: true
                             frontend_port_range_end:
                                 description:
                                     - Acceptable values range between 1 and 65534 except ports from 50000 to 55000 which are reserved by the Batch service.
@@ -577,7 +578,7 @@ options:
         description:
             - The default value is C(1).
             - The maximum value is the smaller of 4 times the number of cores of the vmSize of the pool or 256.
-        type: str
+        type: int
         default: 1
     task_scheduling_policy:
         description:
@@ -935,7 +936,8 @@ options:
     mount_configuration:
         description:
             - This supports Azure Files, NFS, CIFS/SMB, and Blobfuse.
-        type: dict
+        type: list
+        elements: dict
         suboptions:
             azure_blob_file_system_configuration:
                 description:
@@ -1146,8 +1148,9 @@ options:
                         type: int
                     max_unhealthy_instance_percent:
                         description:
-                            - "The maximum percentage of the total virtual machine instances in the scale set that can be simultaneously unhealthy, either as a result of being
-                              upgraded, or by being found in an unhealthy state by the virtual machine health checks before the rolling upgrade aborts."
+                            - "The maximum percentage of the total virtual machine instances in the scale set that can be simultaneously unhealthy,
+                              either as a result of being upgraded, or by being found in an unhealthy state by the virtual machine health checks
+                              before the rolling upgrade aborts."
                             - This constraint will be checked prior to starting any batch.
                             - "If both maxBatchInstancePercent and maxUnhealthyInstancePercent are assigned with value,
                               the value of maxBatchInstancePercent should not be more than maxUnhealthyInstancePercent."
@@ -1434,6 +1437,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                         options=dict(
                             image_reference=dict(
                                 type='dict',
+                                required=True,
                                 options=dict(
                                     publisher=dict(type='str'),
                                     offer=dict(type='str'),
@@ -1442,7 +1446,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                     id=dict(type='str'),
                                 )
                             ),
-                            node_agent_sku_id=dict(type='str'),
+                            node_agent_sku_id=dict(type='str', required=True),
                             windows_configuration=dict(
                                 type='dict',
                                 options=dict(
@@ -1453,9 +1457,9 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                 type='list',
                                 elements='dict',
                                 options=dict(
-                                    lun=dict(type='int',),
+                                    lun=dict(type='int', required=True),
                                     caching=dict(type='str', choices=['None', 'ReadOnly', 'ReadWrite']),
-                                    disk_size_gb=dict(type='int'),
+                                    disk_size_gb=dict(type='int', required=True),
                                     storage_account_type=dict(
                                         type='str',
                                         required=True,
@@ -1492,7 +1496,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                             disk_encryption_configuration=dict(
                                 type='dict',
                                 options=dict(
-                                    targets=dict(type='str', choices=['TemporaryDisk', 'OsDisk'])
+                                    targets=dict(type='list', elements='str', choices=['TemporaryDisk', 'OsDisk'])
                                 )
                             ),
                             node_placement_configuration=dict(
@@ -1547,8 +1551,11 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                     security_type=dict(type='str', default='trustedLaunch'),
                                     encryption_at_host=dict(type='bool'),
                                     uefi_settings=dict(
-                                        secure_boot_enabled=dict(type='bool'),
-                                        v_tpm_enabled=dict(type='bool')
+                                        type='dict',
+                                        options=dict(
+                                            secure_boot_enabled=dict(type='bool'),
+                                            v_tpm_enabled=dict(type='bool')
+                                        )
                                     )
                                 )
                             ),
@@ -1605,10 +1612,14 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                                     frontend_port_range_start=dict(type='int', required=True),
                                     frontend_port_range_end=dict(type='int', required=True),
                                     network_security_group_rules=dict(
-                                        priority=dict(type='int', required=True),
-                                        access=dict(type='str', required=True, choices=['Allow', 'Deny']),
-                                        source_address_prefix=dict(type='str', default='*'),
-                                        source_port_ranges=dict(type='list', elements='str')
+                                        type='list',
+                                        elements='dict',
+                                        options=dict(
+                                            priority=dict(type='int', required=True),
+                                            access=dict(type='str', required=True, choices=['Allow', 'Deny']),
+                                            source_address_prefix=dict(type='str'),
+                                            source_port_ranges=dict(type='list', elements='str')
+                                        )
                                     )
                                 )
                             )
@@ -1651,7 +1662,7 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                         options=dict(
                             uid=dict(type='int',),
                             gid=dict(type='int'),
-                            ssh_private_key=dict(type='str'),
+                            ssh_private_key=dict(type='str', no_log=True),
                         )
                     ),
                     windows_user_configuration=dict(
@@ -1801,16 +1812,16 @@ class AzureRMBatchAccountPool(AzureRMModuleBaseExt):
                         type='dict',
                         options=dict(
                             source=dict(type='str', required=True),
-                            relative_mount_path=dict(type='str'),
+                            relative_mount_path=dict(type='str', required=True),
                             mount_options=dict(type='str', choices=['net use', 'mount']),
-                            password=dict(type='str', no_log=True)
+                            password=dict(type='str', no_log=True, required=True)
                         )
                     ),
                     azure_file_share_configuration=dict(
                         type='dict',
                         options=dict(
                             account_name=dict(type='str', required=True),
-                            azure_file_url=dict(type='str'),
+                            azure_file_url=dict(type='str', required=True),
                             account_key=dict(type='str', required=True, no_log=True),
                             relative_mount_path=dict(type='str', required=True),
                             mount_options=dict(type='str', choices=['net use', 'mount'])
