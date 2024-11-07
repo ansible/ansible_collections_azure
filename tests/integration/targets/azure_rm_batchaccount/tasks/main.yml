@@ -581,7 +581,7 @@
   azure_rm_batchaccountpool:
     resource_group: "{{ resource_group }}"
     batch_account_name: "{{ batch_account_name }}"
-    name: "pool{{ rfpx }}"
+    name: "pool{{ rpfx }}"
     state: absent
   register: output
 

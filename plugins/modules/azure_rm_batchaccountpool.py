@@ -668,7 +668,6 @@ options:
                 description:
                     - The value of the metadata item.
                 type: str
-                required: true
     start_task:
         description:
             - In an PATCH (update) operation, this property can be set to an empty object to remove the start task from the pool.
