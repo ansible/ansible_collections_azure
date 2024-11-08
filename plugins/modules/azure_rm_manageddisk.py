@@ -605,7 +605,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
                     lun = item.lun
 
         # prepare the data disk
-        params = self.disk_models.ManagedDiskParameters(id=disk.get('id'), storage_account_type=disk.get('storage_account_type'))
+        params = self.compute_models.ManagedDiskParameters(id=disk.get('id'), storage_account_type=disk.get('storage_account_type'))
         caching_options = self.disk_models.CachingTypes[self.attach_caching] if self.attach_caching and self.attach_caching != '' else None
         # pylint: disable=missing-kwoa
         data_disk = self.disk_models.DataDisk(lun=lun,
