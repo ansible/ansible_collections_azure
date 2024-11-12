@@ -125,7 +125,7 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
-    from azure.mgmt.notificationhubs.models import NotificationHubCreateOrUpdateParameters, NamespaceCreateOrUpdateParameters
+    from azure.mgmt.notificationhubs.models import NotificationHubResource, NamespaceResource
     from azure.mgmt.notificationhubs.models import Sku
 except ImportError:
     # This is handled in azure_rm_common
@@ -247,13 +247,13 @@ class AzureNotificationHub(AzureRMModuleBase):
         create or update namespaces
         '''
         try:
-            namespace_params = NamespaceCreateOrUpdateParameters(
+            namespace_params = NamespaceResource(
                 location=self.location,
                 namespace_type="NotificationHub",
                 sku=Sku(name=self.sku),
                 tags=self.tags
             )
-            result = self.notification_hub_client.namespaces.create_or_update(
+            result = self.notification_hub_client.namespaces.begin_create_or_update(
                 self.resource_group,
                 self.namespace_name,
                 namespace_params)
@@ -280,7 +280,7 @@ class AzureNotificationHub(AzureRMModuleBase):
         '''
         try:
             response = self.create_or_update_namespaces()
-            params = NotificationHubCreateOrUpdateParameters(
+            params = NotificationHubResource(
                 location=self.location,
                 sku=Sku(name=self.sku),
                 tags=self.tags
