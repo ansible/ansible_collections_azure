@@ -258,16 +258,10 @@ class AzureNotificationHub(AzureRMModuleBase):
                 self.namespace_name,
                 namespace_params)
 
+            time.sleep(30)
             namespace = self.notification_hub_client.namespaces.get(
                 self.resource_group,
                 self.namespace_name)
-
-            while namespace.status == "Created":
-                time.sleep(30)
-                namespace = self.notification_hub_client.namespaces.get(
-                    self.resource_group,
-                    self.namespace_name,
-                )
         except Exception as ex:
             self.fail("Failed to create namespace {0} in resource group {1}: {2}".format(
                 self.namespace_name, self.resource_group, str(ex)))
