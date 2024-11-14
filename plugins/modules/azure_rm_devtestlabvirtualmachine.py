@@ -367,13 +367,13 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                 template = "/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.DevTestLab/labs/{2}/artifactsources/{3}{4}"
                 artifact['artifact_id'] = template.format(self.subscription_id, self.resource_group, self.lab_name, source_name, source_path)
 
-        self.lab_virtual_machine['size'] = self.lab_virtual_machine.pop('vm_size')
-        self.lab_virtual_machine['os_type'] = _snake_to_camel(self.lab_virtual_machine['os_type'], True)
+        self.lab_virtual_machine['size'] = self.lab_virtual_machine.pop('vm_size') if self.lab_virtual_machine.get('vm_size') else None
+        self.lab_virtual_machine['os_type'] = _snake_to_camel(self.lab_virtual_machine['os_type']) if self.lab_virtual_machine.get('os_type') else None
 
         if self.lab_virtual_machine.get('storage_type'):
             self.lab_virtual_machine['storage_type'] = _snake_to_camel(self.lab_virtual_machine['storage_type'], True)
 
-        lab_subnet = self.lab_virtual_machine.pop('lab_subnet')
+        lab_subnet = self.lab_virtual_machine.pop('lab_subnet') if self.lab_virtual_machine.get('lab_subnet') else dict()
 
         if isinstance(lab_subnet, str):
             vn_and_subnet = lab_subnet.split('/subnets/')

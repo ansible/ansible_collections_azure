@@ -259,7 +259,7 @@ class AzureNotificationHub(AzureRMModuleBase):
                 namespace_params)
 
             time.sleep(30)
-            namespace = self.notification_hub_client.namespaces.get(
+            result = self.notification_hub_client.namespaces.get(
                 self.resource_group,
                 self.namespace_name)
         except Exception as ex:
