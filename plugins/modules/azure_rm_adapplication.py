@@ -81,12 +81,6 @@ options:
             - AzureADandPersonalMicrosoftAccount
             - PersonalMicrosoftAccount
 
-    available_to_other_tenants:
-        description:
-            - (Deprecated) The application can be used from any Azure AD tenants.
-            - This parameter was not supported after the migration to Microsoft Graph and was replaced by I(sign_in_audience).
-            - It will deprecated in next version(V3.0.0).
-        type: bool
     credential_description:
         description:
             - The description of the password.
@@ -385,12 +379,6 @@ sign_in_audience:
     returned: always
     type: str
     sample: AzureADandPersonalMicrosoftAccount
-available_to_other_tenants:
-    description:
-        - The application can be used from any Azure AD tenants.
-    returned: always
-    type: str
-    sample: AzureADandPersonalMicrosoftAccount
 homepage:
     description:
         - The url where users can sign in and use your app.
@@ -549,11 +537,6 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
                 type='str',
                 choices=['AzureADMyOrg', 'AzureADMultipleOrgs', 'AzureADandPersonalMicrosoftAccount', 'PersonalMicrosoftAccount']
             ),
-            available_to_other_tenants=dict(
-                type='bool',
-                removed_in_version='3.0.0',
-                removed_from_collection='azure.azcollection'
-            ),
             credential_description=dict(type='str'),
             end_date=dict(type='str'),
             homepage=dict(type='str'),
@@ -586,7 +569,6 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
         self.app_id = None
         self.display_name = None
         self.app_roles = None
-        self.available_to_other_tenants = None
         self.credential_description = None
         self.end_date = None
         self.homepage = None
@@ -789,7 +771,6 @@ class AzureRMADApplication(AzureRMModuleBaseExt):
             object_id=object.id,
             display_name=object.display_name,
             app_roles=app_roles,
-            available_to_other_tenants=object.sign_in_audience,
             sign_in_audience=object.sign_in_audience,
             homepage=object.web.home_page_url,
             identifier_uris=object.identifier_uris,

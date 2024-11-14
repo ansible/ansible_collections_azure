@@ -429,6 +429,7 @@ class AzureRMModuleBase(object):
         self._resource_client = None
         self._compute_client = None
         self._disk_client = None
+        self._multi_disk_client = None
         self._diskencryptionset_client = None
         self._image_client = None
         self._dns_client = None
@@ -959,14 +960,16 @@ class AzureRMModuleBase(object):
             try:
                 setattr(client, '_ansible_models', importlib.import_module(client_type.__module__).models)
             except AttributeError:
-                setattr(client, '_ansible_models', importlib.import_module(client_type.__module__)._models)
+                if hasattr(importlib.import_module(client_type.__module__), '_modeles'):
+                    setattr(client, '_ansible_models', importlib.import_module(client_type.__module__)._models)
+                else:
+                    pass
             client.models = types.MethodType(_ansible_get_models, client)
 
+        client._config.user_agent_policy = self.add_user_agent(client._config.user_agent_policy)
+
         if self.azure_auth._cert_validation_mode == 'ignore':
-            if hasattr(client, '_config'):
-                client._config.session_configuration_callback = self._validation_ignore_callback
-            else:
-                client.config.session_configuration_callback = self._validation_ignore_callback
+            client._config.session_configuration_callback = self._validation_ignore_callback
 
         return client
 
@@ -1132,11 +1135,25 @@ class AzureRMModuleBase(object):
         if not self._disk_client:
             self._disk_client = self.get_mgmt_svc_client(ComputeManagementClient,
                                                          base_url=self._cloud_environment.endpoints.resource_manager,
-                                                         api_version='2021-04-01')
+                                                         api_version='2023-04-02')
         return self._disk_client
 
     @property
     def disk_models(self):
+        self.log("Getting disk models")
+        return ComputeManagementClient.models("2023-04-02")
+
+    @property
+    def multi_disk_client(self):
+        self.log('Getting disk client')
+        if not self._multi_disk_client:
+            self._multi_disk_client = self.get_mgmt_svc_client(ComputeManagementClient,
+                                                               base_url=self._cloud_environment.endpoints.resource_manager,
+                                                               api_version='2021-04-01')
+        return self._multi_disk_client
+
+    @property
+    def multi_disk_models(self):
         self.log("Getting disk models")
         return ComputeManagementClient.models("2021-04-01")
 
@@ -1204,7 +1221,7 @@ class AzureRMModuleBase(object):
     @property
     def managedcluster_models(self):
         self.log("Getting container service models")
-        return ContainerServiceClient.models('2024-05-01')
+        return ContainerServiceClient.models('2024-08-01')
 
     @property
     def managedcluster_client(self):
@@ -1212,7 +1229,7 @@ class AzureRMModuleBase(object):
         if not self._managedcluster_client:
             self._managedcluster_client = self.get_mgmt_svc_client(ContainerServiceClient,
                                                                    base_url=self._cloud_environment.endpoints.resource_manager,
-                                                                   api_version='2024-05-01')
+                                                                   api_version='2024-08-01')
         return self._managedcluster_client
 
     @property

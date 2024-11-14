@@ -161,6 +161,15 @@ options:
             - Property specifying whether protection against purge is enabled for this vault.
         type: bool
         default: False
+    enable_rbac_authorization:
+        description:
+            - Property that controls how data actions are authorized.
+            - When I(enable_rbac_authorization=true), the key vault will use Role Based Access Control (RBAC) for authorization of data actions,
+              and the access policies specified in vault properties will be  ignored.
+            - When I(enable_rbac_authorization=false), the key vault will use the access policies specified in vault properties,
+              and any policy stored on Azure Resource Manager will be ignored.
+            - If null or not specified, the value of this property will not change.
+        type: bool
     soft_delete_retention_in_days:
         description:
             - Property specifying the number of days to retain deleted vaults.
@@ -193,6 +202,7 @@ EXAMPLES = '''
     resource_group: myResourceGroup
     vault_name: samplekeyvault
     enabled_for_deployment: true
+    enable_rbac_authorization: true
     vault_tenant: 72f98888-8666-4144-9199-2d7cd0111111
     sku:
       name: standard
@@ -295,6 +305,9 @@ class AzureRMVaults(AzureRMModuleBase):
                 type='bool',
                 default=True
             ),
+            enable_rbac_authorization=dict(
+                type='bool'
+            ),
             soft_delete_retention_in_days=dict(
                 type='int'
             ),
@@ -370,6 +383,8 @@ class AzureRMVaults(AzureRMModuleBase):
                     self.parameters.setdefault("properties", {})["enabled_for_template_deployment"] = kwargs[key]
                 elif key == "enable_soft_delete":
                     self.parameters.setdefault("properties", {})["enable_soft_delete"] = kwargs[key]
+                elif key == "enable_rbac_authorization":
+                    self.parameters.setdefault("properties", {})["enable_rbac_authorization"] = kwargs[key]
                 elif key == "enable_purge_protection":
                     self.parameters.setdefault("properties", {})["enable_purge_protection"] = kwargs[key]
                 elif key == "soft_delete_retention_in_days":
@@ -409,30 +424,19 @@ class AzureRMVaults(AzureRMModuleBase):
                         ('enable_purge_protection' not in old_response['properties'] or
                          not old_response['properties']['enable_purge_protection']):
                     self.parameters['properties'].pop('enable_purge_protection')
+                for item in ['enabled_for_deployment', 'enabled_for_disk_encryption', 'enabled_for_template_deployment',
+                             'enable_soft_delete', 'enable_purge_protection', 'enable_rbac_authorization']:
+                    if item in self.parameters['properties'] and bool(old_response['properties'].get(item)) != bool(self.parameters['properties'][item]):
+                        self.to_do = Actions.Update
+                    else:
+                        self.parameters['properties'][item] = old_response['properties'].get(item)
                 if ('location' in self.parameters) and (self.parameters['location'] != old_response['location']):
                     self.to_do = Actions.Update
                 elif (('tenant_id' in self.parameters['properties']) and
                         (self.parameters['properties']['tenant_id'] != old_response['properties']['tenant_id'])):
                     self.to_do = Actions.Update
-                elif (('enabled_for_deployment' in self.parameters['properties']) and
-                        (self.parameters['properties']['enabled_for_deployment'] != old_response['properties'].get('enabled_for_deployment', None))):
-                    self.to_do = Actions.Update
-                elif (('enabled_for_disk_encryption' in self.parameters['properties']) and
-                        (self.parameters['properties']['enabled_for_disk_encryption'] !=
-                         old_response['properties'].get('enabled_for_disk_encryption', None))):
-                    self.to_do = Actions.Update
-                elif (('enabled_for_template_deployment' in self.parameters['properties']) and
-                        (self.parameters['properties']['enabled_for_template_deployment'] !=
-                         old_response['properties'].get('enabled_for_template_deployment', None))):
-                    self.to_do = Actions.Update
-                elif (('enable_soft_delete' in self.parameters['properties']) and
-                        (self.parameters['properties']['enable_soft_delete'] != old_response['properties'].get('enable_soft_delete', None))):
-                    self.to_do = Actions.Update
                 elif (('soft_delete_retention_in_days' in self.parameters['properties']) and
                         (self.parameters['properties']['soft_delete_retention_in_days'] != old_response['properties'].get('soft_delete_retention_in_days'))):
-                    self.to_do = Actions.Update
-                elif (('enable_purge_protection' in self.parameters['properties']) and
-                      (self.parameters['properties']['enable_purge_protection'] != old_response['properties'].get('enable_purge_protection'))):
                     self.to_do = Actions.Update
                 elif ('create_mode' in self.parameters['properties']) and (self.parameters['properties']['create_mode'] == 'recover'):
                     self.to_do = Actions.Update

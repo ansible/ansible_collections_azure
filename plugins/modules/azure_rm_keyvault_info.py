@@ -101,6 +101,12 @@ keyvaults:
             returned: always
             type: bool
             sample: False
+        enable_rbac_authorization:
+            description:
+                - Property that controls how data actions are authorized.
+            returned: always
+            type: bool
+            sample: False
         enable_soft_delete:
             description:
                 - Property to specify whether Azure Resource Manager is permitted to retrieve secrets from the key vault.
@@ -210,6 +216,7 @@ def keyvault_to_dict(vault):
         enabled_for_disk_encryption=vault.properties.enabled_for_disk_encryption,
         enabled_for_template_deployment=vault.properties.enabled_for_template_deployment,
         enable_soft_delete=vault.properties.enable_soft_delete,
+        enable_rbac_authorization=vault.properties.enable_rbac_authorization,
         soft_delete_retention_in_days=vault.properties.soft_delete_retention_in_days
         if vault.properties.soft_delete_retention_in_days else 90,
         enable_purge_protection=vault.properties.enable_purge_protection

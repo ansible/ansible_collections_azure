@@ -140,6 +140,11 @@ options:
         choices:
             - standard
             - premium
+    is_authentication_with_ssh_key:
+        description:
+            - Indicates whether this virtual machine uses an SSH key for authentication.
+            - I(is_authentication_with_ssh_key=True) when I(ssh_key) is set for ssh authentication.
+        type: bool
     state:
         description:
             - Assert the state of the Virtual Machine.
@@ -322,6 +327,9 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                 type='str',
                 choices=['standard', 'premium']
             ),
+            is_authentication_with_ssh_key=dict(
+                type='bool'
+            ),
             state=dict(
                 type='str',
                 default='present',
@@ -330,8 +338,8 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
         )
 
         required_if = [
-            ('state', 'present', [
-             'image', 'lab_subnet', 'vm_size', 'os_type'])
+            ('state', 'present', ['image', 'lab_subnet', 'vm_size', 'os_type']),
+            ('is_authentication_with_ssh_key', True, ['ssh_key'])
         ]
 
         self.resource_group = None
@@ -430,6 +438,12 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                 # and in addition we don't have detailed information, just a number of "total artifacts"
                 if len(self.lab_virtual_machine.get('artifacts', [])) != old_response['artifact_deployment_status']['total_artifacts']:
                     self.module.warn("Property 'artifacts' cannot be changed")
+
+                if self.lab_virtual_machine.get('is_authentication_with_ssh_key') is not None:
+                    if bool(old_response['is_authentication_with_ssh_key']) != bool(self.lab_virtual_machine['is_authentication_with_ssh_key']):
+                        self.module.warn("Property 'is_authentication_with_ssh_key' cannot be changed")
+                else:
+                    self.lab_virtual_machine['is_authentication_with_ssh_key'] = old_response['is_authentication_with_ssh_key']
 
                 if self.lab_virtual_machine.get('disallow_public_ip_address') is not None:
                     if old_response['disallow_public_ip_address'] != self.lab_virtual_machine.get('disallow_public_ip_address'):

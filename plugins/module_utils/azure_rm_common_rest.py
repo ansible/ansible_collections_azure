@@ -15,7 +15,7 @@ try:
     from azure.core._pipeline_client import PipelineClient
     from azure.core.polling import LROPoller
     from azure.core.pipeline import PipelineResponse
-    from azure.core.pipeline.policies import BearerTokenCredentialPolicy
+    from azure.core.pipeline.policies import BearerTokenCredentialPolicy, UserAgentPolicy
     from azure.mgmt.core.polling.arm_polling import ARMPolling
     import uuid
     from azure.core.configuration import Configuration
@@ -41,6 +41,7 @@ class GenericRestClientConfiguration(Configuration):
 
         super(GenericRestClientConfiguration, self).__init__()
 
+        self.user_agent_policy = UserAgentPolicy(ANSIBLE_USER_AGENT)
         self.credentials = credential
         self.subscription_id = subscription_id
         self.authentication_policy = BearerTokenCredentialPolicy(credential, credential_scopes)
@@ -49,8 +50,8 @@ class GenericRestClientConfiguration(Configuration):
 class GenericRestClient(object):
 
     def __init__(self, credential, subscription_id, base_url=None, credential_scopes=None):
-        self.config = GenericRestClientConfiguration(credential, subscription_id, credential_scopes[0])
-        self._client = PipelineClient(base_url, config=self.config)
+        self._config = GenericRestClientConfiguration(credential, subscription_id, credential_scopes[0])
+        self._client = PipelineClient(base_url, config=self._config)
         self.models = None
 
     def query(self, url, method, query_parameters, header_parameters, body, expected_status_codes, polling_timeout, polling_interval):
