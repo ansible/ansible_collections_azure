@@ -209,6 +209,7 @@ class AzureRMKeyVaultSecret(AzureRMModuleBase):
         if not self.check_mode:
             # Create secret
             if self.state == 'present' and changed:
+                status = 'Created'
                 if self.get_delete_secret(self.secret_name):
                     if self.recover_if_need:
                         results['secret_id'] = self.recover_delete_secret(self.secret_name)
