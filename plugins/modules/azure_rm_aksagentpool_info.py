@@ -439,7 +439,7 @@ class AzureRMAgentPoolInfo(AzureRMModuleBase):
             enable_encryption_at_host=agent_pool.enable_encryption_at_host,
             enable_ultra_ssd=agent_pool.enable_ultra_ssd,
             enable_fips=agent_pool.enable_fips,
-            gpu_instance_profile=agent_pool.gpu_instance_profile
+            gpu_instance_profile=agent_pool.gpu_instance_profile,
         )
 
         if agent_pool.upgrade_settings is not None:
