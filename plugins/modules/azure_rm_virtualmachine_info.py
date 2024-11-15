@@ -549,7 +549,7 @@ class AzureRMVirtualMachineInfo(AzureRMModuleBase):
             elif image.get('community_gallery_image_id') is not None:
                 new_result['image'] = {
                     'community_gallery_image_id': image.get('community_gallery_image_id')
-                )
+                }
             else:
                 new_result['image'] = {
                     'id': image.get('id', None)

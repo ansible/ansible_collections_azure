@@ -455,16 +455,27 @@ EXAMPLES = '''
   azure_rm_virtualmachinescaleset:
     resource_group: myResourceGroup
     name: testvmss
-    vm_size: Standard_DS1_v2
-    capacity: 2
-    virtual_network_name: testvnet
-    upgrade_policy: Manual
-    subnet_name: testsubnet
-    admin_username: "{{ username }}"
-    admin_password: "{{ password }}"
+    vm_size: Standard_D8_v4
+    admin_username: testuser
+    single_placement_group: false
+    platform_fault_domain_count: 1
+    public_ip_per_vm: true
+    ssh_password_enabled: false
+    ssh_public_keys:
+      - path: /home/testuser/.ssh/authorized_keys
+        key_data: "ssh-rsa ********* xiuxi.sun@qq.com"
+    virtual_network_name: VMSStestVnet
+    subnet_name: VMSStestSubnet
     managed_disk_type: Standard_LRS
+    orchestration_mode: Flexible
+    os_disk_caching: ReadWrite
     image:
       community_gallery_image_id: "/CommunityGalleries/yellowbrick-fc7e81f1-87dd-4989-9ca8-03743762e873/Images/Ubuntu-5.15.0-1035-azure_22.04"
+    data_disks:
+      - lun: 0
+        disk_size_gb: 64
+        caching: ReadWrite
+        managed_disk_type: Standard_LRS
 
 - name: Create a VMSS with over 100 instances
   azure_rm_virtualmachinescaleset:
