@@ -67,7 +67,7 @@ state:
         id:
             description:
                 - Resource ID of the private endpoint.
-            sample: /subscriptions/xxx-xxx-xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/privateEndpoints/testprivateendpoint
+            sample: /subscriptions/xxx-xxx-xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/privateEndpoints/ped01
             returned: always
             type: str
         etag:
@@ -105,17 +105,17 @@ state:
                 - Name of the private endpoint.
             returned: always
             type: str
-            sample: estprivateendpoint
+            sample: ped01
         subnets_id:
             description:
                 - Subnets associated with the virtual network.
             returned: always
             type: str
             sample: "/subscriptions/xxx-xxx-xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/virtualNetworks/fredtestRG-vnet/subnets/default"
-        private_link_service_connections:
+        manual_private_link_service_connections:
             description:
                 - The resource id of the private endpoint to connect.
-            returned: always
+            returned: when-used
             type: complex
             contains:
                 id:
@@ -123,11 +123,55 @@ state:
                         - The resource id of the private endpoint to connect.
                     returned: always
                     type: str
+                    sample: "/subscriptions/xxx/resourceGroups/testRG/providers/Microsoft.Network/privateEndpoints/ped01/privateLinkServiceConnections/ped01"
                 name:
                     description:
                         - The name of the private endpoint connection.
                     returned: always
                     type: str
+                    sample: ped_name01
+                connection_state:
+                    description:
+                        - State details of endpoint connection
+                    type: complex
+                    returned: always
+                    contains:
+                        description:
+                            description:
+                                - The reason for approval/rejection of the connection.
+                            returned: always
+                            type: str
+                            sample: "Auto Approved"
+                        status:
+                            description:
+                                - Indicates whether the connection has been Approved/Rejected/Removed by the owner of the service.
+                            returned: always
+                            type: str
+                            sample: Approved
+                        actions_required:
+                            description:
+                                - A message indicating if changes on the service provider require any updates on the consumer.
+                            type: str
+                            returned: always
+                            sample: "This is action_required string"
+        private_link_service_connections:
+            description:
+                - The resource id of the private endpoint to connect.
+            returned: when-used
+            type: complex
+            contains:
+                id:
+                    description:
+                        - The resource id of the private endpoint to connect.
+                    returned: always
+                    type: str
+                    sample: "/subscriptions/xxx/resourceGroups/testRG/providers/Microsoft.Network/privateEndpoints/ped01/privateLinkServiceConnections/ped02"
+                name:
+                    description:
+                        - The name of the private endpoint connection.
+                    returned: always
+                    type: str
+                    sample: ped_name02
                 connection_state:
                     description:
                         - State details of endpoint connection
@@ -291,7 +335,16 @@ class AzureRMPrivateEndpointInfo(AzureRMModuleBase):
         if privateendpoint.manual_private_link_service_connections and len(privateendpoint.manual_private_link_service_connections) > 0:
             results['manual_private_link_service_connections'] = []
             for connections in privateendpoint.manual_private_link_service_connections:
-                results['manual_private_link_service_connections'].append(connections.id)
+                connection = {}
+                connection['connection_state'] = {}
+                connection['id'] = connections.id
+                connection['name'] = connections.name
+                connection['type'] = connections.type
+                connection['group_ids'] = connections.group_ids
+                connection['connection_state']['status'] = connections.manual_private_link_service_connection_state.status
+                connection['connection_state']['description'] = connections.manual_private_link_service_connection_state.description
+                connection['connection_state']['actions_required'] = connections.manual_private_link_service_connection_state.actions_required
+                results['manual_private_link_service_connections'].append(connection)
         return results
 
 
