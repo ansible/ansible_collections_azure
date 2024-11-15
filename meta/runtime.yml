@@ -1,5 +1,5 @@
 ---
-requires_ansible: '>=2.15.0'
+requires_ansible: '>=2.16.0'
 action_groups:
   all:
     - azure.azcollection.azure_rm_accesstoken_info
