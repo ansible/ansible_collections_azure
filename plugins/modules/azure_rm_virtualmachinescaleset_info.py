@@ -159,27 +159,39 @@ vmss:
                 offer:
                     description:
                         - The offer of the platform image or marketplace image used to create the virtual machine.
-                    returned: always
+                    returned: when created from marketplace image
                     type: str
                     sample: RHEL
                 publisher:
                     description:
                         - Publisher name.
-                    returned: always
+                    returned: when created from marketplace image
                     type: str
                     sample: RedHat
                 sku:
                     description:
                         - SKU name.
-                    returned: always
+                    returned: when created from marketplace image
                     type: str
                     sample: 7-RAW
                 version:
                     description:
                         - Image version.
-                    returned: always
+                    returned: when created from marketplace image
                     type: str
                     sample: 7.5.2018050901
+                id:
+                    description:
+                        - Custom image resource ID.
+                    type: str
+                    returned: when created from custom image
+                    sample: /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.Compute/images/myImage
+                community_gallery_image_id:
+                    description:
+                        - The community gallery image unique id for vm deployment.
+                    type: str
+                    returned: when created from community gallery image
+                    sample: "/CommunityGalleries/yellowbrick-fc7e81f1-87dd-4989-9ca8-03743762e873/Images/Ubuntu-5.15.0-1035-azure_22.04"
         load_balancer:
             description:
                 - Load balancer name.

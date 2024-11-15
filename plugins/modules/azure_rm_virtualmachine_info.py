@@ -194,6 +194,12 @@ vms:
                     type: str
                     returned: when created from custom image
                     sample: /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.Compute/images/myImage
+                community_gallery_image_id:
+                    description:
+                        - The community gallery image unique id for vm deployment.
+                    type: str
+                    returned: when created from community gallery image
+                    sample: "/CommunityGalleries/yellowbrick-fc7e81f1-87dd-4989-9ca8-03743762e873/Images/Ubuntu-5.15.0-1035-azure_22.04"
         location:
             description:
                 - Resource location.
@@ -540,6 +546,10 @@ class AzureRMVirtualMachineInfo(AzureRMModuleBase):
                     'offer': image['offer'],
                     'version': image['version']
                 }
+            elif image.get('community_gallery_image_id') is not None:
+                new_result['image'] = {
+                    'community_gallery_image_id': image.get('community_gallery_image_id')
+                )
             else:
                 new_result['image'] = {
                     'id': image.get('id', None)

@@ -131,6 +131,8 @@ options:
             - If a dict with the keys I(name) and I(resource_group), the image is sourced from a custom image based on the I(name) and I(resource_group) set.
               Note that the key I(resource_group) is optional and if omitted, all images in the subscription will be searched for by I(name).
             - Custom image support was added in Ansible 2.5.
+            - For community images, a dict with the keys I(community_gallery_image_id). Specified the community gallery image unique id for vm demployment.
+            - The I(community_gallery_image_id) can be fetched from shared gallery image GET call.
             - Required when creating.
         type: raw
     os_disk_caching:
@@ -448,6 +450,21 @@ EXAMPLES = '''
     admin_password: "{{ password }}"
     managed_disk_type: Standard_LRS
     image: customimage001
+
+- name: Create a VMSS with a community gallery image ID
+  azure_rm_virtualmachinescaleset:
+    resource_group: myResourceGroup
+    name: testvmss
+    vm_size: Standard_DS1_v2
+    capacity: 2
+    virtual_network_name: testvnet
+    upgrade_policy: Manual
+    subnet_name: testsubnet
+    admin_username: "{{ username }}"
+    admin_password: "{{ password }}"
+    managed_disk_type: Standard_LRS
+    image:
+      community_gallery_image_id: "/CommunityGalleries/yellowbrick-fc7e81f1-87dd-4989-9ca8-03743762e873/Images/Ubuntu-5.15.0-1035-azure_22.04"
 
 - name: Create a VMSS with over 100 instances
   azure_rm_virtualmachinescaleset:
@@ -899,6 +916,11 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
                         image_reference = self.compute_models.ImageReference(id=self.image['id'])
                     except Exception as exc:
                         self.fail("id Error: Cannot get image from the reference id - {0}".format(self.image['id']))
+                elif self.image.get('community_gallery_image_id'):
+                    try:
+                        image_reference = self.compute_models.ImageReference(community_gallery_image_id=self.image['community_gallery_image_id'])
+                    except Exception as exc:
+                        self.fail("id Error: Cannot get image from the cummunity gallery image id- {0}".format(self.image['community_gallery_image_id']))
                 else:
                     self.fail("parameter error: expecting image to contain [publisher, offer, sku, version], [name, resource_group] or [id]")
             elif self.image and isinstance(self.image, str):
