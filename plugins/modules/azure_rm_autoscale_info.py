@@ -94,6 +94,18 @@ autoscales:
                 "rules": [
                     {
                         "cooldown": 5.0,
+                        "dimensions": [
+                            {
+                                "dimension_name": "AppName",
+                                "operator": "Equals",
+                                "values": [
+                                    "App1",
+                                    "App2"
+                                ]
+                            }
+                        ],
+                        "divide_per_instance": true,
+                        "metric_namespace": "Fredtest",
                         "direction": "Increase",
                         "metric_name": "Percentage CPU",
                         "metric_resource_uri": "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsof
@@ -158,7 +170,13 @@ def rule_to_dict(rule):
                   time_window=timedelta_to_minutes(rule.metric_trigger.time_window),
                   time_aggregation=get_enum_value(rule.metric_trigger.time_aggregation),
                   operator=get_enum_value(rule.metric_trigger.operator),
-                  threshold=float(rule.metric_trigger.threshold))
+                  threshold=float(rule.metric_trigger.threshold),
+                  metric_namespace=rule.metric_trigger.metric_namespace,
+                  dimensions=[],
+                  divide_per_instance=rule.metric_trigger.divide_per_instance)
+    if rule.metric_trigger.dimensions:
+        for item in rule.metric_trigger.dimensions:
+            result['dimensions'].append(dict(dimension_name=item.dimension_name, operator=item.operator, values=item.values))
     if rule.scale_action and to_native(rule.scale_action.direction) != 'None':
         result['direction'] = get_enum_value(rule.scale_action.direction)
         result['type'] = get_enum_value(rule.scale_action.type)
