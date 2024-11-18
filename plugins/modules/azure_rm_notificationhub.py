@@ -125,7 +125,7 @@ from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
-    from azure.mgmt.notificationhubs.models import NotificationHubResource, NamespaceResource
+    from azure.mgmt.notificationhubs.models import NotificationHubCreateOrUpdateParameters, NamespaceCreateOrUpdateParameters
     from azure.mgmt.notificationhubs.models import Sku
 except ImportError:
     # This is handled in azure_rm_common
@@ -247,21 +247,27 @@ class AzureNotificationHub(AzureRMModuleBase):
         create or update namespaces
         '''
         try:
-            namespace_params = NamespaceResource(
+            namespace_params = NamespaceCreateOrUpdateParameters(
                 location=self.location,
                 namespace_type="NotificationHub",
                 sku=Sku(name=self.sku),
                 tags=self.tags
             )
-            result = self.notification_hub_client.namespaces.begin_create_or_update(
+            result = self.notification_hub_client.namespaces.create_or_update(
                 self.resource_group,
                 self.namespace_name,
                 namespace_params)
 
-            time.sleep(30)
-            result = self.notification_hub_client.namespaces.get(
+            namespace = self.notification_hub_client.namespaces.get(
                 self.resource_group,
                 self.namespace_name)
+
+            while namespace.status == "Created":
+                time.sleep(30)
+                namespace = self.notification_hub_client.namespaces.get(
+                    self.resource_group,
+                    self.namespace_name,
+                )
         except Exception as ex:
             self.fail("Failed to create namespace {0} in resource group {1}: {2}".format(
                 self.namespace_name, self.resource_group, str(ex)))
@@ -274,7 +280,7 @@ class AzureNotificationHub(AzureRMModuleBase):
         '''
         try:
             response = self.create_or_update_namespaces()
-            params = NotificationHubResource(
+            params = NotificationHubCreateOrUpdateParameters(
                 location=self.location,
                 sku=Sku(name=self.sku),
                 tags=self.tags
