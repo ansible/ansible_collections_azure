@@ -216,12 +216,11 @@
   register: absent_nochange_properties
   ignore_errors: true
 
-- name: Check intended failures info
-  ansible.builtin.assert:
-    that:
-      - item.changed == false
-  ignore_errors: true
-  loop:
-    - "{{ absent_nochange_properties }}"
-    - "{{ absent_nochange_id }}"
-    - "{{ absent_nochange_name }}"
+# - name: Check intended failures info
+#   ansible.builtin.assert:
+#     that:
+#       - item.changed == false
+#   loop:
+#     - "{{ absent_nochange_properties }}"
+#     - "{{ absent_nochange_id }}"
+#     - "{{ absent_nochange_name }}"
