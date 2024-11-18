@@ -139,10 +139,12 @@ options:
                     - The connection string should have send privilege.
                 type: str
                 required: yes
-            container:
+            container_name:
                 description:
                     - Container name of the custom endpoint when I(resource_type=storage).
                 type: str
+                aliases:
+                    - container
             encoding:
                 description:
                     - Encoding of the message when I(resource_type=storage).
@@ -533,7 +535,7 @@ routing_endpoints_spec = dict(
     resource_group=dict(type='str'),
     subscription=dict(type='str'),
     resource_type=dict(type='str', required=True, choices=['eventhub', 'queue', 'storage', 'topic']),
-    container=dict(type='str'),
+    container_name=dict(type='str', aliases=['container']),
     encoding=dict(type='str')
 )
 
@@ -805,7 +807,7 @@ class AzureRMIoTHub(AzureRMModuleBaseExt):
                 if not re.search(connection_string_regex, target['connection_string']):
                     return False
                 if resource_type == 'storage':
-                    if target.get('container') and item.container_name != target['container']:
+                    if target.get('container_name') and item.container_name != target['container_name']:
                         return False
                     if target.get('encoding') and item.encoding != target['encoding']:
                         return False
