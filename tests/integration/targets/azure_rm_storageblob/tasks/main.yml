@@ -32,10 +32,6 @@
     role_definition_id: "/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe"
   ignore_errors: true
 
-- name: Pause for 300 seconds
-  ansible.builtin.command: sleep 300
-  changed_when: true
-
 - name: Force upload blob
   azure_rm_storageblob:
     # auth_mode: login
