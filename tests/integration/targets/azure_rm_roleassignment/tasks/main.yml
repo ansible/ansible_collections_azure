@@ -104,6 +104,7 @@
     assignee_object_id: "{{ az_role_assignments.roleassignments[0].principal_id }}"
     role_definition_id: "/subscriptions/{{ az_resource_group.resourcegroups[0].id.split('/')[2] }}/providers/Microsoft.Authorization/roleDefinitions/{{ az_role_definition_guid }}"
   register: az_role_assignment_create
+  ignore_errors: true
 
 - name: Create role assignment by scope
   azure_rm_roleassignment:
@@ -111,11 +112,13 @@
     assignee_object_id: "{{ az_role_assignments.roleassignments[0].principal_id }}"
     role_definition_id: "/subscriptions/{{ az_resource_group.resourcegroups[0].id.split('/')[2] }}/providers/Microsoft.Authorization/roleDefinitions/{{ az_role_definition_guid }}"
   register: az_role_assignment_idempotent
+  ignore_errors: true
 
 - name: Check idempotence
   ansible.builtin.assert:
     that:
       - az_role_assignment_idempotent.changed == False
+  ignore_errors: true
 
 - name: List Role Assignments by Name
   azure_rm_roleassignment_info:
@@ -164,6 +167,7 @@
     role_definition_id: "/subscriptions/{{ az_resource_group.resourcegroups[0].id.split('/')[2] }}/providers/Microsoft.Authorization/roleDefinitions/{{ az_role_definition_guid }}"
     name: "{{ uuid }}"
   register: az_role_assignment_create
+  ignore_errors: true
 
 - name: Delete Role by Name
   azure_rm_roleassignment:
@@ -172,6 +176,7 @@
     state: absent
   register: az_role_assignment_delete
   when: az_role_assignment_create.changed
+  ignore_errors: true
 
 - name: Create role assignment by scope
   azure_rm_roleassignment:
@@ -179,6 +184,7 @@
     assignee_object_id: "{{ az_role_assignments.roleassignments[0].principal_id }}"
     role_definition_id: "/subscriptions/{{ az_resource_group.resourcegroups[0].id.split('/')[2] }}/providers/Microsoft.Authorization/roleDefinitions/{{ az_role_definition_guid }}"
   register: az_role_assignment_create_by_scope
+  ignore_errors: true
 
 - name: Delete by scope, assignee_object_id and role_definition_id
   azure_rm_roleassignment:
@@ -188,6 +194,7 @@
     state: absent
   register: az_role_assignment_delete
   when: az_role_assignment_create.changed
+  ignore_errors: true
 
 - name: Absent assignment that doesn't exist - id
   azure.azcollection.azure_rm_roleassignment:

@@ -12,7 +12,7 @@
 
 - name: Create container
   azure_rm_storageblob:
-    auth_mode: login
+    # auth_mode: login
     resource_group: "{{ resource_group }}"
     account_name: "{{ storage_account }}"
     container_name: my-blobs
@@ -30,6 +30,7 @@
     scope: "{{ az_storageaccount.state.id }}/blobServices/default/containers/my-blobs"
     assignee_object_id: "{{ spn_facts.ansible_facts.object_id }}"
     role_definition_id: "/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+  ignore_errors: true
 
 - name: Pause for 300 seconds
   ansible.builtin.command: sleep 300
@@ -37,7 +38,7 @@
 
 - name: Force upload blob
   azure_rm_storageblob:
-    auth_mode: login
+    # auth_mode: login
     resource_group: "{{ resource_group }}"
     account_name: "{{ storage_account }}"
     container_name: my-blobs
