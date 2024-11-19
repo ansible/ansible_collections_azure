@@ -104,14 +104,19 @@
 #     assignee_object_id: "{{ az_role_assignments.roleassignments[0].principal_id }}"
 #     role_definition_id: "/subscriptions/{{ az_resource_group.resourcegroups[0].id.split('/')[2] }}/providers/Microsoft.Authorization/roleDefinitions/{{ az_role_definition_guid }}"
 #   register: az_role_assignment_create
-# 
+#
 # - name: Create role assignment by scope
 #   azure_rm_roleassignment:
 #     scope: "{{ az_resource_group.resourcegroups[0].id }}"
 #     assignee_object_id: "{{ az_role_assignments.roleassignments[0].principal_id }}"
 #     role_definition_id: "/subscriptions/{{ az_resource_group.resourcegroups[0].id.split('/')[2] }}/providers/Microsoft.Authorization/roleDefinitions/{{ az_role_definition_guid }}"
 #   register: az_role_assignment_idempotent
-# 
+#
+# - name: Check idempotence
+#   ansible.builtin.assert:
+#     that:
+#       - az_role_assignment_idempotent.changed == False
+#
 # - name: List Role Assignments by Name
 #   azure_rm_roleassignment_info:
 #     name: "{{ az_role_assignment_create.name }}"
@@ -150,7 +155,7 @@
 #    id: "{{ az_role_assignment_create.id }}"
 #    state: absent
 #  register: az_role_assignment_delete
-#  # when: az_role_assignment_create.changed
+#  when: az_role_assignment_create.changed
 
 - name: Create role assignment with name
   azure_rm_roleassignment:
