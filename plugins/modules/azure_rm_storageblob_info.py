@@ -12,7 +12,7 @@ DOCUMENTATION = '''
 ---
 module: azure_rm_storageblob_info
 short_description: Get or list the containers blob facts
-version_added: "3.0.0
+version_added: "3.0.0"
 description:
     - Get or list the blobs under the specified container.
 options:
@@ -153,7 +153,8 @@ class AzureRMStorageBlobInfo(AzureRMModuleBase):
             include=dict(
                 type='list',
                 elements='str',
-                choices=['snapshots', 'metadata', 'uncommittedblobs', 'copy', 'deleted', 'deletedwithversions', 'tags', 'versions', 'immutabilitypolicy', 'legalhold']
+                choices=['snapshots', 'metadata', 'uncommittedblobs', 'copy', 'deleted',
+                         'deletedwithversions', 'tags', 'versions', 'immutabilitypolicy', 'legalhold']
             ),
         )
 
@@ -170,8 +171,8 @@ class AzureRMStorageBlobInfo(AzureRMModuleBase):
         )
 
         super(AzureRMStorageBlobInfo, self).__init__(derived_arg_spec=self.module_arg_spec,
-                                                 supports_check_mode=True,
-                                                 supports_tags=False)
+                                                     supports_check_mode=True,
+                                                     supports_tags=False)
 
     def exec_module(self, **kwargs):
 
@@ -187,11 +188,11 @@ class AzureRMStorageBlobInfo(AzureRMModuleBase):
         return self.results
 
     def get_blob(self):
+        response = None
         if self.blob_name:
             try:
                 response = self.blob_service_client.get_blob_client(container=self.container_name, blob=self.blob_name).get_blob_properties()
             except ResourceNotFoundError:
-                response = None
                 pass
         return self.format_blob(response) if response else None
 
