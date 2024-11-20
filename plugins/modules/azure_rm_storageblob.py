@@ -350,7 +350,7 @@ class AzureRMStorageBlob(AzureRMModuleBase):
                 if self.blob_content_settings_differ():
                     self.update_blob_content_settings()
 
-                if self.standard_blob_tier is not None and self.blob_obj['standard_blob_tier'] != self.standard_blob_tier():
+                if self.standard_blob_tier is not None and self.blob_obj.get('standard_blob_tier') is not None and self.blob_obj['standard_blob_tier'] != self.standard_blob_tier:
                     self.update_blob_tier()
 
         elif self.state == 'absent':
@@ -441,7 +441,7 @@ class AzureRMStorageBlob(AzureRMModuleBase):
         self.results['changed'] = True
         self.results['container'] = self.container_obj
 
-    def get_blob_type(self, blob_tier):
+    def get_blob_tier(self, blob_tier):
         if blob_tier == "archive":
             return StandardBlobTier.Archive
         elif blob_tier == "cool":

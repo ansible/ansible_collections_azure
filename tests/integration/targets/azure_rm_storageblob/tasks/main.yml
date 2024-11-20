@@ -103,6 +103,65 @@
   ansible.builtin.assert:
     that: "find_results['matched'] == 1"
 
+- name: Create storage account
+  azure_rm_storageaccount:
+    resource_group: "{{ resource_group }}"
+    name: "{{ storage_account }}2"
+    account_type: Standard_LRS
+    public_network_access: Enabled
+    kind: StorageV2
+
+- name: Create container
+  azure_rm_storageblob:
+    resource_group: "{{ resource_group }}"
+    account_name: "{{ storage_account }}2"
+    container_name: my-blobs
+
+- name: Force upload blob with I(standard_blob_tier=Hot)
+  azure_rm_storageblob:
+    resource_group: "{{ resource_group }}"
+    account_name: "{{ storage_account }}2"
+    container_name: my-blobs
+    blob: 'Ratings.png'
+    src: '{{ test1_file }}'
+    content_type: image/png
+    standard_blob_tier: Hot
+    force: true
+  register: output
+
+- name: Assert the blob created
+  ansible.builtin.assert:
+    that: output.changed
+
+- name: Update the blob with I(standard_blob_tier=Cool)
+  azure_rm_storageblob:
+    resource_group: "{{ resource_group }}"
+    account_name: "{{ storage_account }}2"
+    container_name: my-blobs
+    blob: 'Ratings.png'
+    src: '{{ test1_file }}'
+    content_type: image/png
+    standard_blob_tier: Cool
+  register: output
+
+- name: Assert the blob updated
+  ansible.builtin.assert:
+    that: output.changed
+
+- name: Get the blob facts
+  azure_rm_storageblob_info:
+    resource_group: "{{ resource_group }}"
+    account_name: "{{ storage_account }}2"
+    container_name: my-blobs
+    blob_name: 'Ratings.png'
+  register: output
+
+- name: Assert the blob facts
+  ansible.builtin.assert:
+    that:
+      - output.blob.name == 'Ratings.png'
+      - output.blob.standard_blob_tier == 'Cool'
+
 - name: Do not delete container that has blobs
   azure_rm_storageblob:
     resource_group: "{{ resource_group }}"
@@ -141,4 +200,35 @@
   azure_rm_storageaccount:
     resource_group: "{{ resource_group }}"
     name: "{{ storage_account }}"
+    state: absent
+
+- name: Delete blob object
+  azure_rm_storageblob:
+    resource_group: "{{ resource_group }}"
+    account_name: "{{ storage_account }}2"
+    container_name: my-blobs
+    blob: "Ratings.png"
+    state: absent
+  register: output
+
+- name: Assert the blob deleted
+  ansible.builtin.assert:
+    that: "output.changed"
+
+- name: Delete container
+  azure_rm_storageblob:
+    resource_group: "{{ resource_group }}"
+    account_name: "{{ storage_account }}2"
+    container_name: my-blobs
+    state: absent
+  register: output
+
+- name: Assert delete the container
+  ansible.builtin.assert:
+    that: "output.changed"
+
+- name: Delete storage account
+  azure_rm_storageaccount:
+    resource_group: "{{ resource_group }}"
+    name: "{{ storage_account }}2"
     state: absent
