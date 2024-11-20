@@ -350,7 +350,7 @@ class AzureRMStorageBlob(AzureRMModuleBase):
                 if self.blob_content_settings_differ():
                     self.update_blob_content_settings()
 
-                if self.standard_blob_tier is not None and self.blob_obj.get('standard_blob_tier') is not None and self.blob_obj['standard_blob_tier'] != self.standard_blob_tier:
+                if self.standard_blob_tier is not None and self.blob_obj.get('standard_blob_tier') != self.standard_blob_tier:
                     self.update_blob_tier()
 
         elif self.state == 'absent':
