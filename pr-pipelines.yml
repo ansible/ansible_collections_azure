@@ -150,6 +150,9 @@ parameters:
       - "azure_rm_sshpublickey"
       - "azure_rm_snapshot"
       - "azure_rm_networkwatcher"
+      - "azure_rm_batchaccountapplication"
+      - "azure_rm_batchaccountapplicationpackage"
+      - "azure_rm_batchaccountpool"
       - "inventory_azure"
       - "setup_azure"
 
