@@ -49,6 +49,9 @@ options:
             - PTR
             - CAA
             - SOA
+            - DS
+            - TLSA
+            - NAPTR
         required: true
         type: str
     record_mode:
@@ -80,9 +83,23 @@ options:
             - Time to live of the record set in seconds.
         default: 3600
         type: int
+    target_resource:
+        description:
+            - A reference to an azure resource from where the dns resource value is taken.
+            - This parameter can only be applied to I(record_type=A), I(record_type=AAAA) and I(record_type=CNAME).
+            - It cannot configure both I(target_resource) and I(records).
+        type: dict
+        suboptions:
+            id:
+                description:
+                    - A reference to a another resource ID.
+                    - Sample as C("/subscriptions/xxx-xxx/resourceGroups/rg_name/providers/Microsoft.Network/publicIPAddresses/pip01")
+                type: str
     records:
         description:
             - List of records to be created depending on the type of record (set).
+            - It cannot configure both I(target_resource) and I(records).
+            - This parameter must be set when I(record_type=A), I(record_type=AAAA) or I(record_type=CNAME).
         type: list
         elements: dict
         suboptions:
@@ -101,6 +118,91 @@ options:
             entry:
                 description:
                     - Primary data value for all record types.
+            email:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The email contact for this SOA record.
+            serial_number:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The serial number for this SOA record.
+            refresh_time:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The refresh value for this SOA record.
+            retry_time:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The retry time for this SOA record.
+            expire_time:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The expire time for this SOA record.
+            minimum_ttl:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The minimum value for this SOA record. By convention this is used to determine the negative caching duration.
+            key_tag:
+                description:
+                    - Used for creating an C(DS) record set/records.
+                    - The key tag value is used to determine which DNSKEY Resource Record is used for signature verification.
+            algorithm:
+                description:
+                    - Used for creating an C(DS) record set/records.
+                    - The security algorithm type represents the standard security algorithm number of the DNSKEY Resource Record.
+            digest:
+                description:
+                    - Used for creating an C(DS) record set/records.
+                    - The digest entity.
+                suboptions:
+                    algorithm_type:
+                        description:
+                            - The digest algorithm type represents the standard digest algorithm number used to construct the digest
+                    value:
+                        description:
+                            - The digest value is a cryptographic hash value of the referenced DNSKEY Resource Record.
+            usage:
+                description:
+                    - Used for creating an C(TLSA) record set/records.
+                    - The usage specifies the provided association that will be used to match the certificate presented in the TLS handshake.
+            selector:
+                description:
+                    - Used for creating an C(TLSA) record set/records.
+                    - The selector specifies which part of the TLS certificate presented by the server will be matched against the association data.
+            matching_type:
+                description:
+                    - Used for creating an C(TLSA) record set/records.
+                    - The matching type specifies how the certificate association is presented.
+            cert_association_data:
+                description:
+                    - Used for creating an C(TLSA) record set/records.
+                    - This specifies the certificate association data to be matched.
+            order:
+                description:
+                    - Used for creating an C(NAPTR) record set/records.
+                    - The order in which the NAPTR records MUST be processed in order to accurately represent the ordered list of rules.
+                    - The ordering is from lowest to highest. Valid values 0-65535.
+            flags:
+                description:
+                    - Used for creating an C(NAPTR) record set/records.
+                    - The flags specific to DDDS applications.
+                    - Values currently defined in RFC 3404 are uppercase and lowercase letters "A", "P", "S", and "U", and the empty string.
+            services:
+                description:
+                    - Used for creating an C(NAPTR) record set/records.
+                    - The services specific to DDDS applications. Enclose Services in quotation marks.
+            regexp:
+                description:
+                    - Used for creating an C(NAPTR) record set/records.
+                    - The regular expression that the DDDS application uses to convert an input value into an output value.
+                    - Specify either a value for 'regexp' or a value for 'replacement'.
+            replacement:
+                description:
+                    - Used for creating an C(NAPTR) record set/records.
+                    - The replacement is a fully qualified domain name (FQDN) of the next domain name that you want the DDDS application to submit a DNS query for.
+                    - The DDDS application replaces the input value with the value specified for replacement.
+                    - Specify either a value for 'regexp' or a value for 'replacement'.
+                    - If you specify a value for 'regexp', specify a dot (.) for 'replacement'.
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -142,6 +244,15 @@ EXAMPLES = '''
       - entry: 192.168.100.104
     metadata:
       key1: "value1"
+
+- name: Create A dns record set  with target_resource
+  azure_rm_dnsrecordset:
+    resource_group: myResourceGroup
+    relative_name: www
+    zone_name: zone1.com
+    record_type: A
+    target_resource:
+      id: "/subscriptions/xxx-xxx/resourceGroups/v-xisuRG02/providers/Microsoft.Network/publicIPAddresses/pip01"
 
 - name: create multiple "A" record sets with multiple records
   azure_rm_dnsrecordset:
@@ -330,6 +441,27 @@ RECORD_ARGSPECS = dict(
         value=dict(type='str', aliases=['entry']),
         flags=dict(type='int'),
         tag=dict(type='str')
+    ),
+    DS=dict(
+        key_tag=dict(type='int'),
+        algorithm=dict(type='int'),
+        digest=dict(
+            algorithm_type=dict(type='str'),
+            value=dict(type='str')
+        )
+    ),
+    TLSA=dict(
+        usage=dict(type='int'),
+        selector=dict(type='int'),
+        cert_association_data=dict(type='str')
+    ),
+    NAPTR=dict(
+        order=dict(type='int'),
+        preference=dict(type='int'),
+        flags=dict(type='str'),
+        services=dict(type='str'),
+        regexp=dict(type='str'),
+        replacement=dict(type='str')
     )
     # FUTURE: ensure all record types are supported (see https://github.com/Azure/azure-sdk-for-python/tree/master/azure-mgmt-dns/azure/mgmt/dns/models)
 )
@@ -344,7 +476,10 @@ RECORDSET_VALUE_MAP = dict(
     SRV=dict(attrname='srv_records', classobj='SrvRecord', is_list=True),
     TXT=dict(attrname='txt_records', classobj='TxtRecord', is_list=True),
     SOA=dict(attrname='soa_record', classobj='SoaRecord', is_list=False),
-    CAA=dict(attrname='caa_records', classobj='CaaRecord', is_list=True)
+    CAA=dict(attrname='caa_records', classobj='CaaRecord', is_list=True),
+    DS=dict(attrname='ds_records', classobj='DsRecord', is_list=True),
+    TLSA=dict(attrname='tlsa_records', classobj='TlsaRecord', is_list=True),
+    NAPTR=dict(attrname='naptr_records', classobj='NaptrRecord', is_list=True)
     # FUTURE: add missing record types from https://github.com/Azure/azure-sdk-for-python/blob/master/azure-mgmt-dns/azure/mgmt/dns/models/record_set.py
 ) if HAS_AZURE else {}
 
@@ -360,7 +495,7 @@ class AzureRMRecordSet(AzureRMModuleBase):
             resource_group=dict(type='str', required=True),
             relative_name=dict(type='str', required=True),
             zone_name=dict(type='str', required=True),
-            record_type=dict(choices=['A', 'AAAA', 'CNAME', 'MX', 'NS', 'PTR', 'SRV', 'TXT', 'SOA', 'CAA'],
+            record_type=dict(choices=['A', 'AAAA', 'CNAME', 'MX', 'NS', 'PTR', 'SRV', 'TXT', 'SOA', 'CAA', 'DS', 'TLSA', 'NAPTR'],
                              required=True,
                              type='str'),
             record_mode=dict(type='str', choices=['append', 'purge'], default='purge'),
@@ -368,19 +503,23 @@ class AzureRMRecordSet(AzureRMModuleBase):
             time_to_live=dict(type='int', default=3600),
             records=dict(type='list', elements='dict'),
             metadata=dict(type='dict'),
-            append_metadata=dict(type='bool', default=True)
+            append_metadata=dict(type='bool', default=True),
+            target_resource=dict(
+                type='dict',
+                options=dict(
+                    id=dict(type='str')
+                )
+            ),
         )
 
-        required_if = [
-            ('state', 'present', ['records'])
-        ]
 
         self.results = dict(
             changed=False
         )
 
+        mutually_exclusive = [['target_resource', 'records']]
         # first-pass arg validation so we can get the record type- skip exec_module
-        super(AzureRMRecordSet, self).__init__(self.module_arg_spec, required_if=required_if, supports_check_mode=True, skip_exec=True)
+        super(AzureRMRecordSet, self).__init__(self.module_arg_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True, skip_exec=True)
 
         # look up the right subspec and metadata
         record_subspec = RECORD_ARGSPECS.get(self.module.params['record_type'])
@@ -397,9 +536,10 @@ class AzureRMRecordSet(AzureRMModuleBase):
         self.time_to_live = None
         self.records = None
         self.metadata = None
+        self.target_resource = None
 
         # rerun validation and actually run the module this time
-        super(AzureRMRecordSet, self).__init__(self.module_arg_spec, required_if=required_if, supports_check_mode=True)
+        super(AzureRMRecordSet, self).__init__(self.module_arg_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True)
 
     def exec_module(self, **kwargs):
         for key in self.module_arg_spec.keys():
@@ -443,6 +583,13 @@ class AzureRMRecordSet(AzureRMModuleBase):
                     changed = True
                 self.metadata = self.results['state']['metadata']
 
+                if self.target_resource is not None:
+                    if not self.results['state'].get('target_resource'):
+                        changed = True
+                    else:
+                        if self.target_resource['id'].lower() != self.results['state']['target_resource']['id'].lower():
+                            changed = True
+
             self.results['changed'] |= changed
 
         elif self.state == 'absent':
@@ -455,7 +602,8 @@ class AzureRMRecordSet(AzureRMModuleBase):
         if self.results['changed']:
             if self.state == 'present':
                 record_set_args = dict(
-                    ttl=self.time_to_live
+                    ttl=self.time_to_live,
+                    #target_resource=self.target_resource
                 )
 
                 record_set_args[record_type_metadata['attrname']] = self.input_sdk_records if record_type_metadata['is_list'] else self.input_sdk_records[0]
@@ -463,6 +611,8 @@ class AzureRMRecordSet(AzureRMModuleBase):
                 record_set = self.dns_models.RecordSet(**record_set_args)
                 if self.metadata:
                     record_set.metadata = self.metadata
+                if self.target_resource:
+                    record_set.target_resource = self.dns_models.SubResource(id=self.target_resource['id'])
 
                 self.results['state'] = self.create_or_update(record_set)
 
@@ -499,7 +649,11 @@ class AzureRMRecordSet(AzureRMModuleBase):
         if not record:
             self.fail('record type {0} is not supported now'.format(record_type))
         record_sdk_class = getattr(self.dns_models, record.get('classobj'))
-        return [record_sdk_class(**x) for x in input_records]
+        record_sdk = []
+        if input_records is not None:
+            for x in input_records:
+                record_sdk.append(record_sdk_class(**x))
+        return record_sdk
 
     def records_changed(self, input_records, server_records):
         # ensure we're always comparing a list, even for the single-valued types
@@ -507,7 +661,11 @@ class AzureRMRecordSet(AzureRMModuleBase):
             server_records = [server_records]
 
         input_set = set([self.module.jsonify(x.as_dict()) for x in input_records])
-        server_set = set([self.module.jsonify(x.as_dict()) for x in server_records])
+        server = []
+        for x in server_records:
+            if x is not None:
+                server.append(self.module.jsonify(x.as_dict()))
+        server_set = set(server)
 
         if self.record_mode == 'append':  # only a difference if the server set is missing something from the input set
             input_set = server_set.union(input_set)
