@@ -199,7 +199,7 @@ options:
             replacement:
                 description:
                     - Used for creating an C(NAPTR) record set/records.
-                    - The replacement is a fully qualified domain name (FQDN) of the next domain name that you want the DDDS application to submit a DNS query for.
+                    - The replacement is a fully qualified domain name of the next domain name that you want the DDDS application to submit a DNS query for.
                     - The DDDS application replaces the input value with the value specified for replacement.
                     - Specify either a value for 'regexp' or a value for 'replacement'.
                     - If you specify a value for 'regexp', specify a dot (.) for 'replacement'.
@@ -512,7 +512,6 @@ class AzureRMRecordSet(AzureRMModuleBase):
             ),
         )
 
-
         self.results = dict(
             changed=False
         )
@@ -603,7 +602,6 @@ class AzureRMRecordSet(AzureRMModuleBase):
             if self.state == 'present':
                 record_set_args = dict(
                     ttl=self.time_to_live,
-                    #target_resource=self.target_resource
                 )
 
                 record_set_args[record_type_metadata['attrname']] = self.input_sdk_records if record_type_metadata['is_list'] else self.input_sdk_records[0]
