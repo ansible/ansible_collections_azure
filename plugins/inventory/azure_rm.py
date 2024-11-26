@@ -726,12 +726,7 @@ class AzureHost(object):
                     continue
 
             new_hostvars['mac_address'].append(nic._nic_model['properties'].get('macAddress'))
-            new_hostvars['network_interface'].append(nic._nic_model['name'])
-            new_hostvars['network_interface_id'].append(nic._nic_model['id'])
-            new_hostvars['security_group_id'].append(nic._nic_model['properties']['networkSecurityGroup']['id']) \
-                if nic._nic_model['properties'].get('networkSecurityGroup') else None
-            new_hostvars['security_group'].append(parse_resource_id(nic._nic_model['properties']['networkSecurityGroup']['id'])['resource_name']) \
-                if nic._nic_model['properties'].get('networkSecurityGroup') else None
+            new_hostvars['network_interface'].append(nic._nic_model)
 
         # set image and os_disk
         new_hostvars['image'] = {}
