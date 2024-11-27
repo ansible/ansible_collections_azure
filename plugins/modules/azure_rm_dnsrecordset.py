@@ -49,9 +49,6 @@ options:
             - PTR
             - CAA
             - SOA
-            - DS
-            - TLSA
-            - NAPTR
         required: true
         type: str
     record_mode:
@@ -393,7 +390,7 @@ RECORDSET_VALUE_MAP = dict(
     SRV=dict(attrname='srv_records', classobj='SrvRecord', is_list=True),
     TXT=dict(attrname='txt_records', classobj='TxtRecord', is_list=True),
     SOA=dict(attrname='soa_record', classobj='SoaRecord', is_list=False),
-    CAA=dict(attrname='caa_records', classobj='CaaRecord', is_list=True),
+    CAA=dict(attrname='caa_records', classobj='CaaRecord', is_list=True)
     # FUTURE: add missing record types from https://github.com/Azure/azure-sdk-for-python/blob/master/azure-mgmt-dns/azure/mgmt/dns/models/record_set.py
 ) if HAS_AZURE else {}
 
