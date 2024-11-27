@@ -150,6 +150,12 @@ state:
     returned: always
     type: complex
     contains:
+        id:
+            description:
+                - The resource's ID.
+            type: str
+            returned: always
+            sample: /subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Network/publicIPAddresses/pip01
         dns_settings:
             description:
                 - The FQDN of the DNS record associated with the public IP address.
@@ -250,6 +256,7 @@ except ImportError:
 def pip_to_dict(pip):
     result = dict(
         name=pip.name,
+        id=pip.id,
         type=pip.type,
         location=pip.location,
         tags=pip.tags,
