@@ -171,9 +171,6 @@ RECORDSET_VALUE_MAP = dict(
     TXT='txt_records',
     SOA='soa_record',
     CAA='caa_records',
-    DS='ds_records',
-    TLSA='tlsa_records',
-    NAPTR='Naptr_records'
     # FUTURE: add missing record types from https://github.com/Azure/azure-sdk-for-python/blob/master/azure-mgmt-dns/azure/mgmt/dns/models/record_set.py
 )
 

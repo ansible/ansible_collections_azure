@@ -13,6 +13,28 @@
   ansible.builtin.assert:
     that: results.changed
 
+- name: Create public ip
+  azure_rm_publicipaddress:
+    resource_group: "{{ resource_group }}"
+    name: "pip-{{ domain_name }}"
+    allocation_method: Static
+    domain_name: "{{ domain_name }}"
+  register: pip_output
+
+- name: Create "A" record with target_resource
+  azure_rm_dnsrecordset:
+    resource_group: "{{ resource_group }}"
+    relative_name: wwwa
+    zone_name: "{{ domain_name }}.com"
+    record_type: A
+    target_resource:
+      id: "{{ pip_output.state.id }}"
+  register: output
+
+- name: Assert that A record set was created
+  ansible.builtin.assert:
+    that: output.changed
+
 - name: Create "A" record set with multiple records
   azure_rm_dnsrecordset:
     resource_group: "{{ resource_group }}"

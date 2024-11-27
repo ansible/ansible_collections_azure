@@ -99,7 +99,7 @@ options:
         description:
             - List of records to be created depending on the type of record (set).
             - It cannot configure both I(target_resource) and I(records).
-            - This parameter must be set when I(record_type=A), I(record_type=AAAA) or I(record_type=CNAME).
+            - I(records) must be configured for all record types except I(record_type=A), I(record_type=AAAA) or I(record_type=CNAME).
         type: list
         elements: dict
         suboptions:
@@ -142,68 +142,6 @@ options:
                 description:
                     - Used for creating an C(SOA) record set/records.
                     - The minimum value for this SOA record. By convention this is used to determine the negative caching duration.
-            key_tag:
-                description:
-                    - Used for creating an C(DS) record set/records.
-                    - The key tag value is used to determine which DNSKEY Resource Record is used for signature verification.
-            algorithm:
-                description:
-                    - Used for creating an C(DS) record set/records.
-                    - The security algorithm type represents the standard security algorithm number of the DNSKEY Resource Record.
-            digest:
-                description:
-                    - Used for creating an C(DS) record set/records.
-                    - The digest entity.
-                suboptions:
-                    algorithm_type:
-                        description:
-                            - The digest algorithm type represents the standard digest algorithm number used to construct the digest
-                    value:
-                        description:
-                            - The digest value is a cryptographic hash value of the referenced DNSKEY Resource Record.
-            usage:
-                description:
-                    - Used for creating an C(TLSA) record set/records.
-                    - The usage specifies the provided association that will be used to match the certificate presented in the TLS handshake.
-            selector:
-                description:
-                    - Used for creating an C(TLSA) record set/records.
-                    - The selector specifies which part of the TLS certificate presented by the server will be matched against the association data.
-            matching_type:
-                description:
-                    - Used for creating an C(TLSA) record set/records.
-                    - The matching type specifies how the certificate association is presented.
-            cert_association_data:
-                description:
-                    - Used for creating an C(TLSA) record set/records.
-                    - This specifies the certificate association data to be matched.
-            order:
-                description:
-                    - Used for creating an C(NAPTR) record set/records.
-                    - The order in which the NAPTR records MUST be processed in order to accurately represent the ordered list of rules.
-                    - The ordering is from lowest to highest. Valid values 0-65535.
-            flags:
-                description:
-                    - Used for creating an C(NAPTR) record set/records.
-                    - The flags specific to DDDS applications.
-                    - Values currently defined in RFC 3404 are uppercase and lowercase letters "A", "P", "S", and "U", and the empty string.
-            services:
-                description:
-                    - Used for creating an C(NAPTR) record set/records.
-                    - The services specific to DDDS applications. Enclose Services in quotation marks.
-            regexp:
-                description:
-                    - Used for creating an C(NAPTR) record set/records.
-                    - The regular expression that the DDDS application uses to convert an input value into an output value.
-                    - Specify either a value for 'regexp' or a value for 'replacement'.
-            replacement:
-                description:
-                    - Used for creating an C(NAPTR) record set/records.
-                    - The replacement is a fully qualified domain name of the next domain name that you want the DDDS application to submit a DNS query for.
-                    - The DDDS application replaces the input value with the value specified for replacement.
-                    - Specify either a value for 'regexp' or a value for 'replacement'.
-                    - If you specify a value for 'regexp', specify a dot (.) for 'replacement'.
-
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
@@ -441,27 +379,6 @@ RECORD_ARGSPECS = dict(
         value=dict(type='str', aliases=['entry']),
         flags=dict(type='int'),
         tag=dict(type='str')
-    ),
-    DS=dict(
-        key_tag=dict(type='int'),
-        algorithm=dict(type='int'),
-        digest=dict(
-            algorithm_type=dict(type='str'),
-            value=dict(type='str')
-        )
-    ),
-    TLSA=dict(
-        usage=dict(type='int'),
-        selector=dict(type='int'),
-        cert_association_data=dict(type='str')
-    ),
-    NAPTR=dict(
-        order=dict(type='int'),
-        preference=dict(type='int'),
-        flags=dict(type='str'),
-        services=dict(type='str'),
-        regexp=dict(type='str'),
-        replacement=dict(type='str')
     )
     # FUTURE: ensure all record types are supported (see https://github.com/Azure/azure-sdk-for-python/tree/master/azure-mgmt-dns/azure/mgmt/dns/models)
 )
@@ -477,9 +394,6 @@ RECORDSET_VALUE_MAP = dict(
     TXT=dict(attrname='txt_records', classobj='TxtRecord', is_list=True),
     SOA=dict(attrname='soa_record', classobj='SoaRecord', is_list=False),
     CAA=dict(attrname='caa_records', classobj='CaaRecord', is_list=True),
-    DS=dict(attrname='ds_records', classobj='DsRecord', is_list=True),
-    TLSA=dict(attrname='tlsa_records', classobj='TlsaRecord', is_list=True),
-    NAPTR=dict(attrname='naptr_records', classobj='NaptrRecord', is_list=True)
     # FUTURE: add missing record types from https://github.com/Azure/azure-sdk-for-python/blob/master/azure-mgmt-dns/azure/mgmt/dns/models/record_set.py
 ) if HAS_AZURE else {}
 
@@ -495,7 +409,7 @@ class AzureRMRecordSet(AzureRMModuleBase):
             resource_group=dict(type='str', required=True),
             relative_name=dict(type='str', required=True),
             zone_name=dict(type='str', required=True),
-            record_type=dict(choices=['A', 'AAAA', 'CNAME', 'MX', 'NS', 'PTR', 'SRV', 'TXT', 'SOA', 'CAA', 'DS', 'TLSA', 'NAPTR'],
+            record_type=dict(choices=['A', 'AAAA', 'CNAME', 'MX', 'NS', 'PTR', 'SRV', 'TXT', 'SOA', 'CAA'],
                              required=True,
                              type='str'),
             record_mode=dict(type='str', choices=['append', 'purge'], default='purge'),
