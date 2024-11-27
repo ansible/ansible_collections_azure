@@ -277,7 +277,8 @@ class AzureRMDtlVirtualMachineInfo(AzureRMModuleBase):
                                                              name=self.name)
             self.log("Response : {0}".format(response))
         except ResourceNotFoundError as e:
-            self.fail('Could not get facts for Virtual Machine.')
+            self.log('Could not get facts for Virtual Machine.')
+            return None
 
         if response and self.has_tags(response.tags, self.tags):
             results.append(self.format_response(response))
@@ -292,7 +293,8 @@ class AzureRMDtlVirtualMachineInfo(AzureRMModuleBase):
                                                               lab_name=self.lab_name)
             self.log("Response : {0}".format(response))
         except Exception as e:
-            self.fail('Could not get facts for Virtual Machine.')
+            self.log('Could not get facts for Virtual Machine.')
+            return None
 
         if response is not None:
             for item in response:
