@@ -151,6 +151,8 @@ options:
         description:
             - The image used to build the VM.
             - For custom images, the name of the image. To narrow the search to a specific resource group, a dict with the keys I(name) and I(resource_group).
+            - For community images, a dict with the keys I(community_gallery_image_id). Specified the community gallery image unique id for vm demployment.
+            - The I(community_gallery_image_id) can be fetched from shared gallery image GET call.
             - For Marketplace images, a dict with the keys I(publisher), I(offer), I(sku), and I(version).
             - Set I(version=latest) to get the most recent version of a given image.
             - Required when creating.
@@ -840,6 +842,22 @@ EXAMPLES = '''
       sku: 20_04-lts
       version: latest
 
+- name: Create VM with cummunity gallery image ID
+  azure_rm_virtualmachine:
+    resource_group: "{{ resource_group }}"
+    name: "communit-image-vm"
+    admin_username: testuser
+    ssh_password_enabled: false
+    managed_disk_type: Premium_LRS
+    open_ports:
+      - 33
+    ssh_public_keys:
+      - path: /home/testuser/.ssh/authorized_keys
+        key_data: "ssh-rsa ************* @qq.com"
+    vm_size: Standard_B1ms
+    image:
+      community_gallery_image_id: "/CommunityGalleries/yellowbrick-fc7e81f1-87dd-4989-9ca8-03743762e873/Images/Ubuntu-5.15.0-1035-azure_22.04"
+
 - name: Power Off
   azure_rm_virtualmachine:
     resource_group: myResourceGroup
@@ -1440,6 +1458,8 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                         sku=self.image['sku'],
                         version=self.image['version']
                     )
+                elif self.image.get('community_gallery_image_id') is not None:
+                    image_reference = self.compute_models.ImageReference(community_gallery_image_id=self.image['community_gallery_image_id'])
                 elif self.image.get('name'):
                     custom_image = True
                     image_reference = self.get_custom_image_reference(
@@ -2193,6 +2213,10 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                         if 'id' in vm_dict['storage_profile']['image_reference'].keys():
                             image_reference = self.compute_models.ImageReference(
                                 id=vm_dict['storage_profile']['image_reference']['id']
+                            )
+                        elif 'community_gallery_image_id' in vm_dict['storage_profile'].keys():
+                            image_reference = self.compute_models.ImageReference(
+                                community_gallery_image_id=vm_dict['storage_profile']['image_reference']['community_gallery_image_id']
                             )
                         else:
                             image_reference = self.compute_models.ImageReference(

@@ -131,6 +131,8 @@ options:
             - If a dict with the keys I(name) and I(resource_group), the image is sourced from a custom image based on the I(name) and I(resource_group) set.
               Note that the key I(resource_group) is optional and if omitted, all images in the subscription will be searched for by I(name).
             - Custom image support was added in Ansible 2.5.
+            - For community images, a dict with the keys I(community_gallery_image_id). Specified the community gallery image unique id for vm demployment.
+            - The I(community_gallery_image_id) can be fetched from shared gallery image GET call.
             - Required when creating.
         type: raw
     os_disk_caching:
@@ -448,6 +450,32 @@ EXAMPLES = '''
     admin_password: "{{ password }}"
     managed_disk_type: Standard_LRS
     image: customimage001
+
+- name: Create a VMSS with a community gallery image ID
+  azure_rm_virtualmachinescaleset:
+    resource_group: myResourceGroup
+    name: testvmss
+    vm_size: Standard_D8_v4
+    admin_username: testuser
+    single_placement_group: false
+    platform_fault_domain_count: 1
+    public_ip_per_vm: true
+    ssh_password_enabled: false
+    ssh_public_keys:
+      - path: /home/testuser/.ssh/authorized_keys
+        key_data: "ssh-rsa ********* xiuxi.sun@qq.com"
+    virtual_network_name: VMSStestVnet
+    subnet_name: VMSStestSubnet
+    managed_disk_type: Standard_LRS
+    orchestration_mode: Flexible
+    os_disk_caching: ReadWrite
+    image:
+      community_gallery_image_id: "/CommunityGalleries/yellowbrick-fc7e81f1-87dd-4989-9ca8-03743762e873/Images/Ubuntu-5.15.0-1035-azure_22.04"
+    data_disks:
+      - lun: 0
+        disk_size_gb: 64
+        caching: ReadWrite
+        managed_disk_type: Standard_LRS
 
 - name: Create a VMSS with over 100 instances
   azure_rm_virtualmachinescaleset:
@@ -899,6 +927,11 @@ class AzureRMVirtualMachineScaleSet(AzureRMModuleBaseExt):
                         image_reference = self.compute_models.ImageReference(id=self.image['id'])
                     except Exception as exc:
                         self.fail("id Error: Cannot get image from the reference id - {0}".format(self.image['id']))
+                elif self.image.get('community_gallery_image_id'):
+                    try:
+                        image_reference = self.compute_models.ImageReference(community_gallery_image_id=self.image['community_gallery_image_id'])
+                    except Exception as exc:
+                        self.fail("id Error: Cannot get image from the cummunity gallery image id- {0}".format(self.image['community_gallery_image_id']))
                 else:
                     self.fail("parameter error: expecting image to contain [publisher, offer, sku, version], [name, resource_group] or [id]")
             elif self.image and isinstance(self.image, str):
