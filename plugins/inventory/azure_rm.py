@@ -660,10 +660,16 @@ class AzureHost(object):
 
         new_hostvars = dict(
             network_interface=[],
+            network_interface_properties=[],
+            mac_address=[],
+            network_interface_id=[],
+            security_group_id=[],
+            security_group=[],
             public_ip_address=[],
             public_ipv4_address=[],
             public_dns_hostnames=[],
             private_ipv4_addresses=[],
+            subnet=[],
             id=self._vm_model['id'],
             location=self._arcvm['location'] if self._arcvm else self._vm_model['location'],
             name=self._arcvm['name'] if self._arcvm else self._vm_model['name'],
@@ -699,6 +705,9 @@ class AzureHost(object):
             for ipc in sorted(nic._nic_model.get('properties', {}).get('ipConfigurations', []),
                               key=lambda i: i.get('properties', {}).get('primary', False), reverse=True):
                 try:
+                    subnet = ipc['properties'].get('subnet')
+                    if subnet:
+                        new_hostvars['subnet'].append(subnet)
                     private_ip = ipc['properties'].get('privateIPAddress')
                     if private_ip:
                         new_hostvars['private_ipv4_addresses'].append(private_ip)
@@ -717,7 +726,15 @@ class AzureHost(object):
                 except Exception:
                     continue
 
-            new_hostvars['network_interface'].append(nic._nic_model)
+            new_hostvars['mac_address'].append(nic._nic_model['properties'].get('macAddress'))
+            new_hostvars['network_interface'].append(nic._nic_model['name'])
+            new_hostvars['network_interface_id'].append(nic._nic_model['id'])
+            new_hostvars['security_group_id'].append(nic._nic_model['properties']['networkSecurityGroup']['id']) \
+                if nic._nic_model['properties'].get('networkSecurityGroup') else None
+            new_hostvars['security_group'].append(parse_resource_id(nic._nic_model['properties']['networkSecurityGroup']['id'])['resource_name']) \
+                if nic._nic_model['properties'].get('networkSecurityGroup') else None
+
+            new_hostvars['network_interface_properties'].append(nic._nic_model)
 
         # set image and os_disk
         new_hostvars['image'] = {}
