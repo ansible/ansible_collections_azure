@@ -313,7 +313,11 @@ class AzureRMPrivateEndpointInfo(AzureRMModuleBase):
             provisioning_state=privateendpoint.provisioning_state,
             type=privateendpoint.type,
             etag=privateendpoint.etag,
-            subnet_id=privateendpoint.subnet.id
+            subnet_id=privateendpoint.subnet.id,
+            custom_network_interface_name=privateendpoint.custom_network_interface_name,
+            custom_dns_configs=[],
+            application_security_groups=[],
+            ip_configurations=[],
         )
         if privateendpoint.network_interfaces and len(privateendpoint.network_interfaces) > 0:
             results['network_interfaces'] = []
@@ -345,6 +349,29 @@ class AzureRMPrivateEndpointInfo(AzureRMModuleBase):
                 connection['connection_state']['description'] = connections.manual_private_link_service_connection_state.description
                 connection['connection_state']['actions_required'] = connections.manual_private_link_service_connection_state.actions_required
                 results['manual_private_link_service_connections'].append(connection)
+        if privateendpoint.ip_configurations:
+            for item in privateendpoint.ip_configurations:
+                ip_config = dict(
+                    name=item.name,
+                    group_id=item.group_id,
+                    member_name=item.member_name,
+                    private_ip_address=item.private_ip_address
+                )
+                results['ip_configurations'].append(ip_config)
+        if privateendpoint.application_security_groups:
+            for item in privateendpoint.application_security_groups:
+                app_security_group = dict(
+                    id=item.id
+                )
+                results['application_security_groups'].append(app_security_group)
+        if privateendpoint.custom_dns_configs:
+            for item in privateendpoint.custom_dns_configs:
+                dns_config = dict(
+                    fqdn=item.fqdn,
+                    ip_addresses=item.ip_addresses
+                )
+                results['custom_dns_configs'].append(dns_config)
+
         return results
 
 
