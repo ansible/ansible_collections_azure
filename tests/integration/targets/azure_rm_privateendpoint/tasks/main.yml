@@ -221,7 +221,7 @@
     that:
       - output.changed
 
-- name: Delete the secondary private endpoint
+- name: Delete the third private endpoint
   azure_rm_privateendpoint:
     name: "privateendpoint{{ rpfx }}03"
     resource_group: "{{ resource_group }}"
