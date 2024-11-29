@@ -225,7 +225,7 @@ state:
                 - An array of custom dns configurations.
             type: complex
             returned: always
-            suboptions:
+            contains:
                 fqdn:
                     description:
                         - Fqdn that resolves to private endpoint ip address.
@@ -250,7 +250,7 @@ state:
                 - This will be used to map to the First Party Service's endpoints.
             type: complex
             returned: always
-            suboptions:
+            contains:
                 name:
                     description:
                         - The name of the resource that is unique within a resource group.

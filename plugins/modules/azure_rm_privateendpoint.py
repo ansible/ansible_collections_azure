@@ -287,7 +287,7 @@ state:
                     - An array of custom dns configurations.
                 type: complex
                 returned: always
-                suboptions:
+                contains:
                     fqdn:
                         description:
                             - Fqdn that resolves to private endpoint ip address.
@@ -312,7 +312,7 @@ state:
                     - This will be used to map to the First Party Service's endpoints.
                 type: complex
                 returned: always
-                suboptions:
+                contains:
                     name:
                         description:
                             - The name of the resource that is unique within a resource group.
@@ -408,9 +408,9 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
             private_link_service_connections=dict(type='list', elements='dict', options=private_service_connection_spec),
             manual_private_link_service_connections=dict(type='list', elements='dict', options=manual_private_service_connection_spec),
             custom_network_interface_name=dict(type='str'),
-            ip_configurations=dict(type='list', elements='dict', option=ip_configuration_spec),
-            application_security_groups=dict(type='list', elements='dict', option=application_security_group_spec),
-            custom_dns_configs=dict(type='list', elements='dict', option=custom_dns_config_spec)
+            ip_configurations=dict(type='list', elements='dict', options=ip_configuration_spec),
+            application_security_groups=dict(type='list', elements='dict', options=application_security_group_spec),
+            custom_dns_configs=dict(type='list', elements='dict', options=custom_dns_config_spec)
         )
 
         self.resource_group = None
