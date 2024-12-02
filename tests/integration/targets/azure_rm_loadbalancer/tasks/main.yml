@@ -223,8 +223,9 @@
 
 - name: Assert the load balancer facts
   ansible.builtin.assert:
-    - output.loadbalancers[0].load_balancing_rules[0].enable_tcp_reset is false
-    - output.loadbalancers[0].load_balancing_rules[0].frontend_port == 81
+    that:
+      - output.loadbalancers[0].load_balancing_rules[0].enable_tcp_reset is false
+      - output.loadbalancers[0].load_balancing_rules[0].frontend_port == 81
 
 - name: Delete load balancer
   azure_rm_loadbalancer:
