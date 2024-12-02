@@ -124,6 +124,7 @@
         idle_timeout: 4
         load_distribution: Default
         protocol: Tcp
+        enable_tcp_reset: true
   register: output
 
 - name: Assert complex load balancer created
@@ -165,6 +166,7 @@
         idle_timeout: 4
         load_distribution: Default
         protocol: Tcp
+        enable_tcp_reset: true
   register: output
 
 - name: Assert that output has not changed
@@ -205,12 +207,24 @@
         idle_timeout: 4
         load_distribution: Default
         protocol: Tcp
+        enable_tcp_reset: false
   register: output
 
 - name: Assert that output has changed
   ansible.builtin.assert:
     that:
       - output.changed
+
+- name: Get the load balancer facts
+  azure_rm_loadbalancer_info:
+    resource_group: '{{ resource_group }}'
+    name: "{{ lbname_b }}"
+  register: output
+
+- name: Assert the load balancer facts
+  ansible.builtin.assert:
+    - output.loadbalancers[0].load_balancing_rules[0].enable_tcp_reset is false
+    - output.loadbalancers[0].load_balancing_rules[0].frontend_port == 81
 
 - name: Delete load balancer
   azure_rm_loadbalancer:

@@ -259,6 +259,11 @@ options:
                 description:
                     - Configures a virtual machine's endpoint for the floating IP capability required to configure a SQL AlwaysOn Availability Group.
                 type: bool
+            enable_tcp_reset:
+                description:
+                    - Receive bidirectional TCP Reset on TCP flow idle timeout or unexpected connection termination.
+                    - This element is only used when the protocol is set to TCP.
+                type: bool
             disable_outbound_snat:
                 description:
                     - Configure outbound source network address translation (SNAT).
@@ -560,6 +565,9 @@ load_balancing_rule_spec = dict(
         type='bool',
         default=False
     ),
+    enable_tcp_reset=dict(
+        type='bool'
+    )
 )
 
 
@@ -745,6 +753,7 @@ class AzureRMLoadBalancer(AzureRMModuleBase):
                 backend_port=item.get('backend_port'),
                 idle_timeout_in_minutes=item.get('idle_timeout'),
                 enable_floating_ip=item.get('enable_floating_ip'),
+                enable_tcp_reset=item.get('enable_tcp_reset'),
                 disable_outbound_snat=item.get('disable_outbound_snat'),
             ) for item in self.load_balancing_rules] if self.load_balancing_rules else None
 
