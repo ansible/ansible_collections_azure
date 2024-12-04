@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2021 Ross Bender (@l3ender)
+# Copyright (c) 2024 xuzhang3 (@xuzhang3), Fred-sun (@Fred-sun)
 #
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -11,61 +11,61 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: azure_rm_applicationfirewallpolicy_info
-version_added: "1.10.0"
-short_description: Retrieve Application Gateway instance facts
+version_added: "3.0.1"
+short_description: Retrieve Application firewall policy instance facts
 description:
-    - Get facts for a Application Gateway instance.
+    - Get or list the application firewall facts.
 options:
     name:
         description:
-            - Only show results for a specific application gateway.
+            - The name of the application firewall policy's name.
         type: str
     resource_group:
         description:
-            - Limit results by resource group.
+            - The name of the resource group.,
         type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
 
 author:
-    - Ross Bender (@l3ender)
+    - xuzhang3 (@xuzhang3)
+    - Fred-sun (@Fred-sun)
 '''
 
 EXAMPLES = '''
-- name: Get facts for web application firewall policy by name.
+- name: Get the application firewall policy by name
   azure_rm_applicationfirewallpolicy_info:
-    name: MyAppgw
+    name: Myfirewallpolicy01
     resource_group: MyResourceGroup
 
-- name: Get facts for web application firewall policy in resource group.
+- name: List the application firewall policy by resource group
   azure_rm_applicationfirewallpolicy_info:
     resource_group: MyResourceGroup
 
-- name: Get facts for all web application firewall policy.
+- name: List all application firewall policy
   azure_rm_applicationfirewallpolicy_info:
 '''
 
 RETURN = '''
-gateways:
+firewall_policy:
     description:
-        - A list of dictionaries containing facts for an application gateway.
+        - A list of the application firewall policy facts
     returned: always
-    type: list
-    elements: dict
+    type: complex
     contains:
         id:
             description:
-                - Application gateway resource ID.
+                - The application firewall policy's ID.
             returned: always
             type: str
-            sample: /subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/applicationGateways/myAppGw
+            sample: "/subscriptions/xxx-xxx/resourceGroups/v-xisuRG/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/firewallpolicy"
         name:
             description:
-                - Name of application gateway.
+                - Name of application firewall policy.
             returned: always
             type: str
-            sample: myAppGw
+            sample: firewallpolicy
         resource_group:
             description:
                 - Name of resource group.
@@ -74,41 +74,149 @@ gateways:
             sample: myResourceGroup
         location:
             description:
-                - Location of application gateway.
+                - Location of application firewall policy.
             returned: always
             type: str
-            sample: centralus
-        operational_state:
-            description:
-                - Operating state of application gateway.
-            returned: always
-            type: str
-            sample: Running
+            sample: eastus
         provisioning_state:
             description:
-                - Provisioning state of application gateway.
+                - Provisioning state of application firewall policy.
             returned: always
             type: str
             sample: Succeeded
-        ssl_policy:
+        type:
             description:
-                - SSL policy of the application gateway.
+                - The type of the application firewall policy.
             returned: always
+            type: str
+            sample: Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies
+        tags:
+            descritption:
+                - The application firewall policy tags.
+            type: dict
+            rekturned: always
+            sample: {"key1": "value1"}
+        custom_rules:
+            description:
+                - The custom rules inside the policy.
             type: complex
-            version_added: "1.11.0"
+            returned: when used
             contains:
-                policy_type:
+                action:
                     description:
-                        - The type of SSL policy.
-                    returned: always
+                        - The name of the resource that is unique within a policy.
+                        - This name can be used to access the resource.
                     type: str
-                    sample: predefined
-                policy_name:
+                    returned: always
+                    sample: Block
+                match_conditions:
                     description:
-                        - The name of the SSL policy.
+                        - List of match conditions.
+                    type: list
                     returned: always
+                    sample: [{'match_values': ['10.1.0.4'], 'match_variables': [{'variable_name': 'RemoteAddr'}],
+                              'negation_condition': false, 'operator': 'IPMatch', 'transforms': []]
+                name:
+                    description:
+                        - The name of the resource that is unique within a policy.
+                        - This name can be used to access the resource.
                     type: str
-                    sample: ssl_policy20170401_s
+                    returned: always
+                    sample: testrule01
+                priority:
+                    description:
+                        - Priority of the rule.
+                        - Rules with a lower value will be evaluated before rules with a higher value.
+                    type: int
+                    returned: always
+                    sample: 33
+                rule_type:
+                    description:
+                        - The rule type.
+                    type: str
+                    returned: always
+                    sample: MatchRule
+                state:
+                    description:
+                        - Describes if the custom rule is in enabled or disabled state.
+                    type: str
+                    returned: always
+                    sample: Enabled
+        managed_rules:
+            description:
+                - Describes the managedRules structure.
+            type: complex
+            returned: when used
+            contains:
+                exclusions:
+                    description:
+                        - The exceptions that are applied on the policy.
+                    type: list
+                    returned: always
+                    sample: []
+                managed_rule_sets:
+                    description:
+                        - The managed rule sets that are associated with the policy.
+                    type: list
+                    returned: always
+                    sample: [{"rule_group_overrides": [],
+                              "rule_set_type": "Microsoft_DefaultRuleSet",
+                              "rule_set_version": "2.1"
+                             }]
+        policy_settings:
+            description:
+                - The PolicySettings for policy.
+            type: complex
+            returned: when used
+            contains:
+                file_upload_enforcement:
+                    description:
+                        - Whether allow WAF to enforce file upload limits.
+                    type: bool
+                    returned: always
+                    sample: true
+                file_upload_limit_in_mb:
+                    description:
+                        - Maximum file upload size in Mb for WAF.
+                    type: int
+                    returned: always
+                    sample: 100
+                js_challenge_cookie_expiration_in_mins:
+                    description:
+                        - Web Application Firewall JavaScript Challenge Cookie Expiration time in minutes.
+                    type: int
+                    returned: always
+                    sample: 30
+                max_request_body_size_in_kb:
+                    description:
+                        - Maximum request body size in Kb for WAF.
+                    type: int
+                    returned: always
+                    sample: 128
+                mode:
+                    description:
+                        - The mode of the policy.
+                    type: str
+                    returned: always
+                    sample: Detection
+                request_body_check:
+                    description:
+                        - Whether to allow WAF to check request Body.
+                    type: bool
+                    returned: always
+                    sample: false
+                request_body_enforcement:
+                    description:
+                        - Whether allow WAF to enforce request body limits.
+                    type: bool
+                    returned: always
+                    sample: false
+                state:
+                    description:
+                        - The state of the policy.
+                    type: str
+                    returned: always
+                    sample: Enabled
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -137,12 +245,10 @@ class AzureRMApplicationFirewallPolicyInfo(AzureRMModuleBase):
 
         self.name = None
         self.resource_group = None
-        required_if = [('name', '*', ['resource_group'])]
 
         super(AzureRMApplicationFirewallPolicyInfo, self).__init__(self.module_arg_spec,
                                                             supports_check_mode=True,
                                                             supports_tags=False,
-                                                            required_if=required_if,
                                                             facts_module=True)
 
     def exec_module(self, **kwargs):
@@ -150,7 +256,10 @@ class AzureRMApplicationFirewallPolicyInfo(AzureRMModuleBase):
             setattr(self, key, kwargs[key])
 
         if self.name is not None:
-            self.results["firewall_policy"] = self.get()
+            if self.resource_group is not None:
+                self.results["firewall_policy"] = self.get()
+            else:
+                self.fail("Missing resource_group when configed name")
         elif self.resource_group is not None:
             self.results["firewall_policy"] = self.list_by_rg()
         else:
@@ -199,74 +308,9 @@ class AzureRMApplicationFirewallPolicyInfo(AzureRMModuleBase):
         return results
 
     def format_response(self, item):
+        d = item.as_dict()
         id_dict = parse_resource_id(item.id)
-        d = dict(
-            id=item.id,
-            resource_group=id_dict.get('resource_group'),
-            name=item.name,
-            type=item.type,
-            location=item.location,
-            tags=item.tags,
-            etag=item.etag,
-            provisioning_state=item.provisioning_state,
-            policy_settings=dict(),
-            custom_rules=dict(),
-            managed_rules=dict()
-        )
-        if item.managed_rules is not None:
-            if item.managed_rules.exceptions is not None:
-                d['managed_rules']['exceptions'] = [value.as_dict() for value in item.managed_rules.exceptions]
-            else:
-                d['managed_rules']['exceptions'] = None
-            if item.managed_rules.exclusions is not None:
-                d['managed_rules']['exclusions'] = [value.as_dict() for value in item.managed_rules.exclusions]
-            else:
-                d['managed_rules']['exclusions'] = None
-            if item.managed_rules.managed_rule_sets is not None:
-                d['managed_rules']['managed_rule_sets'] = [value.as_dict() for value in item.managed_rules.managed_rule_sets]
-            else:
-                d['managed_rules']['managed_rule_sets'] = None
-        else:
-            d['managed_rules'] = None
-        if item.policy_settings is not None:
-            d['policy_settings']['state'] = item.policy_settings.state
-            d['policy_settings']['mode'] = item.policy_settings.mode
-            d['policy_settings']['request_body_check'] = item.policy_settings.request_body_check
-            d['policy_settings']['request_body_inspect_limit_in_kb'] = item.policy_settings.request_body_inspect_limit_in_kb
-            d['policy_settings']['request_body_enforcement'] = item.policy_settings.request_body_enforcement
-            d['policy_settings']['max_request_body_size_in_kb'] = item.policy_settings.max_request_body_size_in_kb
-            d['policy_settings']['file_upload_enforcement'] = item.policy_settings.file_upload_enforcement
-            d['policy_settings']['file_upload_limit_in_mb'] = item.policy_settings.file_upload_limit_in_mb
-            d['policy_settings']['custom_block_response_status_code'] = item.policy_settings.custom_block_response_status_code
-            d['policy_settings']['js_challenge_cookie_expiration_in_mins'] = item.policy_settings.js_challenge_cookie_expiration_in_mins
-            if item.policy_settings.log_scrubbing is not None:
-                d['policy_settings'] = dict
-                d['policy_settings']['log_scrubbing']['match_variable'] = item.policy_settings.log_scrubbing.match_variable
-                d['policy_settings']['log_scrubbing']['selector_match_operator'] = item.policy_settings.log_scrubbing.selector_match_operator
-                d['policy_settings']['log_scrubbing']['selector'] = item.policy_settings.log_scrubbing.selector
-                d['policy_settings']['log_scrubbing']['state'] = item.policy_settings.log_scrubbing.state
-            else:
-                d['policy_settings']['log_scrubbing'] = None
-        else:
-            d['policy_settings'] = None
-        if item.custom_rules is not None:
-            d['custom_rules']['priority'] = item.custom_rules.priority
-            d['custom_rules']['rule_type'] = item.custom_rules.rule_type
-            d['custom_rules']['priority'] = item.custom_rules.action
-            d['custom_rules']['name'] = item.custom_rules.name
-            d['custom_rules']['state'] = item.custom_rules.state
-            d['custom_rules']['rate_limit_duration'] = item.custom_rules.rate_limit_duration
-            d['custom_rules']['rate_limit_threshold'] = item.custom_rules.rate_limit_threshold
-            if item.custom_rules.group_by_user_session is not None:
-                d['custom_rules']['group_by_user_session'] = [value.as_dict() for value in item.custom_rules.group_by_user_session]
-            else:
-                d['custom_rules']['group_by_user_session'] = None
-            if item.custom_rules.match_conditions is not None:
-                d['custom_rules']['match_conditions'] = item.custom_rules.match_conditions.as_dict()
-            else:
-                d['custom_rules']['match_conditions'] = None
-        else:
-            d['custom_rules'] = None
+        d['resource_group'] = id_dict.get('resource_group')
 
         return d
 
