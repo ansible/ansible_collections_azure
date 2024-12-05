@@ -342,11 +342,69 @@ managed_rule_spec = dict(
         )
     ),
     managed_rule_sets=dict(
+        type='list',
+        elements='dict',
+        options=dict(
+            rule_set_type=dict(type='str', required=True),
+            rule_set_version=dict(type='str', required=True),
+            rule_group_overrides=dict(
+                type='list',
+                elements='dict',
+                options=dict(
+                    rule_group_name=dict(type='str', required=True),
+                    rules=dict(
+                        type='list',
+                        elements='dict',
+                        options=dict(
+                            rule_id=dict(type='str'),
+                            state=dict(type='str', choices=['Enabled', 'Disabled']),
+                            action=dict(type='str', choices=["AnomalyScoring", "Allow", "Block", "Log", "JSChallenge"]),
+                            sensitivity=dict(type='str', choices=["None", "Low", "Medium", "High"])
+                        )
+                    )
+                )
+            )
+        )
     ),
     exclusions=dict(
+        match_variable=dict(
+            type='str',
+            required=True,
+            choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames", "RequestHeaderKeys", "RequestHeaderValues", "RequestCookieKeys", "RequestCookieValues", "RequestArgKeys", "RequestArgValues"])
+        ),
+        selector_match_operator=dict(
+            type='str',
+            required=True,
+            choices=["Equals", "Contains", "StartsWith", "EndsWith", "EqualsAny"]
+        ),
+        selector=dict(
+            type='str',
+            required=True
+        ),
+        exclusion_managed_rule_sets=dict(
+            type='list',
+            elements='dict',
+            options=dict(
+                rule_set_type=dict(type='str', required=True),
+                rule_set_version=dict(type='str', required=True),
+                rule_groups=dict(
+                    type='list',
+                    elements='dict',
+                    options=dict(
+                        rule_group_name=dict(type='str', required=True),
+                        rules=dict(
+                            type='list',
+                            elements='dict',
+                            options=dict(
+                                rule_id=dict(type='str')
+                            )
+                        )
+                    )
+                )
+            )
+        )
     )
 )
-
 
 class AzureRMApplicationFirewallPolicy(AzureRMModuleBase):
 
@@ -386,7 +444,28 @@ class AzureRMApplicationFirewallPolicy(AzureRMModuleBase):
         old_response = self.get()
         changed = False
 
+        resource_group = self.get_resource_group(self.resource_group)
+        if not self.body.get('location'):
+            # Set default location
+            self.body['location'] = resource_group.location
+
+        if old_response is not None:
+            if self.state == 'present':
+                if not self.default_compare({}, self.body, old_response, '', dict(compare=[])):
+                    changed = True
+                    if not self.check_mode:
+                        self.create_or_update(self.body)
+            else:
+                changed = True
+                if not self.check_mode:
+                    self.delete()
+        else:
+            if self.state == 'present':
+                changed = True
+                self.create_or_update(self.body)
+
         self.results["firewall_policy"] = self.get()
+        self.results['changed'] = changed
 
         return self.results
 
