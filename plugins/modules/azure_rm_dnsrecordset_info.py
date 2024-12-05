@@ -141,6 +141,12 @@ dnsrecordsets:
                 - Fully qualified domain name of the record set.
             type: str
             sample: www.newzone.com
+        target_resource:
+            description:
+                - A reference to an azure resource from where the dns resource value is taken.
+            type: dict
+            returned: always
+            sample: {'id': /subscriptions/xxx-xxx/resourceGroups/testRG/providers/Microsoft.Network/publicIPAddresses/pip01'}
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -293,7 +299,8 @@ class AzureRMRecordSetInfo(AzureRMModuleBase):
             time_to_live=record.ttl,
             fqdn=record.fqdn,
             provisioning_state=record.provisioning_state,
-            metadata=record.metadata
+            metadata=record.metadata,
+            target_resource=dict(id=record.target_resource.id) if record.target_resource.id else None
         )
 
 
