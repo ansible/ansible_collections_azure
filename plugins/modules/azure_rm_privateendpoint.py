@@ -80,6 +80,58 @@ options:
                     - The ID(s) of the group(s) obtained from the remote resource that this private endpoint should connect to.
                 type: list
                 elements: str
+    application_security_groups:
+        description:
+            - The application security group in a resource group.
+        type: list
+        elements: dict
+        suboptions:
+            id:
+                description:
+                    - The application security group's ID.
+                type: str
+    custom_dns_configs:
+        description:
+            - An array of custom dns configurations.
+        type: list
+        elements: dict
+        suboptions:
+            fqdn:
+                description:
+                    - Fqdn that resolves to private endpoint ip address.
+                type: str
+            ip_addresses:
+                description:
+                    - A list of private ip addresses of the private endpoint.
+                type: list
+                elements: str
+    custom_network_interface_name:
+        description:
+            - The custom name of the network interface attached to the private endpoint.
+        type: str
+    ip_configurations:
+        description:
+            - A list of IP configurations of the private endpoint.
+            - This will be used to map to the First Party Service's endpoints.
+        type: list
+        elements: dict
+        suboptions:
+            name:
+                description:
+                    - The name of the resource that is unique within a resource group.
+                type: str
+            group_id:
+                description:
+                    - The ID of a group obtained from the remote resource that this private endpoint should connect to.
+                type: str
+            member_name:
+                description:
+                    - The member name of a group obtained from the remote resource that this private endpoint should connect to.
+                type: str
+            private_ip_address:
+                description:
+                    - A private ip address obtained from the private endpoint's subnet.
+                type: str
     state:
         description:
             - State of the virtual network. Use C(present) to create or update and C(absent) to delete.
@@ -99,7 +151,7 @@ author:
 '''
 
 EXAMPLES = '''
-- name: Create private endpoint
+- name: Create private endpoint with private_link_service_connections
   azure_rm_privateendpoint:
     name: testprivateendpoint
     resource_group: v-xisuRG
@@ -111,6 +163,31 @@ EXAMPLES = '''
     tags:
       key1: value1
       key2: value2
+
+- name: Create private endpoint with ip_configuration
+  azure_rm_privateendpoint:
+    name: "privateendpoint02"
+    resource_group: "{{ resource_group }}"
+    private_link_service_connections:
+      - name: Test_private_link_service
+        private_link_service_id: /subscriptions/xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/privateLinkServices/testervice
+        group_ids:
+          - postgresqlServer
+    subnet:
+      id: /subscriptions/xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/virtualNetworks/fredvnet/subnets/default
+    application_security_groups:
+      - id: "/subscriptions/xxx/resourceGroups/myResoruceGroup/providers/Microsoft.Network/applicationSecurityGroups/app01"
+      - id: "/subscriptions/xxx/resourceGroups/myResourceGroup/providers/Microsoft.Network/applicationSecurityGroups/app02"
+    custom_network_interface_name: nic01
+    ip_configurations:
+      - name: ipc01
+        group_id: postgresqlServer
+        member_name: postgresqlServer
+        private_ip_address: 10.1.0.9
+    custom_dns_configs:
+      - fqdn: testfred001
+        ip_addresses:
+          - 10.1.0.9
 
 - name: Delete private endpoint
   azure_rm_privateendpoint:
@@ -193,6 +270,73 @@ state:
                 returned: always
                 type: str
                 sample: Microsoft.Network/privateEndpoints
+            application_security_groups:
+                description:
+                    - The application security group in a resource group.
+                type: complex
+                returned: always
+                contains:
+                    id:
+                        description:
+                            - The application security group's ID.
+                        type: str
+                        returned: when-used
+                        sample: "/subscriptions/xxx/resourceGroups/testRG/providers/Microsoft.Network/applicationSecurityGroups/app01"
+            custom_dns_configs:
+                description:
+                    - An array of custom dns configurations.
+                type: complex
+                returned: always
+                contains:
+                    fqdn:
+                        description:
+                            - Fqdn that resolves to private endpoint ip address.
+                        type: str
+                        returned: when-used
+                        sample: "postgresqlsrvprivate02.postgres.database.azure.com"
+                    ip_addresses:
+                        description:
+                            - A list of private ip addresses of the private endpoint.
+                        type: complex
+                        returned: when-used
+                        sample: ["10.1.0.9"]
+            custom_network_interface_name:
+                description:
+                    - The custom name of the network interface attached to the private endpoint.
+                type: str
+                returned: always
+                sample: nic01
+            ip_configurations:
+                description:
+                    - A list of IP configurations of the private endpoint.
+                    - This will be used to map to the First Party Service's endpoints.
+                type: complex
+                returned: always
+                contains:
+                    name:
+                        description:
+                            - The name of the resource that is unique within a resource group.
+                        type: str
+                        returned: when-used
+                        sample: ipc01
+                    group_id:
+                        description:
+                            - The ID of a group obtained from the remote resource that this private endpoint should connect to.
+                        type: str
+                        returned: when-used
+                        sample: postgresqlServer
+                    member_name:
+                        description:
+                            - The member name of a group obtained from the remote resource that this private endpoint should connect to.
+                        type: str
+                        returned: when-used
+                        sample: postgresqlServer
+                    private_ip_address:
+                        description:
+                            - A private ip address obtained from the private endpoint's subnet.
+                        type: str
+                        returned: when-used
+                        sample: 10.1.0.9
 '''
 
 try:
@@ -228,6 +372,25 @@ subnet_spec = dict(
 )
 
 
+custom_dns_config_spec = dict(
+    fqdn=dict(type='str'),
+    ip_addresses=dict(type='list', elements='str')
+)
+
+
+application_security_group_spec = dict(
+    id=dict(type='str')
+)
+
+
+ip_configuration_spec = dict(
+    name=dict(type='str'),
+    group_id=dict(type='str'),
+    member_name=dict(type='str'),
+    private_ip_address=dict(type='str')
+)
+
+
 class Actions:
     NoAction, Create, Update, Delete = range(4)
 
@@ -244,6 +407,10 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
             subnet=dict(type='dict', options=subnet_spec),
             private_link_service_connections=dict(type='list', elements='dict', options=private_service_connection_spec),
             manual_private_link_service_connections=dict(type='list', elements='dict', options=manual_private_service_connection_spec),
+            custom_network_interface_name=dict(type='str'),
+            ip_configurations=dict(type='list', elements='dict', options=ip_configuration_spec),
+            application_security_groups=dict(type='list', elements='dict', options=application_security_group_spec),
+            custom_dns_configs=dict(type='list', elements='dict', options=custom_dns_config_spec)
         )
 
         self.resource_group = None
@@ -355,7 +522,11 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
             provisioning_state=privateendpoint.provisioning_state,
             type=privateendpoint.type,
             etag=privateendpoint.etag,
-            subnet=dict(id=privateendpoint.subnet.id)
+            subnet=dict(id=privateendpoint.subnet.id),
+            custom_network_interface_name=privateendpoint.custom_network_interface_name,
+            custom_dns_configs=[],
+            application_security_groups=[],
+            ip_configurations=[],
         )
         if privateendpoint.network_interfaces and len(privateendpoint.network_interfaces) > 0:
             results['network_interfaces'] = []
@@ -370,6 +541,28 @@ class AzureRMPrivateEndpoint(AzureRMModuleBaseExt):
             for connections in privateendpoint.manual_private_link_service_connections:
                 results['manual_private_link_service_connections'].append(dict(
                     private_link_service_id=connections.private_link_service_id, name=connections.name))
+        if privateendpoint.ip_configurations:
+            for item in privateendpoint.ip_configurations:
+                ip_config = dict(
+                    name=item.name,
+                    group_id=item.group_id,
+                    member_name=item.member_name,
+                    private_ip_address=item.private_ip_address
+                )
+                results['ip_configurations'].append(ip_config)
+        if privateendpoint.application_security_groups:
+            for item in privateendpoint.application_security_groups:
+                app_security_group = dict(
+                    id=item.id
+                )
+                results['application_security_groups'].append(app_security_group)
+        if privateendpoint.custom_dns_configs:
+            for item in privateendpoint.custom_dns_configs:
+                dns_config = dict(
+                    fqdn=item.fqdn,
+                    ip_addresses=item.ip_addresses
+                )
+                results['custom_dns_configs'].append(dns_config)
 
         return results
 
