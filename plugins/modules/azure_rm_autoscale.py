@@ -154,6 +154,39 @@ options:
                         description:
                             - The resource identifier of the resource the rule monitors.
                         type: str
+                    dimensions:
+                        description:
+                            - List of dimension conditions.
+                        type: list
+                        elements: dict
+                        suboptions:
+                            dimension_name:
+                                description:
+                                    - Name of the dimension.
+                                type: str
+                                required: true
+                            operator:
+                                description:
+                                    - The dimension operator. Only C(Equals) and C(NotEquals) are supported.
+                                choices:
+                                    - Equals
+                                    - NotEquals
+                                type: str
+                                required: true
+                            values:
+                                description:
+                                    - List of dimension values.
+                                type: list
+                                elements: str
+                                required: true
+                    divide_per_instance:
+                        description:
+                            - A value indicating whether metric should divide per instance.
+                        type: bool
+                    metric_namespace:
+                        description:
+                            - The namespace of the metric that defines what the rule monitors.
+                        type: str
                     value:
                         description:
                             - The number of instances that are involved in the scaling action.
@@ -309,6 +342,12 @@ EXAMPLES = '''
             statistic: Average
             operator: GreaterThan
             type: ChangeCount
+            dimensions:
+              - dimension_name: AppName
+                operator: Equals
+                values:
+                  - App1
+                  - App2
         max_count: '1'
         recurrence_mins:
           - '0'
@@ -373,6 +412,18 @@ state:
                 "rules": [
                     {
                         "cooldown": 5.0,
+                        "dimensions": [
+                            {
+                                "dimension_name": "AppName",
+                                "operator": "Equals",
+                                "values": [
+                                    "App1",
+                                    "App2"
+                                ]
+                            }
+                        ],
+                        "divide_per_instance": true,
+                        "metric_namespace": "Fredtest",
                         "direction": "Increase",
                         "metric_name": "Percentage CPU",
                         "metric_resource_uri": "/subscriptions/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/resourceGroups/myResourceGroup/providers/Microsof
@@ -400,7 +451,7 @@ from datetime import timedelta
 
 try:
     from azure.mgmt.monitor.models import WebhookNotification, EmailNotification, AutoscaleNotification, RecurrentSchedule, MetricTrigger, \
-        ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule
+        ScaleAction, AutoscaleSettingResource, AutoscaleProfile, ScaleCapacity, TimeWindow, Recurrence, ScaleRule, ScaleRuleMetricDimension
 except ImportError:
     # This is handled in azure_rm_common
     pass
@@ -444,7 +495,14 @@ def rule_to_dict(rule):
                   time_window=timedelta_to_minutes(rule.metric_trigger.time_window),
                   time_aggregation=get_enum_value(rule.metric_trigger.time_aggregation),
                   operator=get_enum_value(rule.metric_trigger.operator),
-                  threshold=float(rule.metric_trigger.threshold))
+                  threshold=float(rule.metric_trigger.threshold),
+                  metric_namespace=rule.metric_trigger.metric_namespace,
+                  dimensions=[],
+                  divide_per_instance=rule.metric_trigger.divide_per_instance)
+    if rule.metric_trigger.dimensions:
+        for item in rule.metric_trigger.dimensions:
+            result['dimensions'].append(dict(dimension_name=item.dimension_name, operator=item.operator, values=item.values))
+
     if rule.scale_action and to_native(rule.scale_action.direction) != 'None':
         result['direction'] = get_enum_value(rule.scale_action.direction)
         result['type'] = get_enum_value(rule.scale_action.type)
@@ -501,7 +559,18 @@ rule_spec = dict(
     direction=dict(type='str', choices=['Increase', 'Decrease']),
     type=dict(type='str', choices=['PercentChangeCount', 'ExactCount', 'ChangeCount']),
     value=dict(type='str'),
-    cooldown=dict(type='float')
+    cooldown=dict(type='float'),
+    metric_namespace=dict(type='str'),
+    divide_per_instance=dict(type='bool'),
+    dimensions=dict(
+        type='list',
+        elements='dict',
+        options=dict(
+            dimension_name=dict(type='str', required=True),
+            operator=dict(type='str', required=True, choices=['Equals', 'NotEquals']),
+            values=dict(type='list', elements='str', required=True),
+        )
+    )
 )
 
 
@@ -603,6 +672,7 @@ class AzureRMAutoScale(AzureRMModuleBase):
                 rule['time_grain'] = timedelta(minutes=rule.get('time_grain', 0))
                 rule['time_window'] = timedelta(minutes=rule.get('time_window', 0))
                 rule['cooldown'] = timedelta(minutes=rule.get('cooldown', 0))
+                rule['dimensions'] = [ScaleRuleMetricDimension(**item) for item in rule.get('dimensions')] if rule.get('dimensions') else None
                 return ScaleRule(metric_trigger=MetricTrigger(**rule), scale_action=ScaleAction(**rule))
 
             profiles = [AutoscaleProfile(name=p.get('name'),

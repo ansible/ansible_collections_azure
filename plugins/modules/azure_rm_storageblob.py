@@ -119,6 +119,16 @@ options:
         description:
             - Base directory in container when upload batch of files.
         type: path
+    standard_blob_tier:
+        description:
+            - Specifies the blob tier to set the blob to.
+            - This is only applicable for block blobs on standard storage accounts.
+        type: str
+        choices:
+            - Archive
+            - Cool
+            - Cold
+            - Hot
     state:
         description:
             - State of a container or blob.
@@ -202,7 +212,8 @@ blob:
         "last_modified": "09-Mar-2016 22:08:25 +0000",
         "name": "graylog.png",
         "tags": {},
-        "type": "BlockBlob"
+        "type": "BlockBlob",
+        'standard_blob_tier': 'Hot'
     }
 container:
     description:
@@ -220,7 +231,7 @@ import os
 import mimetypes
 
 try:
-    from azure.storage.blob._models import BlobType, ContentSettings
+    from azure.storage.blob._models import BlobType, ContentSettings, StandardBlobTier
     from azure.core.exceptions import ResourceNotFoundError
 except ImportError:
     # This is handled in azure_rm_common
@@ -244,6 +255,7 @@ class AzureRMStorageBlob(AzureRMModuleBase):
             storage_account_name=dict(required=True, type='str', aliases=['account_name', 'storage_account']),
             blob=dict(type='str', aliases=['blob_name']),
             blob_type=dict(type='str', default='block', choices=['block', 'page']),
+            standard_blob_tier=dict(type='str', choices=['Archive', 'Cool', 'Cold', 'Hot']),
             container=dict(required=True, type='str', aliases=['container_name']),
             dest=dict(type='path', aliases=['destination']),
             force=dict(type='bool', default=False),
@@ -269,6 +281,7 @@ class AzureRMStorageBlob(AzureRMModuleBase):
         self.blob = None
         self.blob_obj = None
         self.blob_type = None
+        self.standard_blob_tier = None
         self.container = None
         self.container_obj = None
         self.dest = None
@@ -336,6 +349,10 @@ class AzureRMStorageBlob(AzureRMModuleBase):
 
                 if self.blob_content_settings_differ():
                     self.update_blob_content_settings()
+
+                if self.standard_blob_tier is not None and self.blob_obj.get('standard_blob_tier') is not None and \
+                   self.blob_obj['standard_blob_tier'] != self.standard_blob_tier:
+                    self.update_blob_tier()
 
         elif self.state == 'absent':
             if self.container_obj and not self.blob:
@@ -416,6 +433,7 @@ class AzureRMStorageBlob(AzureRMModuleBase):
                                            blob_type=self.get_blob_type(self.blob_type),
                                            metadata=self.tags,
                                            content_settings=_guess_content_type(src, content_settings),
+                                           standard_blob_tier=self.get_blob_tier(self.standard_blob_tier),
                                            overwrite=self.force)
                 except Exception as exc:
                     self.fail("Error creating blob {0} - {1}".format(src, str(exc)))
@@ -423,6 +441,18 @@ class AzureRMStorageBlob(AzureRMModuleBase):
 
         self.results['changed'] = True
         self.results['container'] = self.container_obj
+
+    def get_blob_tier(self, blob_tier):
+        if blob_tier == "archive":
+            return StandardBlobTier.Archive
+        elif blob_tier == "cool":
+            return StandardBlobTier.Cool
+        elif blob_tier == "hot":
+            return StandardBlobTier.Hot
+        elif blob_tier == "cold":
+            return StandardBlobTier.Cold
+        else:
+            return None
 
     def get_blob_type(self, blob_type):
         if blob_type == "block":
@@ -462,6 +492,7 @@ class AzureRMStorageBlob(AzureRMModuleBase):
                 tags=blob["metadata"],
                 last_modified=blob["last_modified"].strftime('%d-%b-%Y %H:%M:%S %z'),
                 type=blob["blob_type"],
+                standard_blob_tier=blob.get('blob_tier'),
                 content_length=blob["size"],
                 content_settings=dict(
                     content_type=blob["content_settings"]["content_type"],
@@ -513,6 +544,7 @@ class AzureRMStorageBlob(AzureRMModuleBase):
                                        blob_type=self.get_blob_type(self.blob_type),
                                        metadata=self.tags,
                                        content_settings=content_settings,
+                                       standard_blob_tier=self.get_blob_tier(self.standard_blob_tier),
                                        overwrite=self.force)
             except Exception as exc:
                 self.fail("Error creating blob {0} - {1}".format(self.blob, str(exc)))
@@ -635,6 +667,11 @@ class AzureRMStorageBlob(AzureRMModuleBase):
         self.results['actions'].append("updated blob {0}:{1} tags.".format(self.container, self.blob))
         self.results['container'] = self.container_obj
         self.results['blob'] = self.blob_obj
+
+    def update_blob_tier(self):
+        client = self.blob_service_client.get_blob_client(container=self.container, blob=self.blob)
+        client.set_standard_blob_tier(standard_blob_tier=self.standard_blob_tier)
+        self.results['changed'] = True
 
     def blob_content_settings_differ(self):
         if self.content_type or self.content_encoding or self.content_language or self.content_disposition or \

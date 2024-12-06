@@ -147,11 +147,48 @@ keyvaults:
                     type: str
                     returned: always
                     sample: standard
+        public_network_access:
+            description:
+                - Property to specify whether the vault will accept traffic from public internet.
+            type: str
+            returned: always
+            sample: Disabled
+        network_acls:
+            description:
+                - A collection of rules governing the accessibility of the vault from specific network locations.
+            returned: always
+            type: complex
+            contains:
+                bypass:
+                    description:
+                        - Tells what traffic can bypass network rules.
+                    type: str
+                    returned: always
+                    sample: AzureServices
+                default_action:
+                    description:
+                        - The default action when no rule from ipRules and from virtualNetworkRules match.
+                    type: str
+                    returned: always
+                    sample: Allow
+                ip_rules:
+                    description:
+                        - The list of IP address rules.
+                    type: list
+                    returned: always
+                    sample: [{'value': '124.56.78.91/32'}]
+                virtual_network_rules:
+                    description:
+                        - The list of virtual network rules.
+                    type: list
+                    returned: always
+                    sample: [{'id': "/subscriptions/**/resourcegroups/**/providers/microsoft.network/virtualnetworks/**/subnets/subnet01",
+                            'ignore_missing_vnet_service_endpoint': True}]
         access_policies:
             description:
                 - List of policies.
             returned: always
-            type: list
+            type: complex
             contains:
                 object_id:
                     description: The object if of a user, service principal or security group in AAD for the vault.
@@ -234,7 +271,19 @@ def keyvault_to_dict(vault):
         sku=dict(
             family=vault.properties.sku.family,
             name=vault.properties.sku.name
-        )
+        ),
+        public_network_access=vault.properties.public_network_access,
+        network_acls=dict(
+            bypass=vault.properties.network_acls.bypass,
+            default_action=vault.properties.network_acls.default_action,
+            ip_rules=[dict(
+                value=item.value
+            ) for item in vault.properties.network_acls.ip_rules] if vault.properties.network_acls.ip_rules else None,
+            virtual_network_rules=[dict(
+                id=item.id,
+                ignore_missing_vnet_service_endpoint=item.ignore_missing_vnet_service_endpoint
+            ) for item in vault.properties.network_acls.virtual_network_rules] if vault.properties.network_acls.virtual_network_rules else None
+        ) if vault.properties.network_acls else None
     )
 
 

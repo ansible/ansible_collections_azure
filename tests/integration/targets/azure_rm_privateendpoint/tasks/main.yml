@@ -34,7 +34,7 @@
           - westus
   register: subnet_output
 
-- name: Create instance of PostgreSQL Server
+- name: Create instance of PostgreSQL Server --- first
   azure_rm_postgresqlserver:
     resource_group: "{{ resource_group }}"
     name: postgresqlsrv{{ rpfx }}
@@ -47,6 +47,34 @@
     admin_username: zimxyz
     admin_password: "{{ password }}"
   register: post_output
+
+- name: Create instance of PostgreSQL Server --- secondary
+  azure_rm_postgresqlserver:
+    resource_group: "{{ resource_group }}"
+    name: "postgresqlsrv{{ rpfx }}02"
+    sku:
+      name: GP_Gen5_2
+      tier: GeneralPurpose
+    location: eastus
+    storage_mb: 51200
+    enforce_ssl: true
+    admin_username: zimxyz
+    admin_password: "{{ password }}"
+  register: post_output02
+
+- name: Create instance of PostgreSQL Server --- third
+  azure_rm_postgresqlserver:
+    resource_group: "{{ resource_group }}"
+    name: "postgresqlsrv{{ rpfx }}03"
+    sku:
+      name: GP_Gen5_2
+      tier: GeneralPurpose
+    location: eastus
+    storage_mb: 51200
+    enforce_ssl: true
+    admin_username: zimxyz
+    admin_password: "{{ password }}"
+  register: post_output03
 
 - name: Delete private endpoint, makesure there is no private endpoint exist
   azure_rm_privateendpoint:
@@ -133,6 +161,79 @@
     that:
       - output.privateendpoints[0].provisioning_state == "Succeeded"
       - output.privateendpoints[0].tags | length == 2
+
+- name: Create secondary private endpoint with manual_private_link_service_connections parameters
+  azure_rm_privateendpoint:
+    name: "privateendpoint{{ rpfx }}02"
+    resource_group: "{{ resource_group }}"
+    manual_private_link_service_connections:
+      - name: privateEndpoints_test_name02
+        private_link_service_id: "{{ post_output02.id }}"
+        group_ids:
+          - postgresqlServer
+    subnet:
+      id: "{{ subnet_output.state.id }}"
+  register: output
+
+- name: Assert the secondary private endpoint created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Create an application security group
+  azure_rm_applicationsecuritygroup:
+    resource_group: "{{ resource_group }}"
+    name: "app{{ rpfx }}"
+    location: eastus
+
+- name: Get the application security group facts
+  azure_rm_applicationsecuritygroup_info:
+    resource_group: "{{ resource_group }}"
+    name: "app{{ rpfx }}"
+  register: app_group_output
+
+- name: Create third private endpoint with manual_private_link_service_connections parameters
+  azure_rm_privateendpoint:
+    name: "privateendpoint{{ rpfx }}03"
+    resource_group: "{{ resource_group }}"
+    private_link_service_connections:
+      - name: privateEndpoints_test_name
+        private_link_service_id: "{{ post_output03.id }}"
+        group_ids:
+          - postgresqlServer
+    subnet:
+      id: "{{ subnet_output.state.id }}"
+    application_security_groups:
+      - id: "{{ app_group_output.applicationsecuritygroups[0].id }}"
+    ip_configurations:
+      - name: ipc01
+        group_id: postgresqlServer
+        member_name: postgresqlServer
+        private_ip_address: 10.1.0.9
+    custom_dns_configs:
+      - fqdn: customdns01
+        ip_addresses:
+          - 10.1.0.9
+  register: output
+
+- name: Assert the secondary private endpoint created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Delete the third private endpoint
+  azure_rm_privateendpoint:
+    name: "privateendpoint{{ rpfx }}03"
+    resource_group: "{{ resource_group }}"
+    state: absent
+  register: output
+
+- name: Delete the secondary private endpoint
+  azure_rm_privateendpoint:
+    name: "privateendpoint{{ rpfx }}02"
+    resource_group: "{{ resource_group }}"
+    state: absent
+  register: output
 
 - name: Delete private endpoint
   azure_rm_privateendpoint:

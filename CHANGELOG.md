@@ -1,5 +1,50 @@
 # Change Log
 
+## v3.1.0 (2024-12-02)
+
+### NEW MODULES
+  - azure_rm_batchaccountapplication:  ([#1753](https://github.com/ansible-collections/azure/pull/1753))
+  - azure_rm_batchaccountapplication_info: ([#1753](https://github.com/ansible-collections/azure/pull/1753))
+  - azure_rm_batchaccountpool: ([#1753](https://github.com/ansible-collections/azure/pull/1753))
+  - azure_rm_batchaccountpool_info: ([#1753](https://github.com/ansible-collections/azure/pull/1753))
+  - azure_rm_batchaccountapplicationpackage: ([#1753](https://github.com/ansible-collections/azure/pull/1753))
+  - azure_rm_batchaccountapplicationpackage_info: ([#1753](https://github.com/ansible-collections/azure/pull/1753))
+
+### FEATURE ENHANCEMENT
+  - azure_rm_storageblob: Add support for `standard_blob_tier` ([#1764](https://github.com/ansible-collections/azure/pull/1764))
+  - azure_rm_keyvault:
+    - Add support for `enable_rbac_authorization` ([#1737](https://github.com/ansible-collections/azure/pull/1737))
+    - Add support for `netowrk_acls` ([#1738](https://github.com/ansible-collections/azure/pull/1738))
+  - azure_rm_keyvault_info:
+    - Add support for `enable_rbac_authorization` ([#1737](https://github.com/ansible-collections/azure/pull/1737))
+    - Add support for `netowrk_acls` ([#1738](https://github.com/ansible-collections/azure/pull/1738))
+  - azure_rm_devtestlabvirtualmachine: Add support for `is_authentication_with_ssh_key` ([#1736](https://github.com/ansible-collections/azure/pull/1736))
+  - azure_rm_devtestlabvirtualmachine_info: Add support for `is_authentication_with_ssh_key` ([#1736](https://github.com/ansible-collections/azure/pull/1736))
+  - azure_rm_aks: Add support for `windows_profile` ([#1740](https://github.com/ansible-collections/azure/pull/1740))
+  - azure_rm_aksagentpool: Add `AzureLinux`, `Windows2019` and `Windows2022` to `os_sku` ([#1740](https://github.com/ansible-collections/azure/pull/1740))
+  - azure_rm_autoscale: Add support for `metric_namespace` ([#1743](https://github.com/ansible-collections/azure/pull/1743))
+  - azure_rm_autoscale_info: Add support for `metric_namespace` ([#1743](https://github.com/ansible-collections/azure/pull/1743))
+  - azure_rm_privateendpoint: Add support for `manual_private_link_service_connections` ([#1745](https://github.com/ansible-collections/azure/pull/1745))
+  - azure_rm_privateendpoint_info: Add support for `manual_private_link_service_connections` ([#1745](https://github.com/ansible-collections/azure/pull/1745))
+  - azure_rm_iothub: Rename `container` to `container_name` ([#1763](https://github.com/ansible-collections/azure/pull/1763))
+  - azure_rm_virtualmachine: Add support for `community_gallery_image_id` ([#1759](https://github.com/ansible-collections/azure/pull/1759))
+  - azure_rm_virtualmachine_info: Add support for `community_gallery_image_id` ([#1759](https://github.com/ansible-collections/azure/pull/1759))
+  - azure_rm_virtualmachinescaleset: Add support for `community_gallery_image_id` ([#1759](https://github.com/ansible-collections/azure/pull/1759))
+  - azure_rm_virtualmachinescaleset_info: Add support for `community_gallery_image_id` ([#1759](https://github.com/ansible-collections/azure/pull/1759))
+  - requirements.txt:
+    - Update the SDK that relies on msrest and msrestazure to the latest version ([#1755](https://github.com/ansible-collections/azure/pull/1755))
+    - Upgrade azure-mgmt-network to v28.0.0 ([#1769](https://github.com/ansible-collections/azure/pull/1769))
+  - README.md: Bump ansible to `v2.16` ([#1758](https://github.com/ansible-collections/azure/pull/1758))
+
+### BUG FIXING
+  - azure_rm_manageddisk: Fixes bug caused by SDK upgrade([ #1756](https://github.com/ansible-collections/azure/pull/1756))
+  - azure_rm.py: Fix Flexible VMSS issue and add support for setting environment variable `ANSIBLE_AZURE_VMSS_RESOURCE_GROUPS` ([#1752](https://github.com/ansible-collections/azure/pull/1752))
+  - azure_rm_keyvaultsecret: Fix lint issue ([#1758](https://github.com/ansible-collections/azure/pull/1758))
+
+### BREAKING CHANGE
+  - azure_rm_adapplication: Deprecate `available_to_other_tenants` ([#1754](https://github.com/ansible-collections/azure/pull/1754))
+  - azure_rm_adapplication_info: Deprecate `available_to_other_tenants` ([#1754](https://github.com/ansible-collections/azure/pull/1754))
+
 ## v3.0.0 (2024-10-31)
 
 ### NEW MODULES

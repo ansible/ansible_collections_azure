@@ -178,6 +178,60 @@ options:
         description:
             - Create vault in recovery mode.
         type: bool
+    public_network_access:
+        description:
+            - Property to specify whether the vault will accept traffic from public internet.
+        type: str
+        choices:
+            - Disabled
+            - Enabled
+    network_acls:
+        description:
+            - A collection of rules governing the accessibility of the vault from specific network locations.
+        type: dict
+        suboptions:
+            bypass:
+                description:
+                    - Tells what traffic can bypass network rules.
+                    - If not specified the default is 'AzureServices'.
+                type: str
+                choices:
+                    - AzureServices
+                    - None
+                default: AzureServices
+            default_action:
+                description:
+                    - The default action when no rule from ipRules and from virtualNetworkRules match.
+                    - This is only used after the bypass property has been evaluated.
+                type: str
+                choices:
+                    - Allow
+                    - Deny
+            ip_rules:
+                description:
+                    - The list of IP address rules.
+                type: list
+                elements: dict
+                suboptions:
+                    value:
+                        description:
+                            - An IPv4 address range in CIDR notation.
+                            - Such as C(124.56.78.91) (simple IP address) or C(124.56.78.0/24) (all addresses that start with 124.56.78).
+                        type: str
+            virtual_network_rules:
+                description:
+                    - The list of virtual network rules.
+                type: list
+                elements: dict
+                suboptions:
+                    id:
+                        description:
+                            - Full resource id of a vnet subnet.
+                        type: str
+                    ignore_missing_vnet_service_endpoint:
+                        description:
+                            - Property to specify whether NRP will ignore the check if parent subnet has serviceEndpoints configured.
+                        type: bool
     state:
         description:
             - Assert the state of the KeyVault. Use C(present) to create or update an KeyVault and C(absent) to delete it.
@@ -225,7 +279,7 @@ id:
 '''
 
 import time
-from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
+from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common_ext import AzureRMModuleBaseExt
 
 try:
     from azure.core.polling import LROPoller
@@ -240,7 +294,7 @@ class Actions:
     NoAction, Create, Update, Delete = range(4)
 
 
-class AzureRMVaults(AzureRMModuleBase):
+class AzureRMVaults(AzureRMModuleBaseExt):
     """Configuration class for an Azure RM Key Vault resource"""
 
     def __init__(self):
@@ -318,6 +372,32 @@ class AzureRMVaults(AzureRMModuleBase):
             recover_mode=dict(
                 type='bool'
             ),
+            public_network_access=dict(
+                type='str',
+                choices=['Disabled', 'Enabled']
+            ),
+            network_acls=dict(
+                type='dict',
+                options=dict(
+                    bypass=dict(type='str', choices=['AzureServices', 'None'], default='AzureServices'),
+                    default_action=dict(type='str', choices=['Allow', 'Deny']),
+                    ip_rules=dict(
+                        type='list',
+                        elements='dict',
+                        options=dict(
+                            value=dict(type='str'),
+                        )
+                    ),
+                    virtual_network_rules=dict(
+                        type='list',
+                        elements='dict',
+                        options=dict(
+                            id=dict(type='str'),
+                            ignore_missing_vnet_service_endpoint=dict(type='bool')
+                        )
+                    )
+                )
+            ),
             state=dict(
                 type='str',
                 default='present',
@@ -356,6 +436,10 @@ class AzureRMVaults(AzureRMModuleBase):
                     self.parameters.setdefault("properties", {})["tenant_id"] = kwargs[key]
                 elif key == "sku":
                     self.parameters.setdefault("properties", {})["sku"] = kwargs[key]
+                elif key == "public_network_access":
+                    self.parameters.setdefault("properties", {})["public_network_access"] = kwargs[key]
+                elif key == "network_acls":
+                    self.parameters.setdefault("properties", {})["network_acls"] = kwargs[key]
                 elif key == "access_policies":
                     access_policies = kwargs[key]
                     for policy in access_policies:
@@ -469,6 +553,22 @@ class AzureRMVaults(AzureRMModuleBase):
                             if sorted(n.get('permissions', {}).get('storage', []) or []) != sorted(o.get('permissions', {}).get('storage', []) or []):
                                 self.to_do = Actions.Update
                                 break
+
+                if 'public_network_access' in self.parameters['properties'] and \
+                        self.parameters['properties']['public_network_access'].capitalize() != old_response['properties'].get('public_network_access'):
+                    self.to_do = Actions.Update
+                else:
+                    self.parameters['properties']['public_network_access'] = old_response['properties'].get('public_network_access')
+
+                if old_response['properties'].get('network_acls') is not None:
+                    if old_response['properties']['network_acls'].get('ip_rules') is not None:
+                        old_response['properties']['network_acls']['ip_rules'] = list()
+                        for item in old_response['properties']['network_acls']['ip_rules']:
+                            old_response['properties']['network_acls']['ip_rules'].append(dict(value=item['value'].split('/')[0]))
+
+                if not self.default_compare({}, self.parameters['properties'].get('network_acls'),
+                   old_response['properties'].get('network_acls'), '', dict(compare=[])):
+                    self.to_do = Actions.Update
 
                 update_tags, newtags = self.update_tags(old_response.get('tags', dict()))
 

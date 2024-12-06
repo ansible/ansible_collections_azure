@@ -80,9 +80,23 @@ options:
             - Time to live of the record set in seconds.
         default: 3600
         type: int
+    target_resource:
+        description:
+            - A reference to an azure resource from where the dns resource value is taken.
+            - This parameter can only be applied to I(record_type=A), I(record_type=AAAA) and I(record_type=CNAME).
+            - It cannot configure both I(target_resource) and I(records).
+        type: dict
+        suboptions:
+            id:
+                description:
+                    - A reference to a another resource ID.
+                    - Sample as C("/subscriptions/xxx-xxx/resourceGroups/rg_name/providers/Microsoft.Network/publicIPAddresses/pip01")
+                type: str
     records:
         description:
             - List of records to be created depending on the type of record (set).
+            - It cannot configure both I(target_resource) and I(records).
+            - I(records) must be configured for all record types except I(record_type=A), I(record_type=AAAA) or I(record_type=CNAME).
         type: list
         elements: dict
         suboptions:
@@ -101,7 +115,30 @@ options:
             entry:
                 description:
                     - Primary data value for all record types.
-
+            email:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The email contact for this SOA record.
+            serial_number:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The serial number for this SOA record.
+            refresh_time:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The refresh value for this SOA record.
+            retry_time:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The retry time for this SOA record.
+            expire_time:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The expire time for this SOA record.
+            minimum_ttl:
+                description:
+                    - Used for creating an C(SOA) record set/records.
+                    - The minimum value for this SOA record. By convention this is used to determine the negative caching duration.
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
@@ -142,6 +179,15 @@ EXAMPLES = '''
       - entry: 192.168.100.104
     metadata:
       key1: "value1"
+
+- name: Create A dns record set  with target_resource
+  azure_rm_dnsrecordset:
+    resource_group: myResourceGroup
+    relative_name: www
+    zone_name: zone1.com
+    record_type: A
+    target_resource:
+      id: "/subscriptions/xxx-xxx/resourceGroups/v-xisuRG02/providers/Microsoft.Network/publicIPAddresses/pip01"
 
 - name: create multiple "A" record sets with multiple records
   azure_rm_dnsrecordset:
@@ -368,19 +414,22 @@ class AzureRMRecordSet(AzureRMModuleBase):
             time_to_live=dict(type='int', default=3600),
             records=dict(type='list', elements='dict'),
             metadata=dict(type='dict'),
-            append_metadata=dict(type='bool', default=True)
+            append_metadata=dict(type='bool', default=True),
+            target_resource=dict(
+                type='dict',
+                options=dict(
+                    id=dict(type='str')
+                )
+            ),
         )
-
-        required_if = [
-            ('state', 'present', ['records'])
-        ]
 
         self.results = dict(
             changed=False
         )
 
+        mutually_exclusive = [['target_resource', 'records']]
         # first-pass arg validation so we can get the record type- skip exec_module
-        super(AzureRMRecordSet, self).__init__(self.module_arg_spec, required_if=required_if, supports_check_mode=True, skip_exec=True)
+        super(AzureRMRecordSet, self).__init__(self.module_arg_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True, skip_exec=True)
 
         # look up the right subspec and metadata
         record_subspec = RECORD_ARGSPECS.get(self.module.params['record_type'])
@@ -397,9 +446,10 @@ class AzureRMRecordSet(AzureRMModuleBase):
         self.time_to_live = None
         self.records = None
         self.metadata = None
+        self.target_resource = None
 
         # rerun validation and actually run the module this time
-        super(AzureRMRecordSet, self).__init__(self.module_arg_spec, required_if=required_if, supports_check_mode=True)
+        super(AzureRMRecordSet, self).__init__(self.module_arg_spec, mutually_exclusive=mutually_exclusive, supports_check_mode=True)
 
     def exec_module(self, **kwargs):
         for key in self.module_arg_spec.keys():
@@ -443,6 +493,13 @@ class AzureRMRecordSet(AzureRMModuleBase):
                     changed = True
                 self.metadata = self.results['state']['metadata']
 
+                if self.target_resource is not None:
+                    if not self.results['state'].get('target_resource'):
+                        changed = True
+                    else:
+                        if self.target_resource['id'].lower() != self.results['state']['target_resource']['id'].lower():
+                            changed = True
+
             self.results['changed'] |= changed
 
         elif self.state == 'absent':
@@ -455,7 +512,7 @@ class AzureRMRecordSet(AzureRMModuleBase):
         if self.results['changed']:
             if self.state == 'present':
                 record_set_args = dict(
-                    ttl=self.time_to_live
+                    ttl=self.time_to_live,
                 )
 
                 record_set_args[record_type_metadata['attrname']] = self.input_sdk_records if record_type_metadata['is_list'] else self.input_sdk_records[0]
@@ -463,6 +520,8 @@ class AzureRMRecordSet(AzureRMModuleBase):
                 record_set = self.dns_models.RecordSet(**record_set_args)
                 if self.metadata:
                     record_set.metadata = self.metadata
+                if self.target_resource:
+                    record_set.target_resource = self.dns_models.SubResource(id=self.target_resource['id'])
 
                 self.results['state'] = self.create_or_update(record_set)
 
@@ -499,7 +558,11 @@ class AzureRMRecordSet(AzureRMModuleBase):
         if not record:
             self.fail('record type {0} is not supported now'.format(record_type))
         record_sdk_class = getattr(self.dns_models, record.get('classobj'))
-        return [record_sdk_class(**x) for x in input_records]
+        record_sdk = []
+        if input_records is not None:
+            for x in input_records:
+                record_sdk.append(record_sdk_class(**x))
+        return record_sdk
 
     def records_changed(self, input_records, server_records):
         # ensure we're always comparing a list, even for the single-valued types
@@ -507,7 +570,11 @@ class AzureRMRecordSet(AzureRMModuleBase):
             server_records = [server_records]
 
         input_set = set([self.module.jsonify(x.as_dict()) for x in input_records])
-        server_set = set([self.module.jsonify(x.as_dict()) for x in server_records])
+        server = []
+        for x in server_records:
+            if x is not None:
+                server.append(self.module.jsonify(x.as_dict()))
+        server_set = set(server)
 
         if self.record_mode == 'append':  # only a difference if the server set is missing something from the input set
             input_set = server_set.union(input_set)

@@ -116,7 +116,6 @@ from ansible.module_utils.common.dict_transformations import _snake_to_camel
 
 try:
     from azure.core.polling import LROPoller
-    from azure.mgmt.batch import BatchManagementClient
     from azure.core.exceptions import ResourceNotFoundError
     from azure.mgmt.batch.models import BatchAccountIdentity, UserAssignedIdentities
 except ImportError:
@@ -172,7 +171,6 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
         self.batch_account = dict()
 
         self.results = dict(changed=False)
-        self.mgmt_client = None
         self.state = None
         self.to_do = Actions.NoAction
         self._managed_identity = None
@@ -221,9 +219,6 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
         self.batch_account['pool_allocation_mode'] = _snake_to_camel(self.batch_account['pool_allocation_mode'], True)
 
         response = None
-
-        self.mgmt_client = self.get_mgmt_svc_client(BatchManagementClient,
-                                                    base_url=self._cloud_environment.endpoints.resource_manager)
 
         old_response = self.get_batchaccount()
         curr_identity = old_response["identity"] if old_response else None
@@ -296,15 +291,15 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
 
         try:
             if self.to_do == Actions.Create:
-                response = self.mgmt_client.batch_account.begin_create(resource_group_name=self.resource_group,
-                                                                       account_name=self.name,
-                                                                       parameters=self.batch_account)
+                response = self.batch_account_client.batch_account.begin_create(resource_group_name=self.resource_group,
+                                                                                account_name=self.name,
+                                                                                parameters=self.batch_account)
             else:
-                response = self.mgmt_client.batch_account.update(resource_group_name=self.resource_group,
-                                                                 account_name=self.name,
-                                                                 parameters=dict(tags=self.tags,
-                                                                                 auto_storage=self.batch_account.get('auto_storage'),
-                                                                                 identity=self.batch_account.get('identity')))
+                response = self.batch_account_client.batch_account.update(resource_group_name=self.resource_group,
+                                                                          account_name=self.name,
+                                                                          parameters=dict(tags=self.tags,
+                                                                                          auto_storage=self.batch_account.get('auto_storage'),
+                                                                                          identity=self.batch_account.get('identity')))
             if isinstance(response, LROPoller):
                 response = self.get_poller_result(response)
         except Exception as exc:
@@ -320,8 +315,8 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
         '''
         self.log("Deleting the Batch Account instance {0}".format(self.name))
         try:
-            response = self.mgmt_client.batch_account.begin_delete(resource_group_name=self.resource_group,
-                                                                   account_name=self.name)
+            response = self.batch_account_client.batch_account.begin_delete(resource_group_name=self.resource_group,
+                                                                            account_name=self.name)
         except Exception as e:
             self.log('Error attempting to delete the Batch Account instance.')
             self.fail("Error deleting the Batch Account instance: {0}".format(str(e)))
@@ -338,8 +333,8 @@ class AzureRMBatchAccount(AzureRMModuleBaseExt):
         self.log("Checking if the Batch Account instance {0} is present".format(self.name))
         found = False
         try:
-            response = self.mgmt_client.batch_account.get(resource_group_name=self.resource_group,
-                                                          account_name=self.name)
+            response = self.batch_account_client.batch_account.get(resource_group_name=self.resource_group,
+                                                                   account_name=self.name)
             found = True
             self.log("Response : {0}".format(response))
             self.log("Batch Account instance : {0} found".format(response.name))

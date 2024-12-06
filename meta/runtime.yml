@@ -1,5 +1,5 @@
 ---
-requires_ansible: '>=2.15.0'
+requires_ansible: '>=2.16.0'
 action_groups:
   all:
     - azure.azcollection.azure_rm_accesstoken_info
@@ -279,6 +279,7 @@ action_groups:
     - azure.azcollection.azure_rm_storageaccountmanagementpolicy
     - azure.azcollection.azure_rm_storageaccountmanagementpolicy_info
     - azure.azcollection.azure_rm_storageblob
+    - azure.azcollection.azure_rm_storageblob_info
     - azure.azcollection.azure_rm_storageshare
     - azure.azcollection.azure_rm_storageshare_info
     - azure.azcollection.azure_rm_subnet
@@ -335,4 +336,9 @@ action_groups:
     - azure.azcollection.azure_rm_capacityreservationgroup
     - azure.azcollection.azure_rm_capacityreservationgroup_info
     - azure.azcollection.azure_rm_virtualnetworkgatewayconnection
-    - azure.azcollection.azure_rm_virtualnetworkgatewayconnection_info
+    - azure.azcollection.azure_rm_batchaccountapplication
+    - azure.azcollection.azure_rm_batchaccountapplication_info
+    - azure.azcollection.azure_rm_batchaccountpool
+    - azure.azcollection.azure_rm_batchaccountpool_info
+    - azure.azcollection.azure_rm_batchaccountapplicationpackage
+    - azure.azcollection.azure_rm_batchaccountapplicationpackage_info
