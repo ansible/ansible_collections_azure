@@ -2651,7 +2651,6 @@ class AzureRMApplicationGateways(AzureRMModuleBaseExt):
         else:
             self.module.deprecate("WAF configuration can no longer be added to an application gateway.
                                   Please use a WAF policy via 'firewall_policy' instead.", version="4.0.0")
-                                  "Please use a WAF policy via 'firewall_policy' instead.", version=(4.0.0 ))
 
 
 def public_ip_id(subscription_id, resource_group_name, name):
