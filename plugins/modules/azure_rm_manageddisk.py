@@ -172,6 +172,21 @@ options:
             - The total throughput (MBps) that will be allowed across all VMs mounting the shared disk as ReadOnly.
             - MBps means millions of bytes per second - MB here uses the ISO notation, of powers of 10.
         type: int
+    network_access_policy:
+        description:
+            - Policy for accessing the disk via network.
+        type: str
+        choices:
+            - AllowAll
+            - AllowPrivate
+            - DenyAll
+    public_network_access:
+        description:
+            - Policy for controlling export on the disk.
+        type: str
+        choices:
+            - Enabled
+            - Disabled
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -336,6 +351,18 @@ state:
             type: int
             returned: always
             sample: 30
+        network_access_policy:
+            description:
+                - Policy for accessing the disk via network.
+            type: str
+            returned: always
+            sample: AllowAll
+        public_network_access:
+            description:
+                - Policy for controlling export on the disk.
+            type: str
+            returned: always
+            sample: Enabled
 changed:
     description:
         - Whether or not the resource has changed.
@@ -382,6 +409,8 @@ def managed_disk_to_dict(managed_disk):
         disk_m_bps_read_write=managed_disk.disk_m_bps_read_write,
         disk_iops_read_only=managed_disk.disk_iops_read_only,
         disk_m_bps_read_only=managed_disk.disk_m_bps_read_only,
+        public_network_access=managed_disk.public_network_access,
+        network_access_policy=managed_disk.network_access_policy
     )
 
 
@@ -462,6 +491,14 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             disk_m_bps_read_write=dict(
                 type='int'
             ),
+            public_network_access=dict(
+                type='str',
+                choices=['Enabled', 'Disabled']
+            ),
+            network_access_policy=dict(
+                type='str',
+                choices=['AllowAll', 'AllowPrivate', 'DenyAll']
+            )
         )
         required_if = [
             ('create_option', 'import', ['source_uri', 'storage_account_id']),
@@ -492,6 +529,8 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         self.disk_m_bps_read_write = None
         self.disk_iops_read_only = None
         self.disk_m_bps_read_only = None
+        self.public_network_access = None
+        self.etwork_access_policy = None
 
         mutually_exclusive = [['managed_by_extended', 'managed_by']]
 
@@ -673,6 +712,10 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             disk_params['disk_iops_read_write'] = self.disk_iops_read_write
         if self.disk_iops_read_only is not None:
             disk_params['disk_iops_read_only'] = self.disk_iops_read_only
+        if self.network_access_policy is not None:
+            disk_params['network_access_policy'] = self.network_access_policy
+        if self.public_network_access is not None:
+            disk_params['public_network_access'] = self.public_network_access
         disk_params['creation_data'] = creation_data
         return disk_params
 
