@@ -657,6 +657,7 @@ class ArcHost(object):
             powerstate=self._powerstate,
             status=self._status,
             provisioning_state=properties.get('provisioningState', 'unknown').lower(),
+            vmid=self._arc_model['properties']['vmId'],
             os_profile=dict(
                 sku=properties.get('osSku', 'unknown'),
                 system=properties.get('osType', 'unknown'),
