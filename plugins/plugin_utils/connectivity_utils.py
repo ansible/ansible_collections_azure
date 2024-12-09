@@ -30,7 +30,7 @@ except ImportError:
 from ansible_collections.azure.azcollection.plugins.plugin_utils import file_utils
 from ansible_collections.azure.azcollection.plugins.plugin_utils import constants as consts
 
-from ansible.errors import AnsibleParserError, AnsibleError
+from ansible.errors import AnsibleError
 
 
 # Get the Access Details to connect to Arc Connectivity platform from the HybridConnectivity RP
@@ -127,7 +127,7 @@ def _create_service_configuration(rest_client, resource_uri, port):
         port = '22'
 
     url = f"/{resource_uri}/providers/Microsoft.HybridConnectivity/endpoints/default/serviceConfigurations/SSH"
-    body = {'properties': {'port': int(port), 'serviceName': 'SSH' }}
+    body = {'properties': {'port': int(port), 'serviceName': 'SSH'}}
 
     hostname = parse_resource_id(resource_uri)["name"]
     resource_group = parse_resource_id(resource_uri)["resource_group"]
@@ -156,7 +156,7 @@ def _list_credentials(rest_client, resource_uri, certificate_validity_in_seconds
     query_parameters = {'expiresin': int(certificate_validity_in_seconds)}
     body = {'serviceName': 'SSH'}
 
-    response = resource(rest_client, url, "POST", body=body, query_parameters=query_parameters)
+    response = resource(rest_client, url, "POST", body=body, custom_query=query_parameters)
     return response and response.get('relay')
 
 
@@ -340,16 +340,26 @@ def _get_client_operating_system():
         raise AnsibleError(f"Unsuported OS: {operating_system} platform is not currently supported")
     return operating_system
 
+
 def resource(client,
              url,
              method,
              body=None,
-             query_parameters={},
-             header_parameters={},
-             status_code = [200, 201, 202]):
+             custom_query=None,
+             custom_header=None,
+             status_code=[200, 201, 202]):
 
+    # Construct parameters
+    query_parameters = {}
     query_parameters['api-version'] = '2023-03-15'
+    if custom_query:
+        query_parameters.update(custom_query)
+
+    # Construct headers
+    header_parameters = {}
     header_parameters['Content-Type'] = 'application/json; charset=utf-8'
+    if custom_header:
+        header_parameters.update(custom_header)
 
     response = client.query(url,
                             method,

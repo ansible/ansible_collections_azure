@@ -47,7 +47,7 @@ options:
     port:
         description:
             - The port that your ssh server is listening on.
-        default: 22
+        default: '22'
         type: str
     ssh_config_file:
         description:
@@ -71,7 +71,7 @@ extends_documentation_fragment:
     - azure.azcollection.azure
 
 author:
-    - Bill Peck (bpeck@redhat.com)
+    - Bill Peck (@p3ck)
 '''
 
 EXAMPLES = '''

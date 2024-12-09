@@ -8,7 +8,7 @@ import os
 
 from ansible.utils.display import Display
 from ansible_collections.azure.azcollection.plugins.plugin_utils import constants as consts
-from ansible.errors import AnsibleParserError, AnsibleError
+from ansible.errors import AnsibleError
 
 
 display = Display()
@@ -83,6 +83,6 @@ def get_line_that_contains(substring, lines):
 def remove_invalid_characters_foldername(folder_name):
     new_foldername = ""
     for c in folder_name:
-        if c not in const.WINDOWS_INVALID_FOLDERNAME_CHARS:
+        if c not in consts.WINDOWS_INVALID_FOLDERNAME_CHARS:
             new_foldername += c
     return new_foldername

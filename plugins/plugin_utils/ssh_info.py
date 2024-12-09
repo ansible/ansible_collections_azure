@@ -27,7 +27,6 @@ class ConfigSession():
         self.private_key_file = os.path.abspath(os.path.expanduser(private_key_file)) if private_key_file else None
         self.ssh_proxy_folder = os.path.abspath(os.path.expanduser(ssh_proxy_folder)) if ssh_proxy_folder else None
 
-
     def get_config_text(self):
         lines = [""]
         self.relay_info_path = self._create_relay_info_file()
