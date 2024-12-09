@@ -2649,7 +2649,8 @@ class AzureRMApplicationGateways(AzureRMModuleBaseExt):
             del waf_config['firewall_policy']['force_association']
             self.parameters['firewall_policy'] = waf_config['firewall_policy']
         else:
-            self.module.deprecate("WAF configuration can no longer be added to an application gateway."
+            self.module.deprecate("WAF configuration can no longer be added to an application gateway.
+                                  Please use a WAF policy via 'firewall_policy' instead.", version="4.0.0")
                                   "Please use a WAF policy via 'firewall_policy' instead.", version=(4.0.0 ))
 
 
