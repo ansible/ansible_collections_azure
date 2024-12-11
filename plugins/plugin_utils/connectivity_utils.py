@@ -347,7 +347,11 @@ def resource(client,
              body=None,
              custom_query=None,
              custom_header=None,
-             status_code=[200, 201, 202]):
+             status_code=None):
+
+    # Construct status_code
+    if status_code == None:
+        status_code = [200, 201, 202]
 
     # Construct parameters
     query_parameters = {}
