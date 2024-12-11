@@ -567,6 +567,10 @@ class AzureRMManagedDisk(AzureRMModuleBase):
                 self.os_type = disk_instance.get('os_type')
             if self.zone is None:
                 self.zone = disk_instance.get('zone')
+            if self.public_network_access is None:
+                self.public_network_access = disk_instance.get('public_network_access')
+            if self.network_access_policy is None:
+                self.network_access_policy = disk_instance.get('network_access_policy')
         result = disk_instance
 
         # need create or update
@@ -765,6 +769,11 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             resp = True
         if self.disk_m_bps_read_only is not None and found_disk['disk_m_bps_read_only'] != self.disk_m_bps_read_only:
             resp = True
+        if self.network_access_policy is not None and found_disk['network_access_policy'] != self.network_access_policy:
+            resp = True
+        if self.public_network_access is not None and found_disk['public_network_access'] != self.public_network_access:
+            resp = True
+
         return resp
 
     def delete_managed_disk(self):
