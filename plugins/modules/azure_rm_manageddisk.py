@@ -172,6 +172,11 @@ options:
             - The total throughput (MBps) that will be allowed across all VMs mounting the shared disk as ReadOnly.
             - MBps means millions of bytes per second - MB here uses the ISO notation, of powers of 10.
         type: int
+    tier:
+        description:
+            - Performance tier assigned to this disk.
+            - See U(https://learn.microsoft.com/en-us/azure/virtual-machines/disks-change-performance) for more information about disk performance tiers.
+        type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -336,6 +341,11 @@ state:
             type: int
             returned: always
             sample: 30
+        tier:
+            description:
+                - Performance tier assigned to the managed disk.
+            type: str
+            sample: "P30"
 changed:
     description:
         - Whether or not the resource has changed.
@@ -382,6 +392,7 @@ def managed_disk_to_dict(managed_disk):
         disk_m_bps_read_write=managed_disk.disk_m_bps_read_write,
         disk_iops_read_only=managed_disk.disk_iops_read_only,
         disk_m_bps_read_only=managed_disk.disk_m_bps_read_only,
+        tier=managed_disk.tier,
     )
 
 
@@ -462,6 +473,10 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             disk_m_bps_read_write=dict(
                 type='int'
             ),
+            tier=dict(
+                type='str',
+                choices=['', 'P1', 'P2', 'P3', 'P4', 'P6', 'P10', 'P15', 'P20', 'P30', 'P40', 'P50', 'P60', 'P70', 'P80']
+            ),
         )
         required_if = [
             ('create_option', 'import', ['source_uri', 'storage_account_id']),
@@ -492,6 +507,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         self.disk_m_bps_read_write = None
         self.disk_iops_read_only = None
         self.disk_m_bps_read_only = None
+        self.tier = None
 
         mutually_exclusive = [['managed_by_extended', 'managed_by']]
 
@@ -673,6 +689,8 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             disk_params['disk_iops_read_write'] = self.disk_iops_read_write
         if self.disk_iops_read_only is not None:
             disk_params['disk_iops_read_only'] = self.disk_iops_read_only
+        if self.tier is not None:
+            disk_params['tier'] = self.tier
         disk_params['creation_data'] = creation_data
         return disk_params
 
@@ -722,6 +740,9 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             resp = True
         if self.disk_m_bps_read_only is not None and found_disk['disk_m_bps_read_only'] != self.disk_m_bps_read_only:
             resp = True
+        if self.tier is not None:
+            if not found_disk['tier'] == self.tier:
+                resp = True
         return resp
 
     def delete_managed_disk(self):
