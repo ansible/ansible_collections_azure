@@ -11,7 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: azure_rm_applicationfirewallpolicy_info
-version_added: "3.0.1"
+version_added: "3.1.0"
 short_description: Retrieve Application firewall policy instance facts
 description:
     - Get or list the application firewall facts.
@@ -115,7 +115,7 @@ firewall_policy:
                     type: list
                     returned: always
                     sample: [{'match_values': ['10.1.0.4'], 'match_variables': [{'variable_name': 'RemoteAddr'}],
-                              'negation_condition': false, 'operator': 'IPMatch', 'transforms': []]
+                              'negation_condition': false, 'operator': 'IPMatch', 'transforms': []}]
                 name:
                     description:
                         - The name of the resource that is unique within a policy.
@@ -220,7 +220,6 @@ firewall_policy:
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
-from ansible.module_utils.common.dict_transformations import _camel_to_snake
 
 try:
     from azure.core.exceptions import ResourceNotFoundError
@@ -247,9 +246,9 @@ class AzureRMApplicationFirewallPolicyInfo(AzureRMModuleBase):
         self.resource_group = None
 
         super(AzureRMApplicationFirewallPolicyInfo, self).__init__(self.module_arg_spec,
-                                                            supports_check_mode=True,
-                                                            supports_tags=False,
-                                                            facts_module=True)
+                                                                   supports_check_mode=True,
+                                                                   supports_tags=False,
+                                                                   facts_module=True)
 
     def exec_module(self, **kwargs):
         for key in self.module_arg_spec:

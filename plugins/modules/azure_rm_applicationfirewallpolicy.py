@@ -11,7 +11,7 @@ __metaclass__ = type
 DOCUMENTATION = '''
 ---
 module: azure_rm_applicationfirewallpolicy
-version_added: "3.0.1"
+version_added: "3.1.0"
 short_description: Managed the Application firewall policy instance
 description:
     - Creating, Updating or Deleting the application firewall policy instance.
@@ -95,7 +95,6 @@ options:
                         description:
                             - State of the log scrubbing config.
                         type: str
-                        default: Enabled
                         choices:
                             - Enabled
                             - Disabled
@@ -119,7 +118,8 @@ options:
                                     - RequestIPAddress
                             selector_match_operator:
                                 description:
-                                    - When matchVariable is a collection, operate on the selector to specify which elements in the collection this rule applies to.
+                                    - "When matchVariable is a collection, operate on the selector to specify which
+                                       elements in the collection this rule applies to."
                                 required: true
                                 type: str
                                 choices:
@@ -147,7 +147,7 @@ options:
                     - Priority of the rule.
                     - Rules with a lower value will be evaluated before rules with a higher value.
                 required: true
-                type: str
+                type: int
             rule_type:
                 description:
                     - The rule type.
@@ -160,7 +160,6 @@ options:
             match_conditions:
                 description:
                     - List of match conditions.
-                required: true
                 type: list
                 elements: dict
                 suboptions:
@@ -248,7 +247,7 @@ options:
                 description:
                     - Describes if the custom rule is in enabled or disabled state. Defaults to Enabled if not specified.
                 type: str
-                chocies:
+                choices:
                     - Disabled
                     - Enabled
             rate_limit_duration:
@@ -256,6 +255,9 @@ options:
                     - Duration over which Rate Limit policy will be applied.
                     - Applies only when ruleType is RateLimitRule.
                 type: str
+                choices:
+                    - OneMin
+                    - FiveMins
             rate_limit_threshold:
                 description:
                     - Rate Limit threshold to apply in case ruleType is RateLimitRule.
@@ -594,7 +596,7 @@ firewall_policy:
                     type: list
                     returned: always
                     sample: [{'match_values': ['10.1.0.4'], 'match_variables': [{'variable_name': 'RemoteAddr'}],
-                              'negation_condition': false, 'operator': 'IPMatch', 'transforms': []]
+                              'negation_condition': false, 'operator': 'IPMatch', 'transforms': []}]
                 name:
                     description:
                         - The name of the resource that is unique within a policy.
@@ -720,20 +722,25 @@ policy_setting_spec = dict(
     custom_block_response_status_code=dict(type='int'),
     custom_block_response_body=dict(type='str'),
     js_challenge_cookie_expiration_in_mins=dict(type='int'),
-    log_scrubbing=dict(type='dict',
-                       options=dict(
-                           state=dict(type='str', choices=['Enabled', 'Disabled']),
-                           scrubbing_rules=dict(type='list', elements='dict',
-                               options=dict(
-                                   match_variable=dict(type='str', choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames", "RequestPostArgNames", "RequestJSONArgNames", "RequestIPAddress"]),
-                                   selector_match_operator=dict(type='str', choices=["Equals", "EqualsAny"]),
-                                   selector=dict(type='str'),
-                                   state=dict(type='str', choices=['Enabled', 'Disabled']),
-                               )
-                           )
-                       )
+    log_scrubbing=dict(
+        type='dict',
+        options=dict(
+            state=dict(type='str', choices=['Enabled', 'Disabled']),
+            scrubbing_rules=dict(
+                type='list',
+                elements='dict',
+                options=dict(
+                    match_variable=dict(
+                        type='str',
+                        choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames", "RequestPostArgNames", "RequestJSONArgNames", "RequestIPAddress"]
+                    ),
+                    selector_match_operator=dict(type='str', choices=["Equals", "EqualsAny"]),
+                    selector=dict(type='str'),
+                    state=dict(type='str', choices=['Enabled', 'Disabled']),
+                )
+            )
+        )
     )
-    
 )
 
 
@@ -759,7 +766,8 @@ custom_rule_spec = dict(
             operator=dict(
                 type='str',
                 required=True,
-                choices=["IPMatch", "Equal", "Contains", "LessThan", "GreaterThan", "LessThanOrEqual", "GreaterThanOrEqual", "BeginsWith", "EndsWith", "Regex", "GeoMatch", "Any"]
+                choices=["IPMatch", "Equal", "Contains", "LessThan", "GreaterThan", "LessThanOrEqual",
+                         "GreaterThanOrEqual", "BeginsWith", "EndsWith", "Regex", "GeoMatch", "Any"]
             ),
             match_values=dict(
                 type='list',
@@ -833,7 +841,8 @@ managed_rule_spec = dict(
             match_variable=dict(
                 type='str',
                 required=True,
-                choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames", "RequestHeaderKeys", "RequestHeaderValues", "RequestCookieKeys", "RequestCookieValues", "RequestArgKeys", "RequestArgValues"]
+                choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames", "RequestHeaderKeys",
+                         "RequestHeaderValues", "RequestCookieKeys", "RequestCookieValues", "RequestArgKeys", "RequestArgValues"]
             ),
             selector_match_operator=dict(
                 type='str',
@@ -870,6 +879,7 @@ managed_rule_spec = dict(
     )
 )
 
+
 class AzureRMApplicationFirewallPolicy(AzureRMModuleBaseExt):
 
     def __init__(self):
@@ -894,9 +904,9 @@ class AzureRMApplicationFirewallPolicy(AzureRMModuleBaseExt):
         self.body = dict()
 
         super(AzureRMApplicationFirewallPolicy, self).__init__(self.module_arg_spec,
-                                                            supports_check_mode=True,
-                                                            supports_tags=True,
-                                                            facts_module=True)
+                                                               supports_check_mode=True,
+                                                               supports_tags=True,
+                                                               facts_module=True)
 
     def exec_module(self, **kwargs):
         for key in list(self.module_arg_spec.keys()) + ['tags']:
