@@ -24,6 +24,12 @@ options:
         description:
             - The name of the resource group.,
         type: str
+    tags:
+        description:
+            - The application firewall policy's tags key.
+            - For filter the resource.
+        type: list
+        elements: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -236,6 +242,7 @@ class AzureRMApplicationFirewallPolicyInfo(AzureRMModuleBase):
         self.module_arg_spec = dict(
             name=dict(type='str'),
             resource_group=dict(type='str'),
+            tags=dict(type='list', elements='str')
         )
 
         self.results = dict(
@@ -244,6 +251,7 @@ class AzureRMApplicationFirewallPolicyInfo(AzureRMModuleBase):
 
         self.name = None
         self.resource_group = None
+        self.tags = None
 
         super(AzureRMApplicationFirewallPolicyInfo, self).__init__(self.module_arg_spec,
                                                                    supports_check_mode=True,
@@ -256,14 +264,14 @@ class AzureRMApplicationFirewallPolicyInfo(AzureRMModuleBase):
 
         if self.name is not None:
             if self.resource_group is not None:
-                self.results["firewall_policy"] = self.get()
+                response = self.get()
             else:
                 self.fail("Missing resource_group when configed name")
         elif self.resource_group is not None:
-            self.results["firewall_policy"] = self.list_by_rg()
+            response = self.list_by_rg()
         else:
-            self.results["firewall_policy"] = self.list_all()
-
+            response = self.list_all()
+        self.results["firewall_policy"] = [item for item in response if self.has_tags(item.get('tags'), self.tags)]
         return self.results
 
     def get(self):
@@ -285,8 +293,7 @@ class AzureRMApplicationFirewallPolicyInfo(AzureRMModuleBase):
         try:
             response = self.network_client.web_application_firewall_policies.list(resource_group_name=self.resource_group)
         except Exception as exc:
-            request_id = exc.request_id if exc.request_id else ''
-            self.fail("Error listing web application firewall policy in resource groups {0}: {1} - {2}".format(self.resource_group, request_id, str(exc)))
+            self.fail("Error listing web application firewall policy in resource groups {0}: {1}".format(self.resource_group, str(exc)))
 
         for item in response:
             results.append(self.format_response(item))
