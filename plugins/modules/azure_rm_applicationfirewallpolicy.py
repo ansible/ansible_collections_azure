@@ -814,69 +814,66 @@ custom_rule_spec = dict(
 
 
 managed_rule_spec = dict(
-    type='dict',
-    options=dict(
-        managed_rule_sets=dict(
-            type='list',
-            elements='dict',
-            options=dict(
-                rule_set_type=dict(type='str', required=True),
-                rule_set_version=dict(type='str', required=True),
-                rule_group_overrides=dict(
-                    type='list',
-                    elements='dict',
-                    options=dict(
-                        rule_group_name=dict(type='str', required=True),
-                        rules=dict(
-                            type='list',
-                            elements='dict',
-                            options=dict(
-                                rule_id=dict(type='str'),
-                                state=dict(type='str', choices=['Enabled', 'Disabled']),
-                                action=dict(type='str', choices=["AnomalyScoring", "Allow", "Block", "Log", "JSChallenge"]),
-                                sensitivity=dict(type='str', choices=["None", "Low", "Medium", "High"])
-                            )
+    managed_rule_sets=dict(
+        type='list',
+        elements='dict',
+        options=dict(
+            rule_set_type=dict(type='str', required=True),
+            rule_set_version=dict(type='str', required=True),
+            rule_group_overrides=dict(
+                type='list',
+                elements='dict',
+                options=dict(
+                    rule_group_name=dict(type='str', required=True),
+                    rules=dict(
+                        type='list',
+                        elements='dict',
+                        options=dict(
+                            rule_id=dict(type='str'),
+                            state=dict(type='str', choices=['Enabled', 'Disabled']),
+                            action=dict(type='str', choices=["AnomalyScoring", "Allow", "Block", "Log", "JSChallenge"]),
+                            sensitivity=dict(type='str', choices=["None", "Low", "Medium", "High"])
                         )
                     )
                 )
             )
-        ),
-        exclusions=dict(
-            type='list',
-            elements='dict',
-            options=dict(
-                match_variable=dict(
-                    type='str',
-                    required=True,
-                    choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames", "RequestHeaderKeys",
-                             "RequestHeaderValues", "RequestCookieKeys", "RequestCookieValues", "RequestArgKeys", "RequestArgValues"]
-                ),
-                selector_match_operator=dict(
-                    type='str',
-                    required=True,
-                    choices=["Equals", "Contains", "StartsWith", "EndsWith", "EqualsAny"]
-                ),
-                selector=dict(
-                    type='str',
-                    required=True
-                ),
-                exclusion_managed_rule_sets=dict(
-                    type='list',
-                    elements='dict',
-                    options=dict(
-                        rule_set_type=dict(type='str', required=True),
-                        rule_set_version=dict(type='str', required=True),
-                        rule_groups=dict(
-                            type='list',
-                            elements='dict',
-                            options=dict(
-                                rule_group_name=dict(type='str', required=True),
-                                rules=dict(
-                                    type='list',
-                                    elements='dict',
-                                    options=dict(
-                                        rule_id=dict(type='str')
-                                    )
+        )
+    ),
+    exclusions=dict(
+        type='list',
+        elements='dict',
+        options=dict(
+            match_variable=dict(
+                type='str',
+                required=True,
+                choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames", "RequestHeaderKeys",
+                         "RequestHeaderValues", "RequestCookieKeys", "RequestCookieValues", "RequestArgKeys", "RequestArgValues"]
+            ),
+            selector_match_operator=dict(
+                type='str',
+                required=True,
+                choices=["Equals", "Contains", "StartsWith", "EndsWith", "EqualsAny"]
+            ),
+            selector=dict(
+                type='str',
+                required=True
+            ),
+            exclusion_managed_rule_sets=dict(
+                type='list',
+                elements='dict',
+                options=dict(
+                    rule_set_type=dict(type='str', required=True),
+                    rule_set_version=dict(type='str', required=True),
+                    rule_groups=dict(
+                        type='list',
+                        elements='dict',
+                        options=dict(
+                            rule_group_name=dict(type='str', required=True),
+                            rules=dict(
+                                type='list',
+                                elements='dict',
+                                options=dict(
+                                    rule_id=dict(type='str')
                                 )
                             )
                         )
