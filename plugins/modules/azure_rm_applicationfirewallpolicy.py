@@ -490,7 +490,7 @@ EXAMPLES = '''
       - action: Block
         group_by_user_session:
           - group_by_variables:
-            - variable_name: ClientAddr
+              - variable_name: ClientAddr
         match_conditions:
           - match_values:
               - 10.1.0.0/24
