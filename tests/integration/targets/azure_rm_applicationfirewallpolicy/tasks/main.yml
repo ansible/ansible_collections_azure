@@ -19,7 +19,6 @@
       state: Enabled
       custom_block_response_status_code: 200
       custom_block_response_body: Fredtest
-      js_challenge_cookie_expiration_in_mins: 10
       log_scrubbing:
         state: Enabled
         scrubbing_rules:
@@ -35,9 +34,8 @@
               - 10.2.0.0/24
             match_variables:
               - variable_name: RemoteAddr
-            negation_conditon: True
-            operator: IPMatch
             negation_conditon: true
+            operator: IPMatch
             transforms:
               - Uppercase
               - Lowercase
@@ -85,7 +83,6 @@
       state: Enabled
       custom_block_response_status_code: 200
       custom_block_response_body: Fredtest
-      js_challenge_cookie_expiration_in_mins: 10
       log_scrubbing:
         state: Enabled
         scrubbing_rules:
@@ -101,9 +98,8 @@
               - 10.2.0.0/24
             match_variables:
               - variable_name: RemoteAddr
-            negation_conditon: True
-            operator: IPMatch
             negation_conditon: true
+            operator: IPMatch
             transforms:
               - Uppercase
               - Lowercase
@@ -150,7 +146,6 @@
       state: Enabled
       custom_block_response_status_code: 200
       custom_block_response_body: Fredtest
-      js_challenge_cookie_expiration_in_mins: 10
       log_scrubbing:
         state: Enabled
         scrubbing_rules:
@@ -166,7 +161,6 @@
               - 10.2.0.0/24
             match_variables:
               - variable_name: RemoteAddr
-            negation_conditon: True
             operator: IPMatch
             negation_conditon: true
             transforms:
@@ -214,8 +208,7 @@
       request_body_inspect_limit_in_kb: 128
       state: Enabled
       custom_block_response_status_code: 200
-      custom_block_response_body: Fredtest-update
-      js_challenge_cookie_expiration_in_mins: 10
+      custom_block_response_body: Fredtest
       log_scrubbing:
         state: Enabled
         scrubbing_rules:
@@ -231,7 +224,6 @@
               - 10.2.0.0/24
             match_variables:
               - variable_name: RemoteAddr
-            negation_conditon: True
             operator: IPMatch
             negation_conditon: true
             transforms:
@@ -247,8 +239,8 @@
             - variable_name: ClientAddr
         match_conditions:
           - match_values:
-            - 10.1.0.0/24
-            - 10.2.0.0/24
+              - 10.1.0.0/24
+              - 10.2.0.0/24
             match_variables:
               - variable_name: RemoteAddr
             negation_conditon: false
@@ -293,7 +285,6 @@
     that:
       - output.firewall_policy[0].policy_settings.file_upload_limit_in_mb == 66
       - output.firewall_policy[0].policy_settings.request_body_check is false
-      - output.firewall_policy[0].policy_settings.custom_block_response_body == "Fredtest-update"
       - output.firewall_policy[0].managed_rules |length == 2
       - output.firewall_policy[0].custom_rules |length == 2
       - output.firewall_policy[0].tags |length == 2

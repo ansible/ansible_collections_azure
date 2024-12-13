@@ -463,7 +463,6 @@ EXAMPLES = '''
       state: Enabled
       custom_block_response_status_code: 200
       custom_block_response_body: Fredtest
-      js_challenge_cookie_expiration_in_mins: 10
       log_scrubbing:
         state: Enabled
         scrubbing_rules:
@@ -479,9 +478,8 @@ EXAMPLES = '''
               - 10.2.0.0/24
             match_variables:
               - variable_name: RemoteAddr
-            negation_conditon: True
-            operator: IPMatch
             negation_conditon: true
+            operator: IPMatch
             transforms:
               - Uppercase
               - Lowercase
@@ -495,8 +493,8 @@ EXAMPLES = '''
             - variable_name: ClientAddr
         match_conditions:
           - match_values:
-            - 10.1.0.0/24
-            - 10.2.0.0/24
+              - 10.1.0.0/24
+              - 10.2.0.0/24
             match_variables:
               - variable_name: RemoteAddr
             negation_conditon: false
@@ -524,7 +522,7 @@ EXAMPLES = '''
 - name: Delete the application firewall policy
   azure_rm_applicationfirewallpolicy:
     resource_group: "{{ resource_group }}"
-    name: firewallpolicy01
+    name: firewallpolicy
     state: absent
 '''
 
