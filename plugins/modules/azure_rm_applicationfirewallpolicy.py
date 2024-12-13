@@ -572,7 +572,7 @@ firewall_policy:
             type: str
             sample: Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies
         tags:
-            descritption:
+            description:
                 - The application firewall policy tags.
             type: dict
             rekturned: always
@@ -732,7 +732,8 @@ policy_setting_spec = dict(
                 options=dict(
                     match_variable=dict(
                         type='str',
-                        choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames", "RequestPostArgNames", "RequestJSONArgNames", "RequestIPAddress"]
+                        choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames",
+                                 "RequestPostArgNames", "RequestJSONArgNames", "RequestIPAddress"]
                     ),
                     selector_match_operator=dict(type='str', choices=["Equals", "EqualsAny"]),
                     selector=dict(type='str'),

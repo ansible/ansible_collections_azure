@@ -91,7 +91,7 @@ firewall_policy:
             type: str
             sample: Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies
         tags:
-            descritption:
+            description:
                 - The application firewall policy tags.
             type: dict
             rekturned: always
