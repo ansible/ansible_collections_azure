@@ -153,6 +153,8 @@ parameters:
       - "azure_rm_batchaccountapplication"
       - "azure_rm_batchaccountapplicationpackage"
       - "azure_rm_batchaccountpool"
+      - "azure_rm_applicationfirewallpolicy"
+      - "azure_rm_applicationfirewallpolicy_info"
       - "inventory_azure"
       - "setup_azure"
 
