@@ -107,8 +107,8 @@ options:
                             match_variable:
                                 description:
                                     - The variable to be scrubbed from the logs.
-                                required: true
                                 type: str
+                                required: true
                                 choices:
                                     - RequestHeaderNames
                                     - RequestCookieNames
@@ -162,6 +162,7 @@ options:
                     - List of match conditions.
                 type: list
                 elements: dict
+                required: true
                 suboptions:
                     match_variables:
                         description:
@@ -276,7 +277,7 @@ options:
                         elements: dict
                         suboptions:
                             variable_name:
-                                descripition:
+                                description:
                                     - User Session clause variable.
                                 type: str
                                 choices:
@@ -575,7 +576,7 @@ firewall_policy:
             description:
                 - The application firewall policy tags.
             type: dict
-            rekturned: always
+            returned: always
             sample: {"key1": "value1"}
         custom_rules:
             description:
@@ -732,10 +733,11 @@ policy_setting_spec = dict(
                 options=dict(
                     match_variable=dict(
                         type='str',
+                        required=True,
                         choices=["RequestHeaderNames", "RequestCookieNames", "RequestArgNames",
                                  "RequestPostArgNames", "RequestJSONArgNames", "RequestIPAddress"]
                     ),
-                    selector_match_operator=dict(type='str', choices=["Equals", "EqualsAny"]),
+                    selector_match_operator=dict(type='str', required=True, choices=["Equals", "EqualsAny"]),
                     selector=dict(type='str'),
                     state=dict(type='str', choices=['Enabled', 'Disabled']),
                 )
@@ -756,9 +758,11 @@ custom_rule_spec = dict(
             match_variables=dict(
                 type='list',
                 required=True,
+                elements='dict',
                 options=dict(
                     variable_name=dict(
                         type='str',
+                        required=True,
                         choices=["RemoteAddr", "RequestMethod", "QueryString", "PostArgs", "RequestUri", "RequestHeaders", "RequestBody", "RequestCookies"]
                     ),
                     selector=dict(type='str')

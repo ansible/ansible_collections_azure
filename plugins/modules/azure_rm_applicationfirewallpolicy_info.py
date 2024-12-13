@@ -94,7 +94,7 @@ firewall_policy:
             description:
                 - The application firewall policy tags.
             type: dict
-            rekturned: always
+            returned: always
             sample: {"key1": "value1"}
         custom_rules:
             description:
