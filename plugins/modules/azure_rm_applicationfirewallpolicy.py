@@ -898,7 +898,7 @@ class AzureRMApplicationFirewallPolicy(AzureRMModuleBaseExt):
             location=dict(type='str'),
             policy_settings=dict(type='dict', options=policy_setting_spec),
             custom_rules=dict(type='list', elements='dict', options=custom_rule_spec),
-            managed_rules=dict(type='dict', option=managed_rule_spec),
+            managed_rules=dict(type='dict', options=managed_rule_spec),
             state=dict(type='str', choices=['present', 'absent'], default='present')
         )
 
