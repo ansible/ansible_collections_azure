@@ -817,6 +817,7 @@ managed_rule_spec = dict(
     managed_rule_sets=dict(
         type='list',
         elements='dict',
+        required=True,
         options=dict(
             rule_set_type=dict(type='str', required=True),
             rule_set_version=dict(type='str', required=True),
@@ -829,7 +830,7 @@ managed_rule_spec = dict(
                         type='list',
                         elements='dict',
                         options=dict(
-                            rule_id=dict(type='str'),
+                            rule_id=dict(type='str', required=True),
                             state=dict(type='str', choices=['Enabled', 'Disabled']),
                             action=dict(type='str', choices=["AnomalyScoring", "Allow", "Block", "Log", "JSChallenge"]),
                             sensitivity=dict(type='str', choices=["None", "Low", "Medium", "High"])
