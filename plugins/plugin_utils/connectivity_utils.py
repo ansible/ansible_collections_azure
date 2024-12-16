@@ -350,7 +350,7 @@ def resource(client,
              status_code=None):
 
     # Construct status_code
-    if status_code == None:
+    if status_code is None:
         status_code = [200, 201, 202]
 
     # Construct parameters
