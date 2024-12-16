@@ -7,7 +7,7 @@ from __future__ import annotations
 DOCUMENTATION = '''
 ---
 module: azure_rm_arcssh
-version_added: "3.0.0"
+version_added: "3.1.0"
 short_description: Configure SSH proxy for ARC hosts
 description:
     - Configure SSH proxy for ARC hosts. Use this in combination with the
