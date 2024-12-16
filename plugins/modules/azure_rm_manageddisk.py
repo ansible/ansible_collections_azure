@@ -178,6 +178,7 @@ options:
             - Only settable for I(storage_account_type=Premium_LRS) disks.
             - Allowed values are C(P1), C(P2), C(P3), C(P4), C(P6), C(P10), C(P15), C(P20), C(P30), C(P40), C(P50), C(P60), C(P70), C(P80)
             - See U(https://learn.microsoft.com/en-us/azure/virtual-machines/disks-change-performance) for more information about disk performance tiers.
+            - Does not apply to Ultra disks.
         type: str
         choices:
             - P1
@@ -492,7 +493,7 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             ),
             tier=dict(
                 type='str',
-                choices=['', 'P1', 'P2', 'P3', 'P4', 'P6', 'P10', 'P15', 'P20', 'P30', 'P40', 'P50', 'P60', 'P70', 'P80']
+                choices=['P1', 'P2', 'P3', 'P4', 'P6', 'P10', 'P15', 'P20', 'P30', 'P40', 'P50', 'P60', 'P70', 'P80']
             ),
         )
         required_if = [
