@@ -44,6 +44,11 @@ options:
             - standard_microsoft
             - standard_azurefrontdoor
             - premium_azurefrontdoor
+            - standard_955bandwidth_chinacdn
+            - standard_avgbandwidth_chinacdn
+            - standardplus_chinacdn
+            - standardplus_955bandwidth_chinacdn
+            - standardplus_avgbandwidth_chinacdn
     state:
         description:
             - Assert the state of the CDN profile. Use C(present) to create or update a CDN profile and C(absent) to delete it.
@@ -134,9 +139,10 @@ class AzureRMCdnprofile(AzureRMModuleBaseExt):
             sku=dict(
                 type='str',
                 choices=[
-                    'standard_verizon', 'premium_verizon', 'custom_verizon', 'standard_akamai',
-                    'standard_chinacdn', 'standard_microsoft',
-                    'standard_azurefrontdoor', 'premium_azurefrontdoor'
+                    'standard_verizon', 'premium_verizon', 'custom_verizon', 'standard_akamai', 'standard_chinacdn',
+                    'standard_microsoft', 'standard_azurefrontdoor', 'premium_azurefrontdoor',
+                    'standard_955bandwidth_chinacdn', 'standard_avgbandwidth_chinacdn', 'standardplus_chinacdn',
+                    'standardplus_955bandwidth_chinacdn', 'standardplus_avgbandwidth_chinacdn'
                 ]
             ),
             identity=dict(
