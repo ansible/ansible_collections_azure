@@ -97,7 +97,6 @@ options:
             - The scope of the device. Default value is C(None).
             - The I(device_scpe) shoud start with 'ms-azure-iot-edge://'. Sample as C(ms-azure-iot-edge://{{ edge_device_name }}-{{ generation_id }}).
         type: str
-        default: None
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
@@ -259,7 +258,7 @@ class AzureRMIoTDevice(AzureRMModuleBase):
             auth_method=dict(type='str', choices=['self_signed', 'sas', 'certificate_authority'], default='sas'),
             primary_key=dict(type='str', no_log=True, aliases=['primary_thumbprint']),
             secondary_key=dict(type='str', no_log=True, aliases=['secondary_thumbprint']),
-            device_scope=dict(type='str', default=None),
+            device_scope=dict(type='str'),
         )
 
         self.results = dict(
