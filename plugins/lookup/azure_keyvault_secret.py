@@ -162,7 +162,7 @@ def lookup_secret_non_msi(terms, vault_url, kwargs):
             secret_val = client.get_secret(term).value
             ret.append(secret_val)
         except Exception:
-            raise AnsibleError('Failed to fetch secret ' + term + '.')
+            raise AnsibleError('Failed to fetch secret ' + term + ' from ' + vault_url + '.')
     return ret
 
 
@@ -211,9 +211,9 @@ class LookupModule(LookupBase):
                     secret_res = requests.get(vault_url + '/secrets/' + term, params=secret_params, headers=secret_headers)
                     ret.append(secret_res.json()["value"])
                 except KeyError:
-                    raise AnsibleError('Failed to fetch secret ' + term + '.')
+                    raise AnsibleError('Failed to fetch secret ' + term + ' from ' + vault_url + '.')
                 except Exception:
-                    raise AnsibleError('Failed to fetch secret: ' + term + ' via MSI endpoint.')
+                    raise AnsibleError('Failed to fetch secret ' + term + ' from ' + vault_url + ' via MSI endpoint.')
             return ret
         else:
             return lookup_secret_non_msi(terms, vault_url, kwargs)
