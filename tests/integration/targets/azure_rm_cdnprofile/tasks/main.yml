@@ -32,7 +32,7 @@
   azure_rm_cdnprofile:
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
-    sku: premium_azurefrontdoor
+    sku: standard_microsoft
     location: global
     tags:
       testing: testing
@@ -61,7 +61,7 @@
   azure_rm_cdnprofile:
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
-    sku: premium_azurefrontdoor
+    sku: standard_microsoft
     location: global
     tags:
       testing: testing
@@ -90,7 +90,7 @@
   ansible.builtin.assert:
     that:
       - fact.cdnprofiles | length == 1
-      - fact.cdnprofiles[0].sku == 'Premium_AzureFrontDoor'
+      - fact.cdnprofiles[0].sku == 'Standard_Microsoft'
       - fact.cdnprofiles[0].tags.foo == 'bar'
       - fact.cdnprofiles[0].identity.type == 'UserAssigned'
       - fact.cdnprofiles[0].identity.user_assigned_identities | length == 1
@@ -100,7 +100,7 @@
   azure_rm_cdnprofile:
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
-    sku: premium_azurefrontdoor
+    sku: standard_microsoft
     location: global
     tags:
       testing: testing
@@ -122,7 +122,7 @@
   azure_rm_cdnprofile:
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
-    sku: premium_azurefrontdoor
+    sku: standard_microsoft
     location: global
     tags:
       testing: testing
@@ -152,7 +152,7 @@
   ansible.builtin.assert:
     that:
       - fact.cdnprofiles | length == 1
-      - fact.cdnprofiles[0].sku == 'Premium_AzureFrontDoor'
+      - fact.cdnprofiles[0].sku == 'Standard_Microsoft'
       - fact.cdnprofiles[0].tags.foo == 'bar'
       - fact.cdnprofiles[0].identity.type == 'UserAssigned'
       - fact.cdnprofiles[0].identity.user_assigned_identities | length == 1
@@ -162,7 +162,7 @@
   azure_rm_cdnprofile:
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
-    sku: premium_azurefrontdoor
+    sku: standard_microsoft
     location: global
     tags:
       testing: testing
@@ -191,7 +191,7 @@
   ansible.builtin.assert:
     that:
       - fact.cdnprofiles | length == 1
-      - fact.cdnprofiles[0].sku == 'Premium_AzureFrontDoor'
+      - fact.cdnprofiles[0].sku == 'Standard_Microsoft'
       - fact.cdnprofiles[0].tags.foo == 'bar'
       - fact.cdnprofiles[0].identity.type == 'UserAssigned'
       - fact.cdnprofiles[0].identity.user_assigned_identities | length == 2
@@ -202,7 +202,7 @@
   azure_rm_cdnprofile:
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
-    sku: premium_azurefrontdoor
+    sku: standard_microsoft
     location: global
     tags:
       testing: testing
@@ -228,7 +228,7 @@
   ansible.builtin.assert:
     that:
       - fact.cdnprofiles | length == 1
-      - fact.cdnprofiles[0].sku == 'Premium_AzureFrontDoor'
+      - fact.cdnprofiles[0].sku == 'Standard_Microsoft'
       - fact.cdnprofiles[0].tags.foo == 'bar'
       - fact.cdnprofiles[0].identity.type == 'SystemAssigned'
       - fact.cdnprofiles[0].identity.user_assigned_identities is not defined
@@ -250,7 +250,7 @@
   ansible.builtin.assert:
     that:
       - "fact.cdnprofiles | length == 1"
-      - fact.cdnprofiles[0].sku == 'Premium_AzureFrontDoor'
+      - fact.cdnprofiles[0].sku == 'Standard_Microsoft'
       - fact.cdnprofiles[0].tags.foo == 'bar'
       - fact.cdnprofiles[0].tags.baz == 'qux'
 
