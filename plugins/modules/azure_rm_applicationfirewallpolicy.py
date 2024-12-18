@@ -12,7 +12,7 @@ DOCUMENTATION = '''
 ---
 module: azure_rm_applicationfirewallpolicy
 version_added: "3.1.0"
-short_description: Managed the Application firewall policy instance
+short_description: Manage the Application firewall policy instance
 description:
     - Creating, Updating or Deleting the application firewall policy instance.
 options:
@@ -28,7 +28,7 @@ options:
         required: true
     location:
         description:
-            - Valid Azure location. Defaults to location of the resource group.
+            - Valid Azure location. Defaults to the location of the resource group.
         type: str
     policy_settings:
         description:
