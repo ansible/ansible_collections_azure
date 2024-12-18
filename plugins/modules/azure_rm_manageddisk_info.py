@@ -172,6 +172,18 @@ azure_managed_disk:
             type: int
             returned: always
             sample: 30
+        network_access_policy:
+            description:
+                - Policy for accessing the disk via network.
+            type: str
+            returned: always
+            sample: AllowAll
+        public_network_access:
+            description:
+                - Policy for controlling export on the disk.
+            type: str
+            returned: always
+            sample: Enabled
 '''
 
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
@@ -296,6 +308,8 @@ class AzureRMManagedDiskInfo(AzureRMModuleBase):
             disk_m_bps_read_write=managed_disk.disk_m_bps_read_write,
             disk_iops_read_only=managed_disk.disk_iops_read_only,
             disk_m_bps_read_only=managed_disk.disk_m_bps_read_only,
+            network_access_policy=managed_disk.network_access_policy,
+            public_network_access=managed_disk.public_network_access
         )
 
 
