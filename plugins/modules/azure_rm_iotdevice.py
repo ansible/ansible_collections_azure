@@ -92,6 +92,11 @@ options:
             - List is not supported.
             - Not supported in IoT Hub with Basic tier.
         type: dict
+    device_scope:
+        description:
+            - The scope of the device. Default value is C(None).
+            - The I(device_scpe) shoud start with 'ms-azure-iot-edge://'. Sample as C(ms-azure-iot-edge://{{ edge_device_name }}-{{ generation_id }}).
+        type: str
 extends_documentation_fragment:
     - azure.azcollection.azure
     - azure.azcollection.azure_tags
@@ -252,7 +257,8 @@ class AzureRMIoTDevice(AzureRMModuleBase):
             desired=dict(type='dict'),
             auth_method=dict(type='str', choices=['self_signed', 'sas', 'certificate_authority'], default='sas'),
             primary_key=dict(type='str', no_log=True, aliases=['primary_thumbprint']),
-            secondary_key=dict(type='str', no_log=True, aliases=['secondary_thumbprint'])
+            secondary_key=dict(type='str', no_log=True, aliases=['secondary_thumbprint']),
+            device_scope=dict(type='str'),
         )
 
         self.results = dict(
@@ -272,6 +278,7 @@ class AzureRMIoTDevice(AzureRMModuleBase):
         self.auth_method = None
         self.primary_key = None
         self.secondary_key = None
+        self.device_scope = None
 
         self._base_url = None
         self.mgmt_client = None
@@ -308,6 +315,8 @@ class AzureRMIoTDevice(AzureRMModuleBase):
                     if status != device['status']:
                         changed = True
                         device['status'] = status
+                if self.device_scope is not None and self.device_scope != device['device_scope']:
+                    changed = True
             if not self.check_mode:
                 if changed and update_changed:
                     device = self.update_device(device)
@@ -374,12 +383,14 @@ class AzureRMIoTDevice(AzureRMModuleBase):
         try:
             if self.auth_method == 'sas':
                 response = self.mgmt_client.update_device_with_sas(self.name, device['etag'],
-                                                                   self.primary_key, self.secondary_key, self.status, iot_edge=self.edge_enabled)
+                                                                   self.primary_key, self.secondary_key, self.status, iot_edge=self.edge_enabled,
+                                                                   device_scope=self.device_scope)
             elif self.auth_method == 'self_signed':
-                response = self.mgmt_client.update_device_with_certificate_authority(self.name, self.status, iot_edge=self.edge_enabled)
+                response = self.mgmt_client.update_device_with_certificate_authority(self.name, self.status, iot_edge=self.edge_enabled,
+                                                                                     device_scope=self.device_scope)
             elif self.auth_method == 'certificate_authority':
-                response = self.mgmt_client.update_device_with_x509(self.name, device['etag'], self.primary_key,
-                                                                    self.secondary_key, self.status, iot_edge=self.edge_enabled)
+                response = self.mgmt_client.update_device_with_x509(self.name, device['etag'], self.primary_key, self.secondary_key,
+                                                                    self.status, iot_edge=self.edge_enabled, device_scope=self.device_scope)
 
             return self.format_item(response)
         except Exception as exc:
@@ -389,12 +400,15 @@ class AzureRMIoTDevice(AzureRMModuleBase):
         response = None
         try:
             if self.auth_method == 'sas':
-                response = self.mgmt_client.create_device_with_sas(self.name, self.primary_key, self.secondary_key, self.status, iot_edge=self.edge_enabled)
+                response = self.mgmt_client.create_device_with_sas(self.name, self.primary_key, self.secondary_key,
+                                                                   self.status, iot_edge=self.edge_enabled, device_scope=self.device_scope)
             elif self.auth_method == 'self_signed':
-                response = self.mgmt_client.create_device_with_certificate_authority(self.name, self.status, iot_edge=self.edge_enabled)
+                response = self.mgmt_client.create_device_with_certificate_authority(self.name, self.status,
+                                                                                     iot_edge=self.edge_enabled, device_scope=self.device_scope)
             elif self.auth_method == 'certificate_authority':
                 response = self.mgmt_client.create_device_with_x509(self.name,
-                                                                    self.primary_key, self.secondary_key, self.status, iot_edge=self.edge_enabled)
+                                                                    self.primary_key, self.secondary_key, self.status,
+                                                                    iot_edge=self.edge_enabled, device_scope=self.device_scope)
 
             return self.format_item(response)
         except Exception as exc:
@@ -479,7 +493,8 @@ class AzureRMIoTDevice(AzureRMModuleBase):
             deviceId=item.device_id,
             etag=item.etag,
             generationId=item.generation_id,
-            lastActivityTime=item.last_activity_time
+            lastActivityTime=item.last_activity_time,
+            device_scope=item.device_scope if hasattr(item, 'device_scope') else None
         )
         if hasattr(item, 'status_updated_time'):
             format_item['statusUpdatedTime'] = item.status_updated_time
