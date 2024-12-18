@@ -342,3 +342,5 @@ action_groups:
     - azure.azcollection.azure_rm_batchaccountpool_info
     - azure.azcollection.azure_rm_batchaccountapplicationpackage
     - azure.azcollection.azure_rm_batchaccountapplicationpackage_info
+    - azure.azcollection.azure_rm_applicationfirewallpolicy
+    - azure.azcollection.azure_rm_applicationfirewallpolicy_info

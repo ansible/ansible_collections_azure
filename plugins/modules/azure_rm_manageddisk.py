@@ -195,6 +195,21 @@ options:
             - P60
             - P70
             - P80
+    network_access_policy:
+        description:
+            - Policy for accessing the disk via network.
+        type: str
+        choices:
+            - AllowAll
+            - AllowPrivate
+            - DenyAll
+    public_network_access:
+        description:
+            - Policy for controlling export on the disk.
+        type: str
+        choices:
+            - Enabled
+            - Disabled
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -364,6 +379,18 @@ state:
                 - Performance tier assigned to the managed disk.
             type: str
             sample: "P30"
+        network_access_policy:
+            description:
+                - Policy for accessing the disk via network.
+            type: str
+            returned: always
+            sample: AllowAll
+        public_network_access:
+            description:
+                - Policy for controlling export on the disk.
+            type: str
+            returned: always
+            sample: Enabled
 changed:
     description:
         - Whether or not the resource has changed.
@@ -411,6 +438,8 @@ def managed_disk_to_dict(managed_disk):
         disk_iops_read_only=managed_disk.disk_iops_read_only,
         disk_m_bps_read_only=managed_disk.disk_m_bps_read_only,
         tier=managed_disk.tier,
+        public_network_access=managed_disk.public_network_access,
+        network_access_policy=managed_disk.network_access_policy
     )
 
 
@@ -495,6 +524,14 @@ class AzureRMManagedDisk(AzureRMModuleBase):
                 type='str',
                 choices=['P1', 'P2', 'P3', 'P4', 'P6', 'P10', 'P15', 'P20', 'P30', 'P40', 'P50', 'P60', 'P70', 'P80']
             ),
+            public_network_access=dict(
+                type='str',
+                choices=['Enabled', 'Disabled']
+            ),
+            network_access_policy=dict(
+                type='str',
+                choices=['AllowAll', 'AllowPrivate', 'DenyAll']
+            )
         )
         required_if = [
             ('create_option', 'import', ['source_uri', 'storage_account_id']),
@@ -526,6 +563,8 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         self.disk_iops_read_only = None
         self.disk_m_bps_read_only = None
         self.tier = None
+        self.public_network_access = None
+        self.network_access_policy = None
 
         mutually_exclusive = [['managed_by_extended', 'managed_by']]
 
@@ -562,6 +601,10 @@ class AzureRMManagedDisk(AzureRMModuleBase):
                 self.os_type = disk_instance.get('os_type')
             if self.zone is None:
                 self.zone = disk_instance.get('zone')
+            if self.public_network_access is None:
+                self.public_network_access = disk_instance.get('public_network_access')
+            if self.network_access_policy is None:
+                self.network_access_policy = disk_instance.get('network_access_policy')
         result = disk_instance
 
         # need create or update
@@ -709,6 +752,10 @@ class AzureRMManagedDisk(AzureRMModuleBase):
             disk_params['disk_iops_read_only'] = self.disk_iops_read_only
         if self.tier is not None:
             disk_params['tier'] = self.tier
+        if self.network_access_policy is not None:
+            disk_params['network_access_policy'] = self.network_access_policy
+        if self.public_network_access is not None:
+            disk_params['public_network_access'] = self.public_network_access
         disk_params['creation_data'] = creation_data
         return disk_params
 
@@ -761,6 +808,10 @@ class AzureRMManagedDisk(AzureRMModuleBase):
         if self.tier is not None:
             if not found_disk['tier'] == self.tier:
                 resp = True
+        if self.network_access_policy is not None and found_disk['network_access_policy'] != self.network_access_policy:
+            resp = True
+        if self.public_network_access is not None and found_disk['public_network_access'] != self.public_network_access:
+            resp = True
         return resp
 
     def delete_managed_disk(self):

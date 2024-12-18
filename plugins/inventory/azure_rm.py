@@ -660,6 +660,7 @@ class AzureHost(object):
 
         new_hostvars = dict(
             network_interface=[],
+            network_interface_properties=[],
             mac_address=[],
             network_interface_id=[],
             security_group_id=[],
@@ -732,6 +733,8 @@ class AzureHost(object):
                 if nic._nic_model['properties'].get('networkSecurityGroup') else None
             new_hostvars['security_group'].append(parse_resource_id(nic._nic_model['properties']['networkSecurityGroup']['id'])['resource_name']) \
                 if nic._nic_model['properties'].get('networkSecurityGroup') else None
+
+            new_hostvars['network_interface_properties'].append(nic._nic_model)
 
         # set image and os_disk
         new_hostvars['image'] = {}
