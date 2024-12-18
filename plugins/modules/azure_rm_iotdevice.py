@@ -473,7 +473,6 @@ class AzureRMIoTDevice(AzureRMModuleBase):
             version=item.version,
             device_etag=item.device_etag,
             status=item.status,
-            device_scope=item.device_scope,
             cloud_to_device_message_count=item.cloud_to_device_message_count,
             authentication_type=item.authentication_type,
         )
@@ -495,7 +494,8 @@ class AzureRMIoTDevice(AzureRMModuleBase):
             deviceId=item.device_id,
             etag=item.etag,
             generationId=item.generation_id,
-            lastActivityTime=item.last_activity_time
+            lastActivityTime=item.last_activity_time,
+            device_scope=item.device_scope
         )
         if hasattr(item, 'status_updated_time'):
             format_item['statusUpdatedTime'] = item.status_updated_time
