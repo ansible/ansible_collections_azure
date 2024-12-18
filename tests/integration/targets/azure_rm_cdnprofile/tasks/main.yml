@@ -33,6 +33,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
     sku: premium_azurefrontdoor
+    location: global
     tags:
       testing: testing
       delete: on-exit
@@ -61,6 +62,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
     sku: premium_azurefrontdoor
+    location: global
     tags:
       testing: testing
       delete: on-exit
@@ -99,6 +101,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
     sku: premium_azurefrontdoor
+    location: global
     tags:
       testing: testing
       delete: on-exit
@@ -120,6 +123,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
     sku: premium_azurefrontdoor
+    location: global
     tags:
       testing: testing
       delete: on-exit
@@ -159,6 +163,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
     sku: premium_azurefrontdoor
+    location: global
     tags:
       testing: testing
       delete: on-exit
@@ -198,6 +203,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ cdnprofilename }}"
     sku: premium_azurefrontdoor
+    location: global
     tags:
       testing: testing
       delete: on-exit
