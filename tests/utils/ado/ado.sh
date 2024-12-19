@@ -69,19 +69,7 @@ pip install  -I -r "${TEST_DIR}/sanity-requirements.txt"
 
 pip install ansible-lint
 
-echo '---------------------------------------------------- install community.general start  ----------------------------------------------------'
-ansible-galaxy collection install community.general
-echo '---------------------------------------------------- install community.general end  ----------------------------------------------------'
-
-echo '---------------------------------------------------- check start ----------------------------------------------------'
-ansible-galaxy collection list
-echo '---------------------------------------------------- check end ----------------------------------------------------'
-
-
-echo '---------------------------------------------------- check start ----------------------------------------------------'
-ls -al ansible_collections
-echo '---------------------------------------------------- check end  ----------------------------------------------------'
-
+ansible-galaxy collection install community.general -p "${HOME}/.ansible"
 
 timeout=180
 
