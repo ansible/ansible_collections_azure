@@ -1195,9 +1195,6 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                 return True
         return False
 
-    # check if startup file has changed
-
-
     # comparing deployment source with input, determine wheather it's changed
     def is_deployment_source_changed(self, existing_webapp):
         if self.deployment_source:
