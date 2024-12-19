@@ -137,6 +137,12 @@ azure_managed_disk:
                 - Tags to assign to the managed disk.
             type: dict
             sample: { "tag": "value" }
+        tier:
+            description:
+                - Performance tier assigned to the managed disk.
+                - See U(https://learn.microsoft.com/en-us/azure/virtual-machines/disks-change-performance) for more information about disk performance tiers.
+            type: str
+            sample: "P30"
         time_created:
             description:
                 - The time the disk was created.
@@ -308,6 +314,7 @@ class AzureRMManagedDiskInfo(AzureRMModuleBase):
             disk_m_bps_read_write=managed_disk.disk_m_bps_read_write,
             disk_iops_read_only=managed_disk.disk_iops_read_only,
             disk_m_bps_read_only=managed_disk.disk_m_bps_read_only,
+            tier=managed_disk.tier,
             network_access_policy=managed_disk.network_access_policy,
             public_network_access=managed_disk.public_network_access
         )
