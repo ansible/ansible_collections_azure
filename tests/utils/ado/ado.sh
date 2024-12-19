@@ -69,6 +69,7 @@ pip install  -I -r "${TEST_DIR}/sanity-requirements.txt"
 
 pip install ansible-lint
 
+# tmp workaround
 ansible-galaxy collection install community.general -p "${HOME}/.ansible"
 
 timeout=180
