@@ -866,6 +866,8 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
 
         self._managed_identity = None
 
+        self.startup_file = None
+
         super(AzureRMWebApps, self).__init__(derived_arg_spec=self.module_arg_spec,
                                              mutually_exclusive=mutually_exclusive,
                                              supports_check_mode=True,
