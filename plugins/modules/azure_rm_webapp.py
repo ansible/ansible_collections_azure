@@ -855,7 +855,8 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                                                  "always_on",
                                                  "http20_enabled",
                                                  "min_tls_version",
-                                                 "ftps_state"]
+                                                 "ftps_state",
+                                                 "app_command_line"]
 
         # updatable_properties
         self.updatable_properties = ["client_affinity_enabled",
@@ -1062,6 +1063,9 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                 # check if site_config changed
                 old_config = self.get_webapp_configuration()
 
+                if self.is_startup_file_changed(old_config):
+                    self.site_config['app_command_line'] = self.startup_file
+
                 if self.is_site_config_changed(old_config):
                     to_be_updated = True
                     self.to_do.append(Actions.CreateOrUpdate)
@@ -1169,6 +1173,17 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
 
         return False
 
+    # check if startup file changed
+    def is_startup_file_changed(self, existing_config):
+        self_name = "startup_file"
+        property_name = "app_command_line"
+        if hasattr(self, self_name) and getattr(self, self_name) is not None:
+            if not getattr(existing_config, property_name) or \
+                    str(getattr(existing_config, property_name)).upper() != str(self.startup_file).upper():
+                return True
+
+        return False
+
     # comparing existing app setting with input, determine whether it's changed
     def is_app_settings_changed(self):
         if self.app_settings:
@@ -1179,6 +1194,9 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
             else:
                 return True
         return False
+
+    # check if startup file has changed
+
 
     # comparing deployment source with input, determine wheather it's changed
     def is_deployment_source_changed(self, existing_webapp):
