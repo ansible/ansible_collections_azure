@@ -58,7 +58,7 @@ fi
 source hacking/env-setup
 pip install paramiko PyYAML Jinja2  httplib2 six
 
-TEST_DIR="${HOME}/.ansible/ansible_collections/azure/azcollection"
+TEST_DIR="${HOME}/.ansible/ansible_collections"
 mkdir -p "${TEST_DIR}"
 cp -aT "${SHIPPABLE_BUILD_DIR}" "${TEST_DIR}"
 cd "${TEST_DIR}"
