@@ -58,7 +58,7 @@ fi
 source hacking/env-setup
 pip install paramiko PyYAML Jinja2  httplib2 six
 
-TEST_DIR="${HOME}/.ansible/ansible_collections"
+TEST_DIR="${HOME}/.ansible/ansible_collections/azure/azcollection"
 mkdir -p "${TEST_DIR}"
 cp -aT "${SHIPPABLE_BUILD_DIR}" "${TEST_DIR}"
 cd "${TEST_DIR}"
@@ -68,6 +68,9 @@ pip install  -I -r "${TEST_DIR}/requirements.txt"
 pip install  -I -r "${TEST_DIR}/sanity-requirements.txt"
 
 pip install ansible-lint
+
+# tmp workaround
+ansible-galaxy collection install community.general -p "${HOME}/.ansible"
 
 timeout=180
 
