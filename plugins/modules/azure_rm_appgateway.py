@@ -799,12 +799,16 @@ options:
     web_application_firewall_configuration:
         version_added: "1.15.0"
         description:
-            - Web application firewall configuration of the application gateway reosurce.
+            - Web application firewall configuration of the application gateway resource.
+            - >
+              Note that as of version 2.8.0, I(firewall_policy) is required instead of deprecated options.
+              See https://github.com/ansible-collections/azure/pull/1697.
         type: dict
         suboptions:
             disabled_rule_groups:
                 description:
-                    - The disabled rule groups.
+                    - (Deprecated) The disabled rule groups.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: list
                 elements: dict
                 default: []
@@ -821,11 +825,13 @@ options:
                         default: []
             enabled:
                 description:
-                    - Whether the web application firewall is enabled or not.
+                    - (Deprecated) Whether the web application firewall is enabled or not.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: bool
             exclusions:
                 description:
-                    - The exclusion list.
+                    - (Deprecated) The exclusion list.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: list
                 elements: dict
                 default: []
@@ -845,38 +851,64 @@ options:
                         type: str
             file_upload_limit_in_mb:
                 description:
-                    - Maximum file upload size in Mb for WAF.
+                    - (Deprecated) Maximum file upload size in Mb for WAF.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: int
             firewall_mode:
                 description:
-                    - Web application firewall mode.
+                    - (Deprecated) Web application firewall mode.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: str
                 choices:
                     - 'Detection'
                     - 'Prevention'
             max_request_body_size:
                 description:
-                    - Maximum request body size for WAF.
+                    - (Deprecated) Maximum request body size for WAF.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: int
             max_request_body_size_in_kb:
                 description:
-                    - Maximum request body size in Kb for WAF.
+                    - (Deprecated) Maximum request body size in Kb for WAF.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: int
             request_body_check:
                 description:
-                    - Whether allow WAF to check request Body.
+                    - (Deprecated) Whether allow WAF to check request Body.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: bool
             rule_set_type:
                 description:
-                    - The type of the web application firewall rule set.
+                    - (Deprecated) The type of the web application firewall rule set.
                     - Possible values are 'OWASP'.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: str
                 choices:
                     - 'OWASP'
             rule_set_version:
                 description:
-                    - The version of the rule set type.
+                    - (Deprecated) The version of the rule set type.
+                    - This value has been deprecated, and will be removed in a later version. Use I(firewall_policy) instead.
                 type: str
+            firewall_policy:
+                version_added: "2.8.0"
+                description:
+                    - Web application firewall policy for the application gateway.
+                type: dict
+                suboptions:
+                    id:
+                        description:
+                            - Resource ID of the firewall policy. Required if I(name) is not provided.
+                        type: str
+                    name:
+                        description:
+                            - Name of the firewall policy (in same subscription and region). Used if I(id) is not provided.
+                        type: str
+                    force_association:
+                        description:
+                            - If true, associates the firewall policy with an application gateway regardless whether the policy differs from the WAF Config.
+                        type: bool
+                        default: true
     gateway_state:
         description:
             - Start or Stop the application gateway. When specified, no updates will occur to the gateway.
@@ -1725,6 +1757,12 @@ waf_configuration_disabled_rule_groups_spec = dict(
     rules=dict(type='list', elements='int', default=[]),
 )
 
+firewall_policy_spec = dict(
+    id=dict(type='str'),
+    name=dict(type='str'),
+    force_association=dict(type='bool', default=True),
+)
+
 web_application_firewall_configuration_spec = dict(
     enabled=dict(type='bool'),
     firewall_mode=dict(type='str', choices=['Detection', 'Prevention']),
@@ -1736,6 +1774,7 @@ web_application_firewall_configuration_spec = dict(
     file_upload_limit_in_mb=dict(type='int'),
     exclusions=dict(type='list', elements='dict', options=waf_configuration_exclusions_spec, default=[]),
     disabled_rule_groups=dict(type='list', elements='dict', options=waf_configuration_disabled_rule_groups_spec, default=[]),
+    firewall_policy=dict(type='dict', options=firewall_policy_spec),
 )
 
 trusted_root_certificates_spec = dict(
@@ -2345,7 +2384,7 @@ class AzureRMApplicationGateways(AzureRMModuleBaseExt):
                 elif key == "autoscale_configuration":
                     self.parameters["autoscale_configuration"] = kwargs[key]
                 elif key == "web_application_firewall_configuration":
-                    self.parameters["web_application_firewall_configuration"] = kwargs[key]
+                    self.set_web_application_firewall_configuration(kwargs)
                 elif key == "enable_http2":
                     self.parameters["enable_http2"] = kwargs[key]
                 elif key == "tags":
@@ -2594,6 +2633,27 @@ class AzureRMApplicationGateways(AzureRMModuleBaseExt):
 
         return False
 
+    def set_web_application_firewall_configuration(self, kwargs):
+        waf_config = dict(kwargs['web_application_firewall_configuration'])
+        if waf_config is None:
+            return
+
+        if 'firewall_policy' in waf_config and waf_config['firewall_policy'] is not None:
+            if 'name' in waf_config['firewall_policy'] and waf_config['firewall_policy']['name'] is not None:
+                waf_config['firewall_policy']['id'] = waf_policy_id(self.subscription_id,
+                                                                    kwargs['resource_group'],
+                                                                    waf_config['firewall_policy']['name'])
+                del waf_config['firewall_policy']['name']
+
+            self.parameters['force_firewall_policy_association'] = waf_config['firewall_policy']['force_association']
+            del waf_config['firewall_policy']['force_association']
+            self.parameters['firewall_policy'] = waf_config['firewall_policy']
+        else:
+            self.module.deprecate("The WAF configuration can no longer be added to an application gateway." +
+                                  "Please use a WAF policy via 'firewall_policy' instead.",
+                                  version='4.0.0',
+                                  collection_name='azure.azcollection')
+
 
 def public_ip_id(subscription_id, resource_group_name, name):
     """Generate the id for a frontend ip configuration"""
@@ -2752,6 +2812,15 @@ def trusted_root_certificate_id(subscription_id, resource_group_name, appgateway
         resource_group_name,
         appgateway_name,
         name
+    )
+
+
+def waf_policy_id(subscription_id, resource_group_name, policy_name):
+    """Generate the id for a web application firewall policy"""
+    return '/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/{2}'.format(
+        subscription_id,
+        resource_group_name,
+        policy_name,
     )
 
 
