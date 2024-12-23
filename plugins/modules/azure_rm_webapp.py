@@ -855,7 +855,8 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                                                  "always_on",
                                                  "http20_enabled",
                                                  "min_tls_version",
-                                                 "ftps_state"]
+                                                 "ftps_state",
+                                                 "app_command_line"]
 
         # updatable_properties
         self.updatable_properties = ["client_affinity_enabled",
@@ -865,6 +866,8 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
         self.supported_windows_frameworks = ['net_framework', 'php', 'python', 'node', 'java', 'dotnetcore']
 
         self._managed_identity = None
+
+        self.startup_file = None
 
         super(AzureRMWebApps, self).__init__(derived_arg_spec=self.module_arg_spec,
                                              mutually_exclusive=mutually_exclusive,
@@ -1060,6 +1063,9 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                 # check if site_config changed
                 old_config = self.get_webapp_configuration()
 
+                if self.is_startup_file_changed(old_config):
+                    self.site_config['app_command_line'] = self.startup_file
+
                 if self.is_site_config_changed(old_config):
                     to_be_updated = True
                     self.to_do.append(Actions.CreateOrUpdate)
@@ -1164,6 +1170,17 @@ class AzureRMWebApps(AzureRMModuleBaseExt):
                 if not getattr(existing_config, updatable_property) or \
                         str(getattr(existing_config, updatable_property)).upper() != str(self.site_config.get(updatable_property)).upper():
                     return True
+
+        return False
+
+    # check if startup file changed
+    def is_startup_file_changed(self, existing_config):
+        self_name = "startup_file"
+        property_name = "app_command_line"
+        if hasattr(self, self_name) and getattr(self, self_name) is not None:
+            if not getattr(existing_config, property_name) or \
+                    str(getattr(existing_config, property_name)).upper() != str(self.startup_file).upper():
+                return True
 
         return False
 
