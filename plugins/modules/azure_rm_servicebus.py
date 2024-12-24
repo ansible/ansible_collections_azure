@@ -47,6 +47,10 @@ options:
             - basic
             - premium
         default: standard
+    service_bus_endpoint:
+        description:
+            - The ID of endpoint that you can use to perform Service Bus operations.
+        type: str
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -100,7 +104,7 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                 type="dict",
                 options=self.managed_identity_multiple_spec
             ),
-
+            service_bus_endpoint=dict(type='str'),
         )
 
         self.resource_group = None
@@ -111,6 +115,7 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
         self._managed_identity = None
         self.identity = None
         self.update_identity = False
+        self.service_bus_endpoint = None
 
         self.results = dict(
             changed=False,
@@ -199,6 +204,7 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                                                                               self.name,
                                                                               self.servicebus_models.SBNamespace(location=self.location,
                                                                                                                  tags=self.tags,
+                                                                                                                 service_bus_endpoint=self.service_bus_endpoint,
                                                                                                                  sku=sku,
                                                                                                                  identity=self.identity))
             ns = self.get_poller_result(poller)
