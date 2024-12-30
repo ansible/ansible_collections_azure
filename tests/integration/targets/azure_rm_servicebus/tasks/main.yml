@@ -270,11 +270,12 @@
 
 - name: Assert the facts
   ansible.builtin.assert:
-    - facts.servicebuses[0].disable_local_auth is false
-    - facts.servicebuses[0].zone_redundant is false
-    - facts.servicebuses[0].minimum_tls_version == '1.2'
-    - facts.servicebuses[0].public_network_access == 'Disabled'
-    - facts.servicebuses[0].premium_messaging_partitions == 1
+    that:
+      - facts.servicebuses[0].disable_local_auth is false
+      - facts.servicebuses[0].zone_redundant is false
+      - facts.servicebuses[0].minimum_tls_version == '1.2'
+      - facts.servicebuses[0].public_network_access == 'Disabled'
+      - facts.servicebuses[0].premium_messaging_partitions == 1
 
 - name: Create a queue
   azure_rm_servicebusqueue:
