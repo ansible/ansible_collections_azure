@@ -104,10 +104,6 @@ options:
         description:
             - This property disables SAS authentication for the Service Bus namespace.
         type: bool
-    alternate_name:
-        description:
-            - Alternate name for namespace.
-        type: str
     public_network_access:
         description:
             - This determines if traffic is allowed over public network.
@@ -171,10 +167,11 @@ encryption_spec = dict(
     key_vault_properties=dict(
         type='list',
         elements='dict',
+        no_log=True,
         options=dict(
             key_name=dict(type='str'),
-            key_vault_uri=dict(type='str'),
-            key_version=dict(type='str'),
+            key_vault_uri=dict(type='str', no_log=True),
+            key_version=dict(type='str', no_log=True),
             identity=dict(
                 type='dict',
                 options=dict(
@@ -183,7 +180,7 @@ encryption_spec = dict(
             )
         )
     ),
-    key_source=dict(type='str', default="Microsoft.KeyVault"),
+    key_source=dict(type='str', default="Microsoft.KeyVault", no_log=True),
     require_infrastructure_encryption=dict(type='bool')
 )
 
@@ -206,7 +203,6 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
             zone_redundant=dict(type='bool'),
             encryption=dict(type='dict', options=encryption_spec),
             disable_local_auth=dict(type='bool'),
-            alternate_name=dict(type='str'),
             public_network_access=dict(type='str', default='Enabled', choices=["Enabled", "Disabled", "SecuredByPerimeter"]),
             premium_messaging_partitions=dict(type='int', default=1, choices=[1, 2, 4])
         )
@@ -223,7 +219,6 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
         self.zone_redundant = None
         self.encryption = None
         self.disable_local_auth = None
-        self.alternate_name = None
         self.public_network_access = None
         self.premium_messaging_partitions = None
 
@@ -275,12 +270,30 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                     if update_tags:
                         changed = True
                         self.tags = new_tags
-                        original = self.create()
                     if self.update_identity:
                         changed = True
-                        original = self.create()
+                    if self.minimum_tls_version is not None and self.minimum_tls_version != original.minimum_tls_version:
+                        changed = True
                     else:
-                        changed = False
+                        self.minimum_tls_version = original.minimum_tls_version
+                    if self.premium_messaging_partitions is not None and self.premium_messaging_partitions != original.premium_messaging_partitions:
+                        changed = True
+                    else:
+                        self.premium_messaging_partitions = original.premium_messaging_partitions
+                    if self.public_network_access is not None and self.public_network_access != original.public_network_access:
+                        changed = True
+                    else:
+                        self.public_network_access = original.public_network_access
+                    if self.zone_redundant is not None and bool(self.zone_redundant) != bool(original.zone_redundant):
+                        changed = True
+                    else:
+                        self.zone_redundant = original.zone_redundant
+                    if self.disable_local_auth is not None and bool(self.disable_local_auth) != bool(original.disable_local_auth):
+                        changed = True
+                    else:
+                        self.disable_local_auth = original.disable_local_auth
+                    if changed:
+                        original = self.create()
                 else:
                     changed = True
                     original = self.create()
@@ -317,7 +330,6 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                                                             zone_redundant=self.zone_redundant,
                                                             encryption=self.encryption,
                                                             disable_local_auth=self.disable_local_auth,
-                                                            alternate_name=self.alternate_name,
                                                             public_network_access=self.public_network_access,
                                                             premium_messaging_partitions=self.premium_messaging_partitions,
                                                             identity=self.identity)
