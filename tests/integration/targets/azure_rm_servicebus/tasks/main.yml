@@ -149,7 +149,7 @@
     minimum_tls_version: '1.1'
     zone_redundant: false
     disable_local_auth: true
-    public_network_access: Enabled
+    public_network_access: Disabled
     premium_messaging_partitions: 1
     tags:
       key1: value1
@@ -168,7 +168,7 @@
     minimum_tls_version: '1.2'
     zone_redundant: false
     disable_local_auth: false
-    public_network_access: Disabled
+    public_network_access: Enabled
     premium_messaging_partitions: 1
     tags:
       key1: value1
@@ -192,7 +192,7 @@
       - facts.servicebuses[0].disable_local_auth is false
       - facts.servicebuses[0].zone_redundant is false
       - facts.servicebuses[0].minimum_tls_version == '1.2'
-      - facts.servicebuses[0].public_network_access == 'Disabled'
+      - facts.servicebuses[0].public_network_access == 'Enabled'
       - facts.servicebuses[0].premium_messaging_partitions == 1
 
 - name: Create a queue
