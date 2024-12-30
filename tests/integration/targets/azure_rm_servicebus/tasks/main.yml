@@ -202,53 +202,6 @@
     resource_group: "{{ resource_group }}"
     max_message_size_in_kb: 2048
     max_size_in_mb: 2048
-- name: Create a queue
-  azure_rm_servicebusqueue:
-    name: "queue{{ rpfx }}"
-    namespace: "ns{{ rpfx }}"
-    resource_group: "{{ resource_group }}"
-    max_message_size_in_kb: 2048
-    max_size_in_mb: 2048
-- name: Create a secondary namespace
-  azure_rm_servicebus:
-    name: "ns{{ rpfx }}02"
-    resource_group: "{{ resource_group }}"
-    sku: premium
-    minimum_tls_version: '1.1'
-    zone_redundant: false
-    identity:
-      type: UserAssigned
-      user_assigned_identities:
-        id:
-          - "{{ managed_identity_ids[2] }}"
-    encryption:
-      key_vault_properties:
-        - key_name: testkeyEC
-          key_vault_uri: https://vault{{ rpfx }}.vault.azure.net
-          key_version: "{{ key_output.keys[0].version }}"
-          identity:
-            user_assigned_identity: "{{ managed_identity_ids[2] }}"
-      key_source: "Microsoft.KeyVault"
-      require_infrastructure_encryption: true
-    disable_local_auth: true
-    public_network_access: Enabled
-    premium_messaging_partitions: 1
-    tags:
-      key1: value1
-  register: output
-
-- name: Assert the service bus created
-  ansible.builtin.assert:
-    that:
-      - output.changed
-
-- name: Create a queue
-  azure_rm_servicebusqueue:
-    name: "queue{{ rpfx }}"
-    namespace: "ns{{ rpfx }}"
-    resource_group: "{{ resource_group }}"
-    max_message_size_in_kb: 2048
-    max_size_in_mb: 2048
   register: queue
 
 - name: Assert the queue created
