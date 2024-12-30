@@ -59,47 +59,6 @@ options:
         description:
             - Enabling this property creates a Premium Service Bus Namespace in regions supported availability zones.
         type: bool
-    encryption:
-        description:
-            - Properties of BYOK Encryption description.
-        type: dict
-        suboptions:
-            key_vault_properties:
-                description:
-                    - Properties of KeyVault.
-                type: list
-                elements: dict
-                suboptions:
-                    key_name:
-                        description:
-                            - Name of the Key from KeyVault.
-                        type: str
-                    key_vault_uri:
-                        description:
-                            - Uri of KeyVault.
-                        type: str
-                    key_version:
-                        description:
-                            - Version of KeyVault.
-                        type: str
-                    identity:
-                        description:
-                            - User Identity selected for encryption.
-                        type: dict
-                        suboptions:
-                            user_assigned_identity:
-                                description:
-                                    - ARM ID of user Identity selected for encryption.
-                                type: str
-            key_source:
-                description:
-                    - Enumerates the possible value of keySource for Encryption.
-                type: str
-                default: Microsoft.KeyVault
-            require_infrastructure_encryption:
-                description:
-                    - Enable Infrastructure Encryption (Double Encryption).
-                type: bool
     disable_local_auth:
         description:
             - This property disables SAS authentication for the Service Bus namespace.
@@ -163,28 +122,6 @@ from ansible.module_utils._text import to_native
 from datetime import datetime, timedelta
 
 
-encryption_spec = dict(
-    key_vault_properties=dict(
-        type='list',
-        elements='dict',
-        no_log=True,
-        options=dict(
-            key_name=dict(type='str'),
-            key_vault_uri=dict(type='str', no_log=True),
-            key_version=dict(type='str', no_log=True),
-            identity=dict(
-                type='dict',
-                options=dict(
-                    user_assigned_identity=dict(type='str')
-                )
-            )
-        )
-    ),
-    key_source=dict(type='str', default="Microsoft.KeyVault", no_log=True),
-    require_infrastructure_encryption=dict(type='bool')
-)
-
-
 class AzureRMServiceBus(AzureRMModuleBaseExt):
 
     def __init__(self):
@@ -201,7 +138,6 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
             ),
             minimum_tls_version=dict(type='str', choices=['1.0', '1.1', '1.2']),
             zone_redundant=dict(type='bool'),
-            encryption=dict(type='dict', options=encryption_spec),
             disable_local_auth=dict(type='bool'),
             public_network_access=dict(type='str', default='Enabled', choices=["Enabled", "Disabled", "SecuredByPerimeter"]),
             premium_messaging_partitions=dict(type='int', default=1, choices=[1, 2, 4])
@@ -217,7 +153,6 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
         self.update_identity = False
         self.minimum_tls_version = None
         self.zone_redundant = None
-        self.encryption = None
         self.disable_local_auth = None
         self.public_network_access = None
         self.premium_messaging_partitions = None
@@ -329,7 +264,6 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                                                             sku=sku,
                                                             minimum_tls_version=self.minimum_tls_version,
                                                             zone_redundant=self.zone_redundant,
-                                                            encryption=self.encryption,
                                                             disable_local_auth=self.disable_local_auth,
                                                             public_network_access=self.public_network_access,
                                                             premium_messaging_partitions=self.premium_messaging_partitions,
