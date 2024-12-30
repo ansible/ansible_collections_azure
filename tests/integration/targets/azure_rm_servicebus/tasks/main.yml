@@ -159,7 +159,7 @@
       name: standard
       family: A
     access_policies:
-      - tenant_id: "{{ azure_tenan }}"
+      - tenant_id: "{{ azure_tenant }}"
         object_id: '{{ object_id }}'
         keys:
           - get
