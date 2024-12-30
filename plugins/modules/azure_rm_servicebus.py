@@ -47,10 +47,94 @@ options:
             - basic
             - premium
         default: standard
-    service_bus_endpoint:
+    minimum_tls_version:
         description:
-            - The ID of endpoint that you can use to perform Service Bus operations.
-        type: str
+            description:
+                - The minimum TLS version for the cluster to support.
+            type: str
+            choices:
+                - '1.0'
+                - '1.1'
+                - '1.2'
+    zone_redundant:
+        description:
+            description:
+                - Enabling this property creates a Premium Service Bus Namespace in regions supported availability zones.
+            type: bool
+    encryption:
+        description:
+            description:
+                - Properties of BYOK Encryption description.
+            type: dict
+            suboptions:
+                key_vault_properties:
+                    description:
+                        - Properties of KeyVault.
+                    type: list
+                    elements: dict
+                    suboptions:
+                        key_name:
+                            description:
+                                - Name of the Key from KeyVault.
+                            type: str
+                        key_vault_uri:
+                            description:
+                                - Uri of KeyVault.
+                            type: str
+                        key_version:
+                            description:
+                                - Version of KeyVault.
+                            type: str
+                        identity:
+                            description:
+                                - User Identity selected for encryption.
+                            type: dict
+                            suboptions:
+                                user_assigned_identity:
+                                    description:
+                                        - ARM ID of user Identity selected for encryption.
+                                    type: str
+                key_source:
+                    description:
+                        - Enumerates the possible value of keySource for Encryption.
+                    type: str
+                    default: Microsoft.KeyVault
+                require_infrastructure_encryption:
+                    description:
+                        - Enable Infrastructure Encryption (Double Encryption).
+                    type: bool
+    disable_local_auth:
+        description:
+            description:
+                - This property disables SAS authentication for the Service Bus namespace.
+            type: bool
+    alternate_name:
+        description:
+            description:
+                - Alternate name for namespace.
+            type: str
+    public_network_access:
+        description:
+            description:
+                - This determines if traffic is allowed over public network.
+                - By default it is C(Enabled).
+            type: str
+            default: Enabled
+            choices:
+                - Enabled
+                - Disabled
+                - SecuredByPerimeter
+    premium_messaging_partitions:
+        description:
+            description:
+                - The number of partitions of a Service Bus namespace.
+                - This property is only applicable to Premium SKU namespaces.
+            type: int
+            default: 1
+            choices:
+                - 1
+                - 2
+                - 4
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -90,6 +174,27 @@ from ansible.module_utils._text import to_native
 from datetime import datetime, timedelta
 
 
+encryption_spec = dict(
+    key_vault_properties=dict(
+        type='list',
+        elements='dict',
+        options=dict(
+            key_name=dict(type='str'),
+            key_vault_uri=dict(type='str'),
+            key_version=dict(type='str'),
+            identity=dict(
+                type='dict',
+                options=dict(
+                    user_assigned_identity=dict(type='str')
+                )
+            )
+        )
+    ),
+    key_source=dict(type='str', default="Microsoft.KeyVault"),
+    require_infrastructure_encryption=dict(type='bool')
+)
+
+
 class AzureRMServiceBus(AzureRMModuleBaseExt):
 
     def __init__(self):
@@ -104,7 +209,13 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                 type="dict",
                 options=self.managed_identity_multiple_spec
             ),
-            service_bus_endpoint=dict(type='str'),
+            minimum_tls_version=dict(type='str', choices=['1.0', '1.1', '1.2']),
+            zone_redundant=dict(type='bool'),
+            encryption=dict(type='dict', options=encryption_spec),
+            disable_local_auth=dict(type='bool'),
+            alternate_name=dict(type='str'),
+            public_network_access=dict(type='str', default='Enabled', choices=["Enabled", "Disabled", "SecuredByPerimeter"]),
+            premium_messaging_partitions=dict(type='int', default=1, choices=[1, 2, 4])
         )
 
         self.resource_group = None
@@ -115,7 +226,13 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
         self._managed_identity = None
         self.identity = None
         self.update_identity = False
-        self.service_bus_endpoint = None
+        self.minimum_tls_version = None
+        self.zone_redundant = None
+        self.encryption = None
+        self.disable_local_auth = None
+        self.alternate_name = None
+        self.public_network_access = None
+        self.premium_messaging_partitions = None
 
         self.results = dict(
             changed=False,
@@ -200,13 +317,18 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
         self.log('Cannot find namespace, creating a one')
         try:
             sku = self.servicebus_models.SBSku(name=str.capitalize(self.sku))
-            poller = self.servicebus_client.namespaces.begin_create_or_update(self.resource_group,
-                                                                              self.name,
-                                                                              self.servicebus_models.SBNamespace(location=self.location,
-                                                                                                                 tags=self.tags,
-                                                                                                                 service_bus_endpoint=self.service_bus_endpoint,
-                                                                                                                 sku=sku,
-                                                                                                                 identity=self.identity))
+            parameters = self.servicebus_models.SBNamespace(location=self.location,
+                                                            tags=self.tags,
+                                                            sku=sku,
+                                                            minimum_tls_version=self.minimum_tls_version,
+                                                            zone_redundant=self.zone_redundant,
+                                                            encryption=self.encryption,
+                                                            disable_local_auth=self.disable_local_auth,
+                                                            alternate_name=self.alternate_name,
+                                                            public_network_access=self.public_network_access,
+                                                            premium_messaging_partitions=self.premium_messaging_partitions,
+                                                            identity=self.identity)
+            poller = self.servicebus_client.namespaces.begin_create_or_update(self.resource_group, self.name, parameters)
             ns = self.get_poller_result(poller)
         except Exception as exc:
             self.fail('Error creating namespace {0} - {1}'.format(self.name, str(exc)))
