@@ -286,6 +286,7 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                         self.public_network_access = original.public_network_access
                     if self.zone_redundant is not None and bool(self.zone_redundant) != bool(original.zone_redundant):
                         changed = True
+                        self.fail("The zone_redundant is an immutable property")
                     else:
                         self.zone_redundant = original.zone_redundant
                     if self.disable_local_auth is not None and bool(self.disable_local_auth) != bool(original.disable_local_auth):
