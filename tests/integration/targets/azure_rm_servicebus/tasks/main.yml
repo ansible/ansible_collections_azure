@@ -141,6 +141,60 @@
       - namespace.identity.user_assigned_identities | length == 1
       - namespace.identity.user_assigned_identities[managed_identity_ids[2]] is defined
 
+- name: Create a secondary namespace
+  azure_rm_servicebus:
+    name: "ns{{ rpfx }}02"
+    resource_group: "{{ resource_group }}"
+    sku: premium
+    minimum_tls_version: '1.1'
+    zone_redundant: false
+    disable_local_auth: true
+    public_network_access: Disabled
+    premium_messaging_partitions: 1
+    tags:
+      key1: value1
+  register: output
+
+- name: Assert the service bus created
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Update the secondary namespace
+  azure_rm_servicebus:
+    name: "ns{{ rpfx }}02"
+    resource_group: "{{ resource_group }}"
+    sku: premium
+    minimum_tls_version: '1.2'
+    zone_redundant: false
+    disable_local_auth: false
+    public_network_access: Enabled
+    premium_messaging_partitions: 1
+    tags:
+      key1: value1
+  register: output
+
+- name: Assert the service bus udpated
+  ansible.builtin.assert:
+    that:
+      - output.changed
+
+- name: Gather the namespace facts
+  azure_rm_servicebus_info:
+    name: "ns{{ rpfx }}"
+    type: namespace
+    resource_group: "{{ resource_group }}"
+  register: facts
+
+- name: Assert the facts
+  ansible.builtin.assert:
+    that:
+      - facts.servicebuses[0].disable_local_auth is false
+      - facts.servicebuses[0].zone_redundant is false
+      - facts.servicebuses[0].minimum_tls_version == '1.2'
+      - facts.servicebuses[0].public_network_access == 'Enabled'
+      - facts.servicebuses[0].premium_messaging_partitions == 1
+
 - name: Create a queue
   azure_rm_servicebusqueue:
     name: "queue{{ rpfx }}"

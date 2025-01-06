@@ -47,6 +47,42 @@ options:
             - basic
             - premium
         default: standard
+    minimum_tls_version:
+        description:
+            - The minimum TLS version for the cluster to support.
+        type: str
+        choices:
+            - '1.0'
+            - '1.1'
+            - '1.2'
+    zone_redundant:
+        description:
+            - Enabling this property creates a Premium Service Bus Namespace in regions supported availability zones.
+        type: bool
+    disable_local_auth:
+        description:
+            - This property disables SAS authentication for the Service Bus namespace.
+        type: bool
+    public_network_access:
+        description:
+            - This determines if traffic is allowed over public network.
+            - By default it is C(Enabled).
+        type: str
+        default: Enabled
+        choices:
+            - Enabled
+            - Disabled
+            - SecuredByPerimeter
+    premium_messaging_partitions:
+        description:
+            - The number of partitions of a Service Bus namespace.
+            - This property is only applicable to Premium SKU namespaces.
+        type: int
+        default: 1
+        choices:
+            - 1
+            - 2
+            - 4
 
 extends_documentation_fragment:
     - azure.azcollection.azure
@@ -100,7 +136,11 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                 type="dict",
                 options=self.managed_identity_multiple_spec
             ),
-
+            minimum_tls_version=dict(type='str', choices=['1.0', '1.1', '1.2']),
+            zone_redundant=dict(type='bool'),
+            disable_local_auth=dict(type='bool'),
+            public_network_access=dict(type='str', default='Enabled', choices=["Enabled", "Disabled", "SecuredByPerimeter"]),
+            premium_messaging_partitions=dict(type='int', default=1, choices=[1, 2, 4])
         )
 
         self.resource_group = None
@@ -111,6 +151,11 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
         self._managed_identity = None
         self.identity = None
         self.update_identity = False
+        self.minimum_tls_version = None
+        self.zone_redundant = None
+        self.disable_local_auth = None
+        self.public_network_access = None
+        self.premium_messaging_partitions = None
 
         self.results = dict(
             changed=False,
@@ -160,12 +205,31 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
                     if update_tags:
                         changed = True
                         self.tags = new_tags
-                        original = self.create()
                     if self.update_identity:
                         changed = True
-                        original = self.create()
+                    if self.minimum_tls_version is not None and self.minimum_tls_version != original.minimum_tls_version:
+                        changed = True
                     else:
-                        changed = False
+                        self.minimum_tls_version = original.minimum_tls_version
+                    if self.premium_messaging_partitions is not None and self.premium_messaging_partitions != original.premium_messaging_partitions:
+                        changed = True
+                    else:
+                        self.premium_messaging_partitions = original.premium_messaging_partitions
+                    if self.public_network_access is not None and self.public_network_access != original.public_network_access:
+                        changed = True
+                    else:
+                        self.public_network_access = original.public_network_access
+                    if self.zone_redundant is not None and bool(self.zone_redundant) != bool(original.zone_redundant):
+                        changed = True
+                        self.fail("The zone_redundant is an immutable property")
+                    else:
+                        self.zone_redundant = original.zone_redundant
+                    if self.disable_local_auth is not None and bool(self.disable_local_auth) != bool(original.disable_local_auth):
+                        changed = True
+                    else:
+                        self.disable_local_auth = original.disable_local_auth
+                    if changed:
+                        original = self.create()
                 else:
                     changed = True
                     original = self.create()
@@ -195,12 +259,16 @@ class AzureRMServiceBus(AzureRMModuleBaseExt):
         self.log('Cannot find namespace, creating a one')
         try:
             sku = self.servicebus_models.SBSku(name=str.capitalize(self.sku))
-            poller = self.servicebus_client.namespaces.begin_create_or_update(self.resource_group,
-                                                                              self.name,
-                                                                              self.servicebus_models.SBNamespace(location=self.location,
-                                                                                                                 tags=self.tags,
-                                                                                                                 sku=sku,
-                                                                                                                 identity=self.identity))
+            parameters = self.servicebus_models.SBNamespace(location=self.location,
+                                                            tags=self.tags,
+                                                            sku=sku,
+                                                            minimum_tls_version=self.minimum_tls_version,
+                                                            zone_redundant=self.zone_redundant,
+                                                            disable_local_auth=self.disable_local_auth,
+                                                            public_network_access=self.public_network_access,
+                                                            premium_messaging_partitions=self.premium_messaging_partitions,
+                                                            identity=self.identity)
+            poller = self.servicebus_client.namespaces.begin_create_or_update(self.resource_group, self.name, parameters)
             ns = self.get_poller_result(poller)
         except Exception as exc:
             self.fail('Error creating namespace {0} - {1}'.format(self.name, str(exc)))
