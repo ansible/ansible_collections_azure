@@ -434,8 +434,12 @@ class AzureRMTrafficManagerProfileInfo(AzureRMModuleBase):
             timeout=tm.monitor_config.timeout_in_seconds,
             tolerated_failures=tm.monitor_config.tolerated_number_of_failures,
             custom_headers=[dict(name=x.name, value=x.value) for x in tm.monitor_config.custom_headers] if tm.monitor_config.custom_headers else None,
-            expected_status_code_ranges=[dict(min=x.min, max=x.max) for x in tm.monitor_config.expected_status_code_ranges] if tm.monitor_config.expected_status_code_ranges else None
+            expected_status_code_ranges=[]
         )
+        if tm.monitor_config.expected_status_code_ranges:
+            for item in tm.monitor_config.expected_status_code_ranges:
+                new_result['monitor_config']['expected_status_code_ranges'].append(dict(min=item.min, max=item.max)
+
         new_result['endpoints'] = [serialize_endpoint(endpoint) for endpoint in tm.endpoints]
         new_result['tags'] = tm.tags
         return new_result
