@@ -406,7 +406,7 @@ class AzureRMTrafficManagerProfile(AzureRMModuleBaseExt):
                 options=monitor_config_spec
             ),
             max_return=dict(
-                 type='int'
+                type='int'
             ),
             allowed_endpoint_record_types=dict(
                 type='list',
@@ -574,7 +574,8 @@ class AzureRMTrafficManagerProfile(AzureRMModuleBaseExt):
             self.max_return = response['max_return']
 
         if not self.default_compare({}, self.allowed_endpoint_record_types, response['allowed_endpoint_record_types'], '', dict(compare=[])):
-            self.log("Profile allowed_endpoint_record_types Diff - Origin {0} / Update {1}".format(response['allowed_endpoint_record_types'], self.allowed_endpoint_record_types))
+            self.log("Profile allowed_endpoint_record_types Diff - Origin {0} / Update {1}".format(response['allowed_endpoint_record_types'],
+                                                                                                   self.allowed_endpoint_record_types))
             return True
 
         if not self.default_compare({}, self.monitor_config, response['monitor_config'], '', dict(compare=[])):
