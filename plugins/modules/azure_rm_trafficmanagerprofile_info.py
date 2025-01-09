@@ -438,7 +438,7 @@ class AzureRMTrafficManagerProfileInfo(AzureRMModuleBase):
         )
         if tm.monitor_config.expected_status_code_ranges:
             for item in tm.monitor_config.expected_status_code_ranges:
-                new_result['monitor_config']['expected_status_code_ranges'].append(dict(min=item.min, max=item.max)
+                new_result['monitor_config']['expected_status_code_ranges'].append(dict(min=item.min, max=item.max))
 
         new_result['endpoints'] = [serialize_endpoint(endpoint) for endpoint in tm.endpoints]
         new_result['tags'] = tm.tags
