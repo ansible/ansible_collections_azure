@@ -190,8 +190,7 @@
     resource_group: "{{ resource_group }}"
     name: "{{ tmname }}02"
   register: fact
-- debug:
-    var: fact
+
 - name: Assert fact returns the created one
   ansible.builtin.assert:
     that:
