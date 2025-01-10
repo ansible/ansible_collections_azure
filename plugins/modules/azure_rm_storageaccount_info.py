@@ -758,7 +758,7 @@ class AzureRMStorageAccountInfo(AzureRMModuleBase):
                 index_document=None,
                 error_document404_path=None,
             ),
-            immutable_storage_with_versioning=dict()
+            immutable_storage_with_versioning=account_obj.immutable_storage_with_versioning.as_dict() if account_obj.immutable_storage_with_versioning else None
         )
 
         account_dict['geo_replication_stats'] = None
@@ -857,14 +857,7 @@ class AzureRMStorageAccountInfo(AzureRMModuleBase):
         account_dict['identity'] = dict()
         if account_obj.identity:
             account_dict['identity'] = account_obj.identity.as_dict()
-        if account_obj.immutable_storage_with_versioning is not None:
-            account_dict['immutable_storage_with_versioning']['enabled'] = account_obj.immutable_storage_with_versioning.enabled
-            account_dict['immutable_storage_with_versioning']['immutability_policy'] = dict()
-            if account_obj.immutable_storage_with_versioning.immutability_policy is not None:
-                ipc = account_obj.immutable_storage_with_versioning.immutability_policy
-                account_dict['immutable_storage_with_versioning']['immutability_policy']['immutability_period_since_creation_in_days'] = ipc.immutability_period_since_creation_in_days
-                account_dict['immutable_storage_with_versioning']['immutability_policy']['allow_protected_append_writes'] = ipc.allow_protected_append_writes
-                account_dict['immutable_storage_with_versioning']['immutability_policy']['state'] = ipc.state
+
         return account_dict
 
     def format_endpoint_dict(self, name, key, endpoint, storagetype, protocol='https'):
