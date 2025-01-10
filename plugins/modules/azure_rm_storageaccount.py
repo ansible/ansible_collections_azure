@@ -337,14 +337,16 @@ options:
                 type: bool
             immutability_policy:
                 description:
-                    - Specifies the default account-level immutability policy which is inherited and applied to objects that do not possess an explicit immutability policy at the object level.
-                    -  The object-level immutability policy has higher precedence than the container-level immutability policy, which has a higher precedence than the account-level immutability policy.
+                    - Specifies the default account-level immutability policy which is inherited and
+                      applied to objects that do not possess an explicit immutability policy at the object level.
+                    - The object-level immutability policy has higher precedence than the container-level immutability policy,
+                      which has a higher precedence than the account-level immutability policy.
                 type: dict
                 suboptions:
                     allow_protected_append_writes:
                         description:
-                            - This property can only be changed for disabled and unlocked time-based retention policies.
-                            - When enabled, new blocks can be written to an append blob while maintaining immutability protection and compliance.
+                            - This property can only be changed for C(disabled) and C(unlocked) time-based retention policies.
+                            - When C(enabled), new blocks can be written to an append blob while maintaining immutability protection and compliance.
                             - Only new blocks can be added and any existing blocks cannot be modified or deleted.
                         type: bool
                     state:
@@ -569,8 +571,10 @@ state:
                     sample: true
                 immutability_policy:
                     description:
-                        - Specifies the default account-level immutability policy which is inherited and applied to objects that do not possess an explicit immutability policy at the object level.
-                        -  The object-level immutability policy has higher precedence than the container-level immutability policy, which has a higher precedence than the account-level immutability policy.
+                        - Specifies the default account-level immutability policy which is inherited and
+                          applied to objects that do not possess an explicit immutability policy at the object level.
+                        - The object-level immutability policy has higher precedence than the container-level immutability policy,
+                          which has a higher precedence than the account-level immutability policy.
                     type: dict
                     returned: when-used
                     contains:
@@ -1162,9 +1166,10 @@ class AzureRMStorageAccount(AzureRMModuleBaseExt):
                 account_dict['immutable_storage_with_versioning']['enabled'] = account_obj.immutable_storage_with_versioning.enabled
                 account_dict['immutable_storage_with_versioning']['immutability_policy'] = dict()
                 if account_obj.immutable_storage_with_versioning.immutability_policy is not None:
-                    account_dict['immutable_storage_with_versioning']['immutability_policy']['immutability_period_since_creation_in_days'] = account_obj.immutable_storage_with_versioning.immutability_policy.immutability_period_since_creation_in_days
-                    account_dict['immutable_storage_with_versioning']['immutability_policy']['allow_protected_append_writes'] = account_obj.immutable_storage_with_versioning.immutability_policy.allow_protected_append_writes
-                    account_dict['immutable_storage_with_versioning']['immutability_policy']['state'] = account_obj.immutable_storage_with_versioning.immutability_policy.state
+                    ipc = account_obj.immutable_storage_with_versioning.immutability_policy
+                    account_dict['immutable_storage_with_versioning']['immutability_policy']['immutability_period_since_creation_in_days'] = ipc.immutability_period_since_creation_in_days
+                    account_dict['immutable_storage_with_versioning']['immutability_policy']['allow_protected_append_writes'] = ipc.allow_protected_append_writes
+                    account_dict['immutable_storage_with_versioning']['immutability_policy']['state'] = ipc.state
                 else:
                     account_dict['immutable_storage_with_versioning']['immutability_policy'] = None
 

@@ -246,8 +246,10 @@ storageaccounts:
                     sample: true
                 immutability_policy:
                     description:
-                        - Specifies the default account-level immutability policy which is inherited and applied to objects that do not possess an explicit immutability policy at the object level.
-                        -  The object-level immutability policy has higher precedence than the container-level immutability policy, which has a higher precedence than the account-level immutability policy.
+                        - Specifies the default account-level immutability policy which is inherited and
+                          applied to objects that do not possess an explicit immutability policy at the object level.
+                        - The object-level immutability policy has higher precedence than the container-level immutability policy,
+                          which has a higher precedence than the account-level immutability policy.
                     type: dict
                     returned: when-used
                     contains:
@@ -859,9 +861,10 @@ class AzureRMStorageAccountInfo(AzureRMModuleBase):
             account_dict['immutable_storage_with_versioning']['enabled'] = account_obj.immutable_storage_with_versioning.enabled
             account_dict['immutable_storage_with_versioning']['immutability_policy'] = dict()
             if account_obj.immutable_storage_with_versioning.immutability_policy is not None:
-                account_dict['immutable_storage_with_versioning']['immutability_policy']['immutability_period_since_creation_in_days'] = account_obj.immutable_storage_with_versioning.immutability_policy.immutability_period_since_creation_in_days
-                account_dict['immutable_storage_with_versioning']['immutability_policy']['allow_protected_append_writes'] = account_obj.immutable_storage_with_versioning.immutability_policy.allow_protected_append_writes
-                account_dict['immutable_storage_with_versioning']['immutability_policy']['state'] = account_obj.immutable_storage_with_versioning.immutability_policy.state
+                ipc = account_obj.immutable_storage_with_versioning.immutability_policy
+                account_dict['immutable_storage_with_versioning']['immutability_policy']['immutability_period_since_creation_in_days'] = ipc.immutability_period_since_creation_in_days
+                account_dict['immutable_storage_with_versioning']['immutability_policy']['allow_protected_append_writes'] = ipc.allow_protected_append_writes
+                account_dict['immutable_storage_with_versioning']['immutability_policy']['state'] = ipc.state
         return account_dict
 
     def format_endpoint_dict(self, name, key, endpoint, storagetype, protocol='https'):
