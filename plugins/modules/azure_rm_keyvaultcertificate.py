@@ -344,7 +344,7 @@ certificates:
 from ansible_collections.azure.azcollection.plugins.module_utils.azure_rm_common import AzureRMModuleBase
 
 try:
-    from azure.keyvault.certificates import CertificateClient
+    from azure.keyvault.certificates import CertificateClient, CertificatePolicy, LifetimeAction
     from azure.core.exceptions import ResourceNotFoundError
     import base64
 except ImportError:
@@ -445,8 +445,8 @@ def policy_bundle_to_dict(policy):
             policy['lifetime_actions'] = []
             for item in policy._lifetime_actions:
                 policy['lifetime_actions'].append(dict(action=item.action,
-                                                                   lifetime_percentage=item.lifetime_percentage,
-                                                                   days_before_expiry=item.days_before_expiry))
+                                                       lifetime_percentage=item.lifetime_percentage,
+                                                       days_before_expiry=item.days_before_expiry))
         else:
             policy['lifetime_actions'] = None
     else:
@@ -539,7 +539,8 @@ policy_spec = dict(
     san_dns_names=dict(type='list', elements='str'),
     san_user_principal_names=dict(type='list', elements='str'),
     lifetime_actions=dict(
-        type='dict',
+        type='list',
+        elements='dict',
         options=dict(
             action=dict(type='str', choices=['EmailContacts', 'AutoRenew']),
             lifetime_percentage=dict(type='int'),
@@ -572,6 +573,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
         self.password = None
         self.backup = None
         self.x509_certificates = None
+        self.state = None
 
         self.results = dict(changed=False)
         self._client = None
@@ -588,6 +590,8 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
         for certificate in list(self.module_arg_spec.keys()) + ['tags']:
             if hasattr(self, certificate):
                 setattr(self, certificate, kwargs[certificate])
+            else:
+                setattr(self, certificate, None)
 
         self._client = self.get_keyvault_client()
         changed = False
@@ -665,21 +669,11 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
         '''
         self.log("Get the certificate {0}".format(self.name))
 
-        results = []
         try:
-            response = self._client.get_certificate(certificate_name=self.name)
+            return certificatebundle_to_dict(self._client.get_certificate(certificate_name=self.name))
 
-            if response:
-                response = certificatebundle_to_dict(response)
-                if self.has_tags(response['properties']['tags'], self.tags):
-                    self.log("Response : {0}".format(response))
-                    results.append(response)
-
-        except ResourceNotFoundError as ec:
+        except Exception as ec:
             self.log("Did not find the key vault certificate {0}: {1}".format(self.name, str(ec)))
-        except Exception as ec2:
-            self.fail("Find the key vault certificate got exception, exception as {0}".format(str(ec2)))
-        return results
 
     def create_certificate(self):
         '''
@@ -690,8 +684,13 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
         self.log("Create the certificate {0}".format(self.name))
 
         try:
+            import logging
+            lifetime_actions = []
+            for item in self.policy['lifetime_actions']:
+                lifetime_actions.append(LifetimeAction(**item))
+            self.policy['lifetime_actions'] = lifetime_actions
             response = self._client.begin_create_certificate(certificate_name=self.name,
-                                                             policy=self.policy,
+                                                             policy=CertificatePolicy(**self.policy),
                                                              enabled=self.enabled,
                                                              tags=self.tags)
 
@@ -700,7 +699,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
                 return response
 
         except Exception as ec:
-            self.log("Did not create the key vault certificate {0}: {1}".format(self.name, str(ec)))
+            self.fail("Did not create the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def import_certificate(self):
         '''
@@ -723,7 +722,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
                 return response
 
         except Exception as ec:
-            self.log("Did not import the key vault certificate {0}: {1}".format(self.name, str(ec)))
+            self.fail("Did not import the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def delete_certificate(self):
         '''
@@ -739,7 +738,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
                 return deleted_certificatebundle_to_dict(response)
 
         except Exception as ec:
-            self.log("Did not delete the key vault certificate {0}: {1}".format(self.name, str(ec)))
+            self.fail("Did not delete the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def get_deleted_certificate(self):
         '''
@@ -749,22 +748,10 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
         '''
         self.log("Get the certificate {0}".format(self.name))
 
-        results = []
         try:
-            response = self._client.get_deleted_certificate(certificate_name=self.name)
-
-            if response:
-                response = deleted_certificatebundle_to_dict(response)
-                if self.has_tags(response['properties'].get('tags'), self.tags):
-                    self.log("Response : {0}".format(response))
-                    results.append(response)
-
-        except ResourceNotFoundError as ec:
-            self.log("Did not find the key vault certificate {0}: {1}".format(
-                self.name, str(ec)))
-        except Exception as ec2:
-            self.fail("Find the key vault certificate got exception, exception as {0}".format(str(ec2)))
-        return results
+            return deleted_certificatebundle_to_dict(self._client.get_deleted_certificate(certificate_name=self.name))
+        except Exception as ec:
+            self.log("Find the key vault certificate got exception, exception as {0}".format(str(ec)))
 
     def recover_certificate(self):
         '''
@@ -780,7 +767,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
                 return certificatebundle_to_dict(response)
 
         except Exception as ec:
-            self.log("Did not recover the key vault certificate {0}: {1}".format(self.name, str(ec)))
+            self.fail("Did not recover the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def backup_certificate(self):
         '''
@@ -792,7 +779,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
             return self._client.backup_certificate(certificate_name=self.name)
 
         except Exception as ec:
-            self.log("Did not backup the key vault certificate {0}: {1}".format(self.name, str(ec)))
+            self.fail("Did not backup the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def restore_certificate(self):
         '''
@@ -808,7 +795,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
                 return certificatebundle_to_dict(response)
 
         except Exception as ec:
-            self.log("Did not restore the key vault certificate {0}: {1}".format(self.name, str(ec)))
+            self.fail("Did not restore the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def merge_certificate(self):
         '''
@@ -826,6 +813,8 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
                                                       
             if response is not None:
                 return certificatebundle_to_dict(response)
+        except Exception as ec:
+            self.fail("Did not merge the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def update_certificate_properties(self):
         '''
@@ -843,6 +832,8 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
                                                       
             if response is not None:
                 return certificatebundle_to_dict(response)
+        except Exception as ec:
+            self.fail("Did not update the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def update_certificate_policy(self):
         '''
@@ -860,7 +851,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
                 return policy_bundle_to_dict(response)
 
         except Exception as ec:
-            self.log("Did not update policy in the key vault certificate {0}: {1}".format(self.name, str(ec)))
+            self.fail("Did not update policy in the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
     def purge_certificate(self):
         '''
@@ -872,7 +863,7 @@ class AzureRMKeyVaultCertificate(AzureRMModuleBase):
             self._client.purge_deleted_certificate(certificate_name=self.name)
 
         except Exception as ec:
-            self.log("Did not permanently delete the key vault certificate {0}: {1}".format(self.name, str(ec)))
+            self.fail("Did not permanently delete the key vault certificate {0}: {1}".format(self.name, str(ec)))
 
 
 def main():
