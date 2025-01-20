@@ -341,6 +341,10 @@ options:
                     - None
                     - ReadOnly
                     - ReadWrite
+            write_accelerator_enabled:
+                description:
+                    - Specifies whether writeAccelerator should be enabled or disabled on the disk.
+                type: bool
     public_ip_allocation_method:
         description:
             - Allocation method for the public IP of the VM.
@@ -1238,7 +1242,8 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                     storage_account_name=dict(type='str'),
                     storage_container_name=dict(type='str', default='vhds'),
                     storage_blob_name=dict(type='str'),
-                    caching=dict(type='str', choices=['None', 'ReadOnly', 'ReadWrite'])
+                    caching=dict(type='str', choices=['None', 'ReadOnly', 'ReadWrite']),
+                    write_accelerator_enabled=dict(type='bool')
                 )
             ),
             plan=dict(type='dict'),
@@ -2111,6 +2116,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                                 create_option=create_option,
                                 disk_size_gb=data_disk['disk_size_gb'],
                                 managed_disk=data_disk_managed_disk,
+                                write_accelerator_enabled=data_disk.get('write_accelerator_enabled'),
                             ))
 
                         vm_resource.storage_profile.data_disks = data_disks
@@ -2409,6 +2415,7 @@ class AzureRMVirtualMachine(AzureRMModuleBase):
                                 create_option=data_disk.get('create_option'),
                                 disk_size_gb=int(data_disk.get('disk_size_gb', 0)) or None,
                                 managed_disk=data_disk_managed_disk,
+                                write_accelerator_enabled=data_disk.get('write_accelerator_enabled')
                             ))
                         vm_resource.storage_profile.data_disks = data_disks
 
